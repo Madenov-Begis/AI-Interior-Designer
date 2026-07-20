@@ -1,8 +1,9 @@
 import { after, type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { createGenerationSchema, idempotencyKeySchema } from "@/features/generations/schema";
+import { createGenerationSchema, idempotencyKeySchema, listGenerationsSchema } from "@/features/generations/schema";
 import { GenerationReservationError, reserveGeneration } from "@/features/generations/reservation";
 import { processGeneration } from "@/features/generations/worker";
+import { listOwnedGenerations } from "@/features/generations/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError, upsertProfileFromAuthUser } from "@/lib/auth/current-user";
@@ -32,5 +33,18 @@ export async function POST(request: NextRequest) {
     if (error instanceof GenerationReservationError) return apiError(error.code, error.message, requestId, reservationStatus[error.code] ?? 400);
     if (error instanceof ZodError) return apiError("VALIDATION_ERROR", "Проверьте инструкцию, модель и формат", requestId, 400, error.flatten());
     return apiError("GENERATION_CREATE_FAILED", "Не удалось создать генерацию", requestId, 500);
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const requestId = getRequestId(request.headers);
+  try {
+    const user = await requireCurrentUser();
+    const input = listGenerationsSchema.parse(Object.fromEntries(request.nextUrl.searchParams));
+    return apiSuccess(await listOwnedGenerations(user.id, input), requestId);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
+    if (error instanceof ZodError) return apiError("VALIDATION_ERROR", "Некорректные фильтры истории", requestId, 400, error.flatten());
+    return apiError("HISTORY_READ_FAILED", "Не удалось получить историю", requestId, 500);
   }
 }

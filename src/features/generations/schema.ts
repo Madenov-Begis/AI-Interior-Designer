@@ -10,3 +10,10 @@ export const createGenerationSchema = z.object({
 export const idempotencyKeySchema = z.string().trim().min(16).max(128);
 
 export const generationIdSchema = z.uuid();
+
+export const listGenerationsSchema = z.object({
+  cursor: z.uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  status: z.enum(["QUEUED", "PROCESSING", "SUCCEEDED", "FAILED", "CANCELLED", "REJECTED"]).optional(),
+  projectId: z.uuid().optional(),
+});

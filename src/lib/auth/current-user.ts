@@ -32,9 +32,11 @@ export async function upsertProfileFromAuthUser(user: User) {
   const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
 
   const { freePlan } = await ensureSystemDefaults();
-  return getDb().profile.upsert({
+  const profile = await getDb().profile.upsert({
     where: { id: user.id },
     create: { id: user.id, email: user.email, firstName, lastName, displayName, avatarUrl, lastLoginAt: new Date(), planId: freePlan.id },
     update: { email: user.email, firstName, lastName, displayName, avatarUrl, lastLoginAt: new Date(), deletedAt: null },
   });
+  if (!profile.planId) return getDb().profile.update({ where: { id: profile.id }, data: { planId: freePlan.id } });
+  return profile;
 }

@@ -67,7 +67,7 @@ export default async function ProjectDesignPage({ params }: { params: Promise<{ 
             initialState={(project.canvasState as VisualPromptCanvasState | null) ?? null}
           />
           <ReferenceManager projectId={project.id} initialReferences={referenceUrls} />
-          <GenerationPanel projectId={project.id} initialPrompt={project.prompt} initialAspectRatio={project.aspectRatio} />
+          <GenerationPanel projectId={project.id} sourceUrl={signed.data.signedUrl} initialPrompt={project.prompt} initialAspectRatio={project.aspectRatio} />
         </div>
       </div>
     </main>

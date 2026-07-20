@@ -32,3 +32,36 @@ export function getOwnedGeneration(userId: string, id: string) {
     select: { id: true, projectId: true, status: true, prompt: true, finalPrompt: true, aspectRatio: true, visualPromptUsed: true, resultUserId: true, errorCode: true, errorMessage: true, queuedAt: true, startedAt: true, completedAt: true, durationMs: true, model: { select: { code: true, name: true } } },
   });
 }
+
+export async function listOwnedGenerations(userId: string, input: { limit: number; cursor?: string; status?: "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REJECTED"; projectId?: string }) {
+  const rows = await getDb().generation.findMany({
+    where: { userId, deletedAt: null, status: input.status, projectId: input.projectId },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: input.limit + 1,
+    ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+    select: {
+      id: true, projectId: true, status: true, prompt: true, aspectRatio: true, visualPromptUsed: true,
+      resultUserId: true, errorCode: true, queuedAt: true, completedAt: true, durationMs: true,
+      project: { select: { name: true, sourcePreviewId: true } },
+      model: { select: { code: true, name: true } },
+      _count: { select: { references: true } },
+    },
+  });
+  const hasMore = rows.length > input.limit;
+  const items = hasMore ? rows.slice(0, input.limit) : rows;
+  return { items, nextCursor: hasMore ? items.at(-1)?.id ?? null : null };
+}
+
+export async function cancelOwnedGeneration(userId: string, id: string) {
+  return getDb().$transaction(async (tx) => {
+    const cancelled = await tx.generation.updateMany({ where: { id, userId, status: "QUEUED", deletedAt: null }, data: { status: "CANCELLED", completedAt: new Date() } });
+    if (cancelled.count === 0) return false;
+    await tx.usageEvent.updateMany({ where: { generationId: id, status: "RESERVED" }, data: { status: "REFUNDED", refundedAt: new Date(), reason: "USER_CANCELLED" } });
+    return true;
+  });
+}
+
+export async function softDeleteOwnedGeneration(userId: string, id: string) {
+  const updated = await getDb().generation.updateMany({ where: { id, userId, status: { notIn: ["QUEUED", "PROCESSING"] }, deletedAt: null }, data: { deletedAt: new Date() } });
+  return updated.count > 0;
+}

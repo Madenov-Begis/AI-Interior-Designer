@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buttonClassName } from "@/components/ui/button";
+import { BeforeAfter } from "@/components/design/before-after";
 
-type Props = { projectId: string; initialPrompt?: string | null; initialAspectRatio?: string };
+type Props = { projectId: string; sourceUrl: string; initialPrompt?: string | null; initialAspectRatio?: string };
 type Model = { code: string; name: string; description: string | null; supportedAspectRatios: string[] };
 type Generation = { id: string; status: string; resultUserId: string | null; errorCode: string | null; errorMessage: string | null; durationMs: number | null };
 
@@ -19,7 +20,7 @@ async function readJson(response: Response) {
   return payload.data;
 }
 
-export function GenerationPanel({ projectId, initialPrompt, initialAspectRatio = "RATIO_16_9" }: Props) {
+export function GenerationPanel({ projectId, sourceUrl, initialPrompt, initialAspectRatio = "RATIO_16_9" }: Props) {
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState(initialPrompt || DEFAULT_PROMPT);
   const [aspectRatio, setAspectRatio] = useState(initialAspectRatio);
@@ -60,6 +61,13 @@ export function GenerationPanel({ projectId, initialPrompt, initialAspectRatio =
     })) as Promise<{ id: string; status: string }>,
     onSuccess: (data) => setGenerationId(data.id),
   });
+  const cancelMutation = useMutation({
+    mutationFn: async () => readJson(await fetch(`/api/v1/generations/${generationId}/cancel`, { method: "POST" })),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["generation", generationId] });
+      void queryClient.invalidateQueries({ queryKey: ["usage", "today"] });
+    },
+  });
 
   const status = generationQuery.data?.status;
   const active = createMutation.isPending || status === "QUEUED" || status === "PROCESSING";
@@ -87,11 +95,11 @@ export function GenerationPanel({ projectId, initialPrompt, initialAspectRatio =
 
       {(createMutation.error || generationQuery.data?.errorMessage) && <p className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{createMutation.error?.message ?? generationQuery.data?.errorMessage}</p>}
       {active && <p className="mt-5 rounded-xl bg-surface-elevated p-4 text-sm text-muted">{status === "PROCESSING" ? "AI обрабатывает изображение…" : "Ставим генерацию в очередь…"}</p>}
+      {status === "QUEUED" && <button type="button" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending} className="mt-3 text-sm font-bold text-red-300">Отменить генерацию</button>}
       {resultUrlQuery.data?.url && (
-        <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-black">
-          {/* Signed result URL is private, short lived, and cannot use a stable Next Image loader. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={resultUrlQuery.data.url} alt="Результат AI-визуализации" className="max-h-[900px] w-full object-contain" />
+        <div className="mt-5 grid gap-3">
+          <BeforeAfter beforeUrl={sourceUrl} afterUrl={resultUrlQuery.data.url} />
+          <a href={`/api/v1/generations/${generationId}/download`} className={buttonClassName("secondary", "rounded-xl text-center")}>Скачать результат</a>
         </div>
       )}
 

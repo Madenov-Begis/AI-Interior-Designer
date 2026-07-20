@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { buttonClassName } from "@/components/ui/button";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireCurrentUser, UnauthorizedError, upsertProfileFromAuthUser } from "@/lib/auth/current-user";
+import { listProjects } from "@/features/projects/service";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppDashboardPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) redirect("/login");
+  let user;
+  try { user = await requireCurrentUser(); } catch (error) { if (error instanceof UnauthorizedError) redirect("/login"); throw error; }
+  await upsertProfileFromAuthUser(user);
+  const { items: projects } = await listProjects(user.id, 6);
 
   return (
     <main className="min-h-screen bg-background p-3 text-foreground sm:p-5">
@@ -18,7 +20,8 @@ export default async function AppDashboardPage() {
           <nav className="mt-10 space-y-2 text-sm">
             <Link href="/app/design" className="block rounded-xl bg-surface-elevated px-4 py-3 font-bold text-accent">＋ Новый дизайн</Link>
             <span className="block rounded-xl px-4 py-3 text-muted">Проекты</span>
-            <span className="block rounded-xl px-4 py-3 text-muted">История</span>
+            <Link href="/app/history" className="block rounded-xl px-4 py-3 text-muted hover:bg-surface-elevated hover:text-foreground">История</Link>
+            <Link href="/app/profile" className="block rounded-xl px-4 py-3 text-muted hover:bg-surface-elevated hover:text-foreground">Профиль</Link>
           </nav>
           <div className="mt-auto border-t border-border pt-5 text-sm text-muted"><b className="text-foreground">Обычный тариф</b><br />Лимиты появятся после создания профиля.</div>
         </aside>
@@ -37,6 +40,7 @@ export default async function AppDashboardPage() {
               <Link href="#" aria-disabled="true" className={buttonClassName("primary", "mt-8 w-full pointer-events-none opacity-60")}>Визуализировать →</Link>
             </aside>
           </div>
+          {projects.length > 0 && <section className="mt-8"><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-black tracking-[0.18em] text-accent uppercase">Проекты</p><h2 className="mt-2 text-2xl font-black italic">Продолжить работу</h2></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{projects.map((project) => <Link key={project.id} href={`/app/design/${project.id}`} className="rounded-2xl border border-border bg-background p-5 transition-colors hover:border-accent/50"><div className="flex items-start justify-between gap-3"><h3 className="font-black">{project.name}</h3><span className="rounded-full bg-surface-elevated px-2 py-1 text-[10px] text-muted">{project.status}</span></div><p className="mt-6 text-xs text-muted">Обновлён {project.updatedAt.toLocaleDateString("ru-RU")}</p></Link>)}</div></section>}
         </section>
       </div>
     </main>
