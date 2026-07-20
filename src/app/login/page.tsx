@@ -13,15 +13,14 @@ export default function LoginPage() {
         <p className="mt-10 text-xs font-black tracking-[0.2em] text-accent uppercase">Личный кабинет</p>
         <h1 className="mt-3 text-4xl font-black tracking-[-0.045em] italic">Войдите, чтобы начать дизайн</h1>
         <p className="mt-4 leading-7 text-muted">Загружайте фотографии, сохраняйте проекты и возвращайтесь к истории генераций.</p>
-        <button
-          type="button"
-          disabled
-          className={buttonClassName("secondary", "mt-8 w-full cursor-not-allowed justify-center rounded-xl opacity-70")}
+        <Link
+          href="/api/v1/auth/google"
+          className={buttonClassName("secondary", "mt-8 w-full justify-center rounded-xl")}
         >
           <span className="grid size-7 place-items-center rounded-full bg-foreground font-bold text-background">G</span>
           Продолжить с Google
-        </button>
-        <p className="mt-3 text-center text-xs text-muted">Google OAuth будет подключён на этапе авторизации.</p>
+        </Link>
+        <p className="mt-3 text-center text-xs text-muted">Мы используем Google только для безопасного входа.</p>
         <Link href="/" className="mt-8 block text-center text-sm text-muted transition-colors hover:text-foreground">← Вернуться на главную</Link>
       </section>
     </main>
