@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
+import { ReferenceManager } from "@/components/design/reference-manager";
 import { findOwnedProject } from "@/features/projects/service";
 import type { VisualPromptCanvasState } from "@/features/visual-prompt/types";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
@@ -27,6 +28,18 @@ export default async function ProjectDesignPage({ params }: { params: Promise<{ 
     .createSignedUrl(project.sourcePreview.path, 600);
   if (signed.error || !signed.data.signedUrl) throw new Error("Не удалось открыть изображение проекта");
 
+  const referenceUrls = await Promise.all(project.references.map(async (reference) => {
+    const result = await getSupabaseAdmin().storage.from(reference.file.bucket).createSignedUrl(reference.file.path, 600);
+    if (result.error || !result.data.signedUrl) throw new Error("Не удалось открыть референс проекта");
+    return {
+      id: reference.id,
+      fileId: reference.fileId,
+      position: reference.position,
+      sourceUrl: reference.sourceUrl,
+      previewUrl: result.data.signedUrl,
+    };
+  }));
+
   return (
     <main className="min-h-screen bg-background p-3 text-foreground sm:p-5">
       <div className="mx-auto max-w-[1600px] rounded-[var(--radius-lg)] border border-border bg-surface p-4 sm:p-7">
@@ -52,6 +65,7 @@ export default async function ProjectDesignPage({ params }: { params: Promise<{ 
             sourceHeight={project.sourceImage.height ?? project.sourcePreview.height ?? 900}
             initialState={(project.canvasState as VisualPromptCanvasState | null) ?? null}
           />
+          <ReferenceManager projectId={project.id} initialReferences={referenceUrls} />
         </div>
       </div>
     </main>

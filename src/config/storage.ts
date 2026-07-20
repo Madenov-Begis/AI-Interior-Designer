@@ -20,3 +20,12 @@ export const VISUAL_PROMPT_RULES = {
   maxOverlayBytes: 15 * 1024 * 1024,
   outputQuality: 92,
 } as const;
+
+export const REFERENCE_IMAGE_RULES = {
+  maxBytes: 15 * 1024 * 1024,
+  minWidth: 128,
+  minHeight: 128,
+  maxSide: 6000,
+  maxCount: 10,
+  allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"] as const,
+} as const;
