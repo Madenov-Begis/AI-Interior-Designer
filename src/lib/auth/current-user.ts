@@ -6,8 +6,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureSystemDefaults } from "@/features/plans/defaults";
 
 export class UnauthorizedError extends Error {
-  constructor() {
-    super("Требуется авторизация");
+  constructor(message = "Требуется авторизация") {
+    super(message);
     this.name = "UnauthorizedError";
   }
 }
@@ -19,6 +19,8 @@ export async function requireCurrentUser(): Promise<User> {
 
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user || data.user.id !== claimsData.claims.sub) throw new UnauthorizedError();
+  const profile = await getDb().profile.findUnique({ where: { id: data.user.id }, select: { status: true } });
+  if (profile && profile.status !== "ACTIVE") throw new UnauthorizedError("Аккаунт заблокирован");
   return data.user;
 }
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { buttonClassName } from "@/components/ui/button";
 import { requireCurrentUser, UnauthorizedError, upsertProfileFromAuthUser } from "@/lib/auth/current-user";
 import { listProjects } from "@/features/projects/service";
+import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ export default async function AppDashboardPage() {
   try { user = await requireCurrentUser(); } catch (error) { if (error instanceof UnauthorizedError) redirect("/login"); throw error; }
   await upsertProfileFromAuthUser(user);
   const { items: projects } = await listProjects(user.id, 6);
+  const now = new Date();
+  const notification = await getDb().notification.findFirst({ where: { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: { createdAt: "desc" } });
 
   return (
     <main className="min-h-screen bg-background p-3 text-foreground sm:p-5">
@@ -26,6 +29,7 @@ export default async function AppDashboardPage() {
           <div className="mt-auto border-t border-border pt-5 text-sm text-muted"><b className="text-foreground">Обычный тариф</b><br />Лимиты появятся после создания профиля.</div>
         </aside>
         <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 sm:p-7">
+          {notification && <div className="mb-5 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm"><b>{notification.title ?? "Уведомление"}</b><span className="ml-2 text-muted">{notification.content}</span>{notification.linkUrl && <a href={notification.linkUrl} className="ml-2 font-bold text-accent" rel="noreferrer">Подробнее →</a>}</div>}
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
             <div><p className="text-xs font-black tracking-[0.18em] text-accent uppercase">Рабочая область</p><h1 className="mt-2 text-3xl font-black italic sm:text-4xl">Новый интерьер</h1></div>
             <span className="rounded-full border border-border px-4 py-2 text-xs text-muted">Сессия Google активна</span>
