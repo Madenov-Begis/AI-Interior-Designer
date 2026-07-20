@@ -25,6 +25,7 @@
     "@prisma/client": "^7.8.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
+    "@tanstack/react-query": "5.101.3",
     "clsx": "^2.1.1",
     "fabric": "7.4.0",
     "file-type": "^22.0.1",

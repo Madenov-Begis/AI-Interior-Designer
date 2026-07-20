@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
 import { ReferenceManager } from "@/components/design/reference-manager";
+import { GenerationPanel } from "@/components/design/generation-panel";
 import { findOwnedProject } from "@/features/projects/service";
 import type { VisualPromptCanvasState } from "@/features/visual-prompt/types";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
@@ -66,6 +67,7 @@ export default async function ProjectDesignPage({ params }: { params: Promise<{ 
             initialState={(project.canvasState as VisualPromptCanvasState | null) ?? null}
           />
           <ReferenceManager projectId={project.id} initialReferences={referenceUrls} />
+          <GenerationPanel projectId={project.id} initialPrompt={project.prompt} initialAspectRatio={project.aspectRatio} />
         </div>
       </div>
     </main>

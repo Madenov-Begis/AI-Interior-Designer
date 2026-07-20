@@ -3,6 +3,7 @@ import "server-only";
 import type { User } from "@supabase/supabase-js";
 import { getDb } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ensureSystemDefaults } from "@/features/plans/defaults";
 
 export class UnauthorizedError extends Error {
   constructor() {
@@ -30,9 +31,10 @@ export async function upsertProfileFromAuthUser(user: User) {
   const displayName = typeof metadata.full_name === "string" ? metadata.full_name : [firstName, lastName].filter(Boolean).join(" ") || null;
   const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
 
+  const { freePlan } = await ensureSystemDefaults();
   return getDb().profile.upsert({
     where: { id: user.id },
-    create: { id: user.id, email: user.email, firstName, lastName, displayName, avatarUrl, lastLoginAt: new Date() },
+    create: { id: user.id, email: user.email, firstName, lastName, displayName, avatarUrl, lastLoginAt: new Date(), planId: freePlan.id },
     update: { email: user.email, firstName, lastName, displayName, avatarUrl, lastLoginAt: new Date(), deletedAt: null },
   });
 }

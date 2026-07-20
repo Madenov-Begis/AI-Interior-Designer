@@ -1,0 +1,12 @@
+import { z } from "zod";
+
+export const createGenerationSchema = z.object({
+  projectId: z.uuid(),
+  prompt: z.string().trim().min(3).max(4000),
+  modelCode: z.string().trim().min(1).max(100).default("fake-interior-v1"),
+  aspectRatio: z.enum(["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"]).default("RATIO_16_9"),
+});
+
+export const idempotencyKeySchema = z.string().trim().min(16).max(128);
+
+export const generationIdSchema = z.uuid();
