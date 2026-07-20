@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --background: #1b1b1c;
+  --surface: #232324;
+  --surface-elevated: #29292b;
+  --foreground: #f5f5f1;
+  --muted: #9c9ca1;
+  --border: #363638;
+  --accent: #afea4d;
+  --accent-hover: #baf65b;
+  --accent-foreground: #17200c;
+  --danger: #ff7474;
+  --radius-sm: 0.65rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: "Geist", "Geist Fallback", Arial, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Geist", "Geist Fallback", Arial, sans-serif;
+}
+a { color: inherit; text-decoration: none; }
+button, a { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 72%, white); outline-offset: 3px; }
+
+.page-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.hero-glow {
+  background:
+    radial-gradient(circle at 17% 20%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 28%),
+    radial-gradient(circle at 82% 66%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 25%);
+}
+
+.ticker { border-block: 1px solid var(--border); overflow: hidden; }
+.ticker__track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.25rem 0;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 900;
+  font-style: italic;
+  white-space: nowrap;
+  animation: ticker 28s linear infinite;
+}
+.ticker__track b { color: var(--accent); }
+
+.room-preview {
+  background:
+    linear-gradient(155deg, transparent 44%, rgba(0, 0, 0, .4) 45%),
+    linear-gradient(24deg, #4e5049 0 32%, #343632 33% 64%, #5d5e57 65%);
+}
+.room-preview::before {
+  content: "";
+  position: absolute;
+  inset: 13% 15% 28% 48%;
+  border: 2px solid color-mix(in srgb, var(--accent) 82%, transparent);
+  border-radius: 48% 52% 45% 55%;
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
+  transform: rotate(-7deg);
+}
+
+@keyframes ticker { to { transform: translateX(-48%); } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .ticker__track { animation: none; }
+}
