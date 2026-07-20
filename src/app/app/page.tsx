@@ -16,7 +16,7 @@ export default async function AppDashboardPage() {
         <aside className="hidden rounded-[var(--radius-lg)] border border-border bg-surface p-5 lg:flex lg:flex-col">
           <Link href="/" className="text-lg font-black italic">AI Interior Designer</Link>
           <nav className="mt-10 space-y-2 text-sm">
-            <Link href="/app" className="block rounded-xl bg-surface-elevated px-4 py-3 font-bold text-accent">＋ Новый дизайн</Link>
+            <Link href="/app/design" className="block rounded-xl bg-surface-elevated px-4 py-3 font-bold text-accent">＋ Новый дизайн</Link>
             <span className="block rounded-xl px-4 py-3 text-muted">Проекты</span>
             <span className="block rounded-xl px-4 py-3 text-muted">История</span>
           </nav>
@@ -28,9 +28,9 @@ export default async function AppDashboardPage() {
             <span className="rounded-full border border-border px-4 py-2 text-xs text-muted">Сессия Google активна</span>
           </header>
           <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_330px]">
-            <div className="grid min-h-[430px] place-items-center rounded-2xl border border-dashed border-border bg-background p-6 text-center">
-              <div><div className="mx-auto grid size-14 place-items-center rounded-full bg-accent text-2xl text-accent-foreground">＋</div><h2 className="mt-5 text-xl font-bold">Загрузите фотографию комнаты</h2><p className="mt-2 max-w-md text-sm leading-6 text-muted">JPG, PNG или WEBP. Обработка и приватное Storage будут подключены на следующем этапе.</p></div>
-            </div>
+            <Link href="/app/design" className="grid min-h-[430px] place-items-center rounded-2xl border border-dashed border-border bg-background p-6 text-center transition-colors hover:border-accent/50">
+              <div><div className="mx-auto grid size-14 place-items-center rounded-full bg-accent text-2xl text-accent-foreground">＋</div><h2 className="mt-5 text-xl font-bold">Загрузите фотографию комнаты</h2><p className="mt-2 max-w-md text-sm leading-6 text-muted">JPG, PNG или WEBP. Файл будет проверен и сохранён в приватном Storage.</p></div>
+            </Link>
             <aside className="rounded-2xl border border-border bg-background p-5">
               <p className="font-bold">Процесс</p>
               {['Фото помещения', 'Референсы', 'Инструкция'].map((label, index) => <div key={label} className="mt-4 flex items-center gap-3 text-sm text-muted"><span className="grid size-7 place-items-center rounded-full bg-surface-elevated font-mono text-xs">{index + 1}</span>{label}</div>)}

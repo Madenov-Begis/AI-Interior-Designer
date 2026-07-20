@@ -157,6 +157,7 @@ model Project {
   modelId          String?       @db.Uuid
   aspectRatio      AspectRatio   @default(RATIO_16_9)
   sourceImageId    String?       @db.Uuid
+  sourcePreviewId  String?       @db.Uuid
   visualPromptId   String?       @db.Uuid
   canvasState      Json?
   visualPromptUsed Boolean       @default(false)
@@ -164,12 +165,13 @@ model Project {
   updatedAt        DateTime      @updatedAt
   deletedAt        DateTime?
 
-  user         Profile            @relation(fields: [userId], references: [id])
-  sourceImage  MediaFile?         @relation("ProjectSourceImage", fields: [sourceImageId], references: [id])
-  visualPrompt MediaFile?         @relation("ProjectVisualPrompt", fields: [visualPromptId], references: [id])
-  model        AiModel?           @relation(fields: [modelId], references: [id])
-  references   ProjectReference[]
-  generations  Generation[]
+  user          Profile            @relation(fields: [userId], references: [id])
+  sourceImage   MediaFile?         @relation("ProjectSourceImage", fields: [sourceImageId], references: [id])
+  sourcePreview MediaFile?         @relation("ProjectSourcePreview", fields: [sourcePreviewId], references: [id])
+  visualPrompt  MediaFile?         @relation("ProjectVisualPrompt", fields: [visualPromptId], references: [id])
+  model         AiModel?           @relation(fields: [modelId], references: [id])
+  references    ProjectReference[]
+  generations   Generation[]
 
   @@index([userId, createdAt])
   @@index([userId, status])
@@ -194,6 +196,7 @@ model MediaFile {
 
   owner                   Profile               @relation(fields: [ownerId], references: [id])
   projectSourceFor        Project[]             @relation("ProjectSourceImage")
+  projectSourcePreviewFor Project[]             @relation("ProjectSourcePreview")
   projectVisualPromptFor  Project[]             @relation("ProjectVisualPrompt")
   projectReferences       ProjectReference[]
   generationReferences    GenerationReference[]
