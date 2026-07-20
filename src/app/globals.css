@@ -16,6 +16,17 @@
   --radius-lg: 1.5rem;
 }
 
+.visual-prompt-canvas,
+.visual-prompt-canvas .lower-canvas,
+.visual-prompt-canvas .upper-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.visual-prompt-canvas {
+  touch-action: none;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);

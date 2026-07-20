@@ -13,7 +13,35 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const { id } = await context.params;
     const project = await findOwnedProject(user.id, projectIdSchema.parse(id));
     return project
-      ? apiSuccess(project, requestId)
+      ? apiSuccess({
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          prompt: project.prompt,
+          aspectRatio: project.aspectRatio,
+          visualPromptUsed: project.visualPromptUsed,
+          canvasState: project.canvasState,
+          sourceImage: project.sourceImage ? {
+            id: project.sourceImage.id,
+            mimeType: project.sourceImage.mimeType,
+            sizeBytes: project.sourceImage.sizeBytes,
+            width: project.sourceImage.width,
+            height: project.sourceImage.height,
+          } : null,
+          sourcePreview: project.sourcePreview ? {
+            id: project.sourcePreview.id,
+            width: project.sourcePreview.width,
+            height: project.sourcePreview.height,
+          } : null,
+          references: project.references.map((reference) => ({
+            id: reference.id,
+            fileId: reference.fileId,
+            sourceUrl: reference.sourceUrl,
+            position: reference.position,
+          })),
+          createdAt: project.createdAt,
+          updatedAt: project.updatedAt,
+        }, requestId)
       : apiError("PROJECT_NOT_FOUND", "Проект не найден", requestId, 404);
   } catch (error) {
     if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);

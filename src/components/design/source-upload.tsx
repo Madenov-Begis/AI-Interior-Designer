@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { buttonClassName } from "@/components/ui/button";
 
 type UploadState = "idle" | "ready" | "uploading" | "success" | "error";
 
 export function SourceUpload() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -48,6 +50,7 @@ export function SourceUpload() {
 
       setState("success");
       setMessage("Фотография проверена и сохранена в приватном хранилище.");
+      router.push(`/app/design/${projectPayload.data.id}`);
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : "Не удалось загрузить фотографию");

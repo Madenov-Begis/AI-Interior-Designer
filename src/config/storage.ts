@@ -15,3 +15,8 @@ export const SOURCE_IMAGE_RULES = {
   previewMaxWidth: 1600,
   allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"] as const,
 } as const;
+
+export const VISUAL_PROMPT_RULES = {
+  maxOverlayBytes: 15 * 1024 * 1024,
+  outputQuality: 92,
+} as const;
