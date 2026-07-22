@@ -3,6 +3,7 @@ import "server-only";
 import { getDb } from "@/lib/db";
 
 export const DEFAULT_MODEL_CODE = "fake-interior-v1";
+export const VERTEX_MODEL_CODE = "gemini-interior-v1";
 
 export async function ensureSystemDefaults() {
   return getDb().$transaction(async (tx) => {
@@ -37,7 +38,8 @@ export async function ensureSystemDefaults() {
       },
       update: {},
     });
-    const model = await tx.aiModel.upsert({
+    const vertexEnabled = process.env.AI_PROVIDER === "vertex";
+    const fakeModel = await tx.aiModel.upsert({
       where: { code: DEFAULT_MODEL_CODE },
       create: {
         provider: "FAKE",
@@ -47,11 +49,35 @@ export async function ensureSystemDefaults() {
         description: "Локальный provider для разработки интерфейса без внешних credentials",
         supportedAspectRatios: ["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"],
         supportsVisualPrompt: true,
+        active: !vertexEnabled,
       },
-      update: {},
+      update: { active: !vertexEnabled },
     });
-    await tx.planModel.upsert({ where: { planId_modelId: { planId: freePlan.id, modelId: model.id } }, create: { planId: freePlan.id, modelId: model.id }, update: {} });
-    await tx.planModel.upsert({ where: { planId_modelId: { planId: vipPlan.id, modelId: model.id } }, create: { planId: vipPlan.id, modelId: model.id }, update: {} });
-    return { freePlan, vipPlan, model };
+    const vertexModel = await tx.aiModel.upsert({
+      where: { code: VERTEX_MODEL_CODE },
+      create: {
+        provider: "VERTEX_AI",
+        code: VERTEX_MODEL_CODE,
+        externalModelId: process.env.VERTEX_IMAGE_MODEL || "gemini-2.5-flash-image",
+        name: "Gemini Interior Studio",
+        description: "Фотореалистичная визуализация интерьера через Google Vertex AI",
+        supportedAspectRatios: ["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"],
+        supportsVisualPrompt: true,
+        priority: 100,
+        timeoutSeconds: 180,
+        active: vertexEnabled,
+      },
+      update: {
+        provider: "VERTEX_AI",
+        externalModelId: process.env.VERTEX_IMAGE_MODEL || "gemini-2.5-flash-image",
+        priority: 100,
+        active: vertexEnabled,
+      },
+    });
+    for (const plan of [freePlan, vipPlan]) {
+      await tx.planModel.upsert({ where: { planId_modelId: { planId: plan.id, modelId: fakeModel.id } }, create: { planId: plan.id, modelId: fakeModel.id }, update: {} });
+      await tx.planModel.upsert({ where: { planId_modelId: { planId: plan.id, modelId: vertexModel.id } }, create: { planId: plan.id, modelId: vertexModel.id }, update: {} });
+    }
+    return { freePlan, vipPlan, model: vertexEnabled ? vertexModel : fakeModel };
   });
 }

@@ -7,6 +7,14 @@ import { getImageGenerationProvider } from "@/features/generations/provider";
 import { getDb } from "@/lib/db";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+type StoredFile = { bucket: string; path: string; mimeType: string };
+
+async function downloadStoredFile(file: StoredFile) {
+  const download = await getSupabaseAdmin().storage.from(file.bucket).download(file.path);
+  if (download.error || !download.data) throw new Error("SOURCE_DOWNLOAD_FAILED");
+  return { data: Buffer.from(await download.data.arrayBuffer()), mimeType: file.mimeType };
+}
+
 async function addWatermark(image: Buffer) {
   const metadata = await sharp(image).metadata();
   if (!metadata.width || !metadata.height) throw new Error("RESULT_DIMENSIONS_MISSING");
@@ -44,18 +52,31 @@ export async function processGeneration(generationId: string) {
   try {
     const generation = await db.generation.findUnique({
       where: { id: generationId },
-      include: { sourceImage: true, visualPromptImage: true, user: { include: { plan: true, subscriptions: { where: { status: "ACTIVE", OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: "desc" }, take: 1, include: { plan: true } } } } },
+      include: {
+        model: true,
+        sourceImage: true,
+        visualPromptImage: true,
+        references: { orderBy: { position: "asc" }, include: { file: true } },
+        user: { include: { plan: true, subscriptions: { where: { status: "ACTIVE", OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: "desc" }, take: 1, include: { plan: true } } } },
+      },
     });
     if (!generation) return;
 
-    const inputFile = generation.visualPromptUsed && generation.visualPromptImage ? generation.visualPromptImage : generation.sourceImage;
-    const download = await getSupabaseAdmin().storage.from(inputFile.bucket).download(inputFile.path);
-    if (download.error || !download.data) throw new Error("SOURCE_DOWNLOAD_FAILED");
-    const source = Buffer.from(await download.data.arrayBuffer());
-    const metadata = await sharp(source, { failOn: "error" }).metadata();
+    const [source, visualPrompt, references] = await Promise.all([
+      downloadStoredFile(generation.sourceImage),
+      generation.visualPromptUsed && generation.visualPromptImage ? downloadStoredFile(generation.visualPromptImage) : Promise.resolve(undefined),
+      Promise.all(generation.references.map((reference) => downloadStoredFile(reference.file))),
+    ]);
+    const metadata = await sharp(source.data, { failOn: "error" }).metadata();
     if (!metadata.width || !metadata.height) throw new Error("SOURCE_DIMENSIONS_MISSING");
 
-    const output = await getImageGenerationProvider().generate({ source, prompt: generation.finalPrompt ?? generation.prompt, width: metadata.width, height: metadata.height });
+    const output = await getImageGenerationProvider(generation.model.provider, generation.model.externalModelId, generation.model.timeoutSeconds).generate({
+      source,
+      visualPrompt,
+      references,
+      prompt: generation.finalPrompt ?? generation.prompt,
+      aspectRatio: generation.aspectRatio,
+    });
     const activePlan = generation.user.subscriptions[0]?.plan ?? generation.user.plan;
     const userImage = activePlan?.watermarkRequired === false ? output.image : await addWatermark(output.image);
     const originalId = randomUUID();
@@ -72,15 +93,16 @@ export async function processGeneration(generationId: string) {
 
     await db.$transaction(async (tx) => {
       await tx.mediaFile.createMany({ data: [
-        { id: originalId, ownerId: generation.userId, bucket: STORAGE_BUCKETS.generationOriginals, path: originalPath, originalName: `generation-${generation.id}-original.webp`, mimeType: "image/webp", extension: "webp", sizeBytes: output.image.byteLength, width: metadata.width, height: metadata.height, type: "GENERATION_ORIGINAL" },
-        { id: userResultId, ownerId: generation.userId, bucket: STORAGE_BUCKETS.generationResults, path: resultPath, originalName: `interior-design-${generation.id}.webp`, mimeType: "image/webp", extension: "webp", sizeBytes: userImage.byteLength, width: metadata.width, height: metadata.height, type: "GENERATION_RESULT" },
+        { id: originalId, ownerId: generation.userId, bucket: STORAGE_BUCKETS.generationOriginals, path: originalPath, originalName: `generation-${generation.id}-original.webp`, mimeType: "image/webp", extension: "webp", sizeBytes: output.image.byteLength, width: output.width, height: output.height, type: "GENERATION_ORIGINAL" },
+        { id: userResultId, ownerId: generation.userId, bucket: STORAGE_BUCKETS.generationResults, path: resultPath, originalName: `interior-design-${generation.id}.webp`, mimeType: "image/webp", extension: "webp", sizeBytes: userImage.byteLength, width: output.width, height: output.height, type: "GENERATION_RESULT" },
       ] });
       await tx.generation.update({ where: { id: generation.id }, data: { status: "SUCCEEDED", resultOriginalId: originalId, resultUserId: userResultId, providerRequestId: output.providerRequestId, durationMs: Date.now() - startedAt, completedAt: new Date(), errorCode: null, errorMessage: null } });
       await tx.usageEvent.updateMany({ where: { generationId: generation.id, status: "RESERVED" }, data: { status: "CONSUMED", consumedAt: new Date() } });
     });
   } catch (error) {
     for (const item of uploaded) await getSupabaseAdmin().storage.from(item.bucket).remove([item.path]);
-    const code = error instanceof Error && error.message === "VERTEX_PROVIDER_NOT_CONFIGURED" ? "AI_PROVIDER_NOT_CONFIGURED" : "AI_GENERATION_FAILED";
+    const configurationErrors = ["VERTEX_PROVIDER_NOT_CONFIGURED", "VERTEX_CREDENTIALS_NOT_FOUND", "AI_PROVIDER_NOT_SUPPORTED"];
+    const code = error instanceof Error && configurationErrors.includes(error.message) ? "AI_PROVIDER_NOT_CONFIGURED" : "AI_GENERATION_FAILED";
     const message = code === "AI_PROVIDER_NOT_CONFIGURED" ? "AI provider ещё не настроен" : "Не удалось создать изображение. Лимит автоматически возвращён";
     await markFailed(generationId, code, message);
   }

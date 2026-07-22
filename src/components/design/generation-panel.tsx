@@ -24,7 +24,7 @@ export function GenerationPanel({ projectId, sourceUrl, initialPrompt, initialAs
   const queryClient = useQueryClient();
   const [prompt, setPrompt] = useState(initialPrompt || DEFAULT_PROMPT);
   const [aspectRatio, setAspectRatio] = useState(initialAspectRatio);
-  const [modelCode, setModelCode] = useState("fake-interior-v1");
+  const [modelCode, setModelCode] = useState("");
   const [generationId, setGenerationId] = useState<string | null>(null);
 
   const modelsQuery = useQuery({
@@ -57,7 +57,7 @@ export function GenerationPanel({ projectId, sourceUrl, initialPrompt, initialAs
     mutationFn: async () => readJson(await fetch("/api/v1/generations", {
       method: "POST",
       headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
-      body: JSON.stringify({ projectId, prompt, modelCode, aspectRatio }),
+      body: JSON.stringify({ projectId, prompt, modelCode: selectedModelCode, aspectRatio }),
     })) as Promise<{ id: string; status: string }>,
     onSuccess: (data) => setGenerationId(data.id),
   });
@@ -71,6 +71,8 @@ export function GenerationPanel({ projectId, sourceUrl, initialPrompt, initialAs
 
   const status = generationQuery.data?.status;
   const active = createMutation.isPending || status === "QUEUED" || status === "PROCESSING";
+  const availableModels = modelsQuery.data ?? [];
+  const selectedModelCode = modelCode || availableModels[0]?.code || "";
 
   return (
     <section className="mt-7 rounded-2xl border border-border bg-background p-5 sm:p-6">
@@ -86,8 +88,8 @@ export function GenerationPanel({ projectId, sourceUrl, initialPrompt, initialAs
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-bold">Модель
-          <select value={modelCode} onChange={(event) => setModelCode(event.target.value)} className="rounded-xl border border-border bg-surface px-4 py-3 font-normal">
-            {(modelsQuery.data ?? [{ code: "fake-interior-v1", name: "Mock Interior Studio" }]).map((model) => <option key={model.code} value={model.code}>{model.name}</option>)}
+          <select value={selectedModelCode} onChange={(event) => setModelCode(event.target.value)} disabled={modelsQuery.isPending || availableModels.length === 0} className="rounded-xl border border-border bg-surface px-4 py-3 font-normal disabled:opacity-50">
+            {availableModels.map((model) => <option key={model.code} value={model.code}>{model.name}</option>)}
           </select>
         </label>
         <fieldset className="grid gap-2"><legend className="text-sm font-bold">Формат</legend><div className="flex flex-wrap gap-2">{ASPECTS.map(([value, label]) => <button key={value} type="button" onClick={() => setAspectRatio(value)} className={`rounded-lg px-3 py-3 text-sm ${aspectRatio === value ? "bg-accent font-bold text-accent-foreground" : "bg-surface text-muted"}`}>{label}</button>)}</div></fieldset>
@@ -103,7 +105,7 @@ export function GenerationPanel({ projectId, sourceUrl, initialPrompt, initialAs
         </div>
       )}
 
-      <button type="button" onClick={() => createMutation.mutate()} disabled={active || prompt.trim().length < 3 || usageQuery.data?.remaining === 0} className={buttonClassName("primary", "mt-6 w-full rounded-xl py-4 disabled:cursor-not-allowed disabled:opacity-45")}>
+      <button type="button" onClick={() => createMutation.mutate()} disabled={active || !selectedModelCode || prompt.trim().length < 3 || usageQuery.data?.remaining === 0} className={buttonClassName("primary", "mt-6 w-full rounded-xl py-4 disabled:cursor-not-allowed disabled:opacity-45")}>
         {active ? "Генерируем…" : status === "SUCCEEDED" ? "Создать ещё вариант →" : "Визуализировать →"}
       </button>
     </section>
