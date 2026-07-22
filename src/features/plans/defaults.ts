@@ -58,9 +58,9 @@ export async function ensureSystemDefaults() {
       create: {
         provider: "VERTEX_AI",
         code: VERTEX_MODEL_CODE,
-        externalModelId: process.env.VERTEX_IMAGE_MODEL || "gemini-2.5-flash-image",
-        name: "Gemini Interior Studio",
-        description: "Фотореалистичная визуализация интерьера через Google Vertex AI",
+        externalModelId: process.env.VERTEX_IMAGE_MODEL || "gemini-3-pro-image",
+        name: "Gemini 3 Pro Interior",
+        description: "Премиальная фотореалистичная визуализация интерьера через Google Vertex AI",
         supportedAspectRatios: ["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"],
         supportsVisualPrompt: true,
         priority: 100,
@@ -69,7 +69,9 @@ export async function ensureSystemDefaults() {
       },
       update: {
         provider: "VERTEX_AI",
-        externalModelId: process.env.VERTEX_IMAGE_MODEL || "gemini-2.5-flash-image",
+        externalModelId: process.env.VERTEX_IMAGE_MODEL || "gemini-3-pro-image",
+        name: "Gemini 3 Pro Interior",
+        description: "Премиальная фотореалистичная визуализация интерьера через Google Vertex AI",
         priority: 100,
         active: vertexEnabled,
       },
