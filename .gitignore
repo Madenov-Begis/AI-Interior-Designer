@@ -44,5 +44,6 @@ next-env.d.ts
 # local worktrees and tooling
 .worktrees/
 .superpowers/
+.codex-audits/
 .trigger/
 /src/generated/prisma/
