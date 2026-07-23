@@ -2,6 +2,7 @@ import "server-only";
 
 import type { AspectRatio } from "@/generated/prisma/enums";
 import { ensureSystemDefaults } from "@/features/plans/defaults";
+import { getInteriorStyle, type InteriorStyleCode } from "@/features/generations/interior-styles";
 import { buildFinalPrompt } from "@/features/generations/prompt";
 import { getDb } from "@/lib/db";
 
@@ -23,6 +24,7 @@ export async function reserveGeneration(input: {
   prompt: string;
   modelCode: string;
   aspectRatio: AspectRatio;
+  styleCode?: InteriorStyleCode;
   idempotencyKey: string;
 }) {
   const defaults = await ensureSystemDefaults();
@@ -69,7 +71,13 @@ export async function reserveGeneration(input: {
       if (used >= dailyLimit) throw new GenerationReservationError("GENERATION_LIMIT_EXCEEDED", "Дневной лимит исчерпан");
     }
 
-    const finalPrompt = buildFinalPrompt({ prompt: input.prompt, visualPromptUsed: project.visualPromptUsed && Boolean(project.visualPrompt), referenceCount: project.references.length });
+    const style = getInteriorStyle(input.styleCode);
+    const finalPrompt = buildFinalPrompt({
+      prompt: input.prompt,
+      visualPromptUsed: project.visualPromptUsed && Boolean(project.visualPrompt),
+      referenceCount: project.references.length,
+      stylePrompt: style?.promptModifier,
+    });
     const generation = await tx.generation.create({
       data: {
         userId: input.userId,
