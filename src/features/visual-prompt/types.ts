@@ -15,6 +15,6 @@ export type VisualPromptEditorHandle = {
   persist(): Promise<void>;
   undo(): Promise<void>;
   redo(): Promise<void>;
-  deleteSelected(): Promise<void>;
-  clear(): Promise<void>;
+  deleteSelected(): void;
+  clear(): void;
 };

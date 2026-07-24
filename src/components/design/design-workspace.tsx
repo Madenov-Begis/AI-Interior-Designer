@@ -137,8 +137,8 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             onStrokeWidthChange={setStrokeWidth}
             onUndo={() => void visualPromptRef.current?.undo()}
             onRedo={() => void visualPromptRef.current?.redo()}
-            onDelete={() => void visualPromptRef.current?.deleteSelected()}
-            onClear={() => void visualPromptRef.current?.clear()}
+            onDelete={() => visualPromptRef.current?.deleteSelected()}
+            onClear={() => visualPromptRef.current?.clear()}
           />
         </section>
         <aside ref={inspectorRef} className="hidden min-h-0 border-l border-border bg-surface lg:flex lg:w-[380px] lg:flex-col" aria-label="AI-настройки">
