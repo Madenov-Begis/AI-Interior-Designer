@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Link2,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
 
@@ -11,7 +20,12 @@ export type ReferenceItem = {
   previewUrl: string;
 };
 
-type Props = { projectId: string; initialReferences: ReferenceItem[]; maxCount?: number };
+type Props = {
+  projectId: string;
+  initialReferences: ReferenceItem[];
+  maxCount?: number;
+  variant?: "section" | "compact";
+};
 
 async function getSignedUrl(fileId: string) {
   const response = await fetch(`/api/v1/media/${fileId}/signed-url`);
@@ -20,9 +34,15 @@ async function getSignedUrl(fileId: string) {
   return payload.data.url as string;
 }
 
-export function ReferenceManager({ projectId, initialReferences, maxCount = 10 }: Props) {
+export function ReferenceManager({
+  projectId,
+  initialReferences,
+  maxCount = 10,
+  variant = "section",
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"files" | "urls">("files");
+  const [addOpen, setAddOpen] = useState(false);
   const [references, setReferences] = useState(initialReferences);
   const [urls, setUrls] = useState("");
   const [busy, setBusy] = useState(false);
@@ -139,6 +159,192 @@ export function ReferenceManager({ projectId, initialReferences, maxCount = 10 }
     }
   }
 
+  const hiddenFileInput = (
+    <input
+      ref={inputRef}
+      type="file"
+      multiple
+      accept="image/jpeg,image/png,image/webp"
+      className="sr-only"
+      onChange={(event) => void uploadFiles(event.target.files)}
+    />
+  );
+
+  if (variant === "compact") {
+    return (
+      <div className="mt-3">
+        {hiddenFileInput}
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
+          {references.map((item, index) => (
+            <article
+              key={item.id}
+              className="group relative size-[76px] shrink-0 overflow-hidden rounded-xl border border-border bg-background"
+            >
+              <a
+                href={item.previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block size-full overflow-hidden bg-black"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.previewUrl}
+                  alt={`Референс ${index + 1}`}
+                  className="size-full object-cover"
+                />
+              </a>
+              <div className="absolute inset-x-1 bottom-1 grid grid-cols-3 gap-0.5 rounded-lg bg-background/90 p-0.5 opacity-0 shadow-lg transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                <button
+                  type="button"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0 || busy}
+                  className="grid size-6 place-items-center rounded-md text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
+                  aria-label="Переместить влево"
+                >
+                  <ArrowLeft size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(index, 1)}
+                  disabled={index === references.length - 1 || busy}
+                  className="grid size-6 place-items-center rounded-md text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
+                  aria-label="Переместить вправо"
+                >
+                  <ArrowRight size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void remove(item.id)}
+                  disabled={busy}
+                  className="grid size-6 place-items-center rounded-md text-red-300 hover:bg-surface-elevated disabled:opacity-30"
+                  aria-label="Удалить референс"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </article>
+          ))}
+          <button
+            type="button"
+            onClick={() => setAddOpen((open) => !open)}
+            disabled={busy || references.length >= maxCount}
+            aria-expanded={addOpen}
+            aria-controls="compact-reference-add"
+            className="grid size-[76px] shrink-0 place-items-center rounded-xl border border-dashed border-muted bg-background text-center text-muted transition-colors hover:border-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <span>
+              <Plus size={20} className="mx-auto" aria-hidden="true" />
+              <span className="mt-1 block text-[10px] font-black">
+                {references.length} / {maxCount}
+              </span>
+            </span>
+          </button>
+        </div>
+
+        {addOpen && references.length < maxCount && (
+          <div
+            id="compact-reference-add"
+            role="dialog"
+            aria-label="Добавить референс"
+            className="mt-2 rounded-xl border border-border bg-background p-3 shadow-xl"
+          >
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setTab("files")}
+                aria-pressed={tab === "files"}
+                className={`inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black ${
+                  tab === "files"
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-surface-elevated text-muted"
+                }`}
+              >
+                <Upload size={15} aria-hidden="true" />
+                Файлы
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("urls")}
+                aria-pressed={tab === "urls"}
+                className={`inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black ${
+                  tab === "urls"
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-surface-elevated text-muted"
+                }`}
+              >
+                <Link2 size={15} aria-hidden="true" />
+                Ссылка
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddOpen(false)}
+                className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface-elevated hover:text-foreground"
+                aria-label="Закрыть добавление референсов"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {tab === "files" ? (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={busy || references.length >= maxCount}
+                className={buttonClassName(
+                  "secondary",
+                  "mt-3 w-full rounded-lg border-dashed py-3 disabled:opacity-40",
+                )}
+              >
+                <Upload size={16} aria-hidden="true" />
+                Выбрать изображения
+              </button>
+            ) : (
+              <div className="mt-3 grid gap-2">
+                <textarea
+                  value={urls}
+                  onChange={(event) => setUrls(event.target.value)}
+                  rows={3}
+                  placeholder={"https://example.com/product\nhttps://example.com/image.jpg"}
+                  className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-xs leading-5 outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={() => void importUrls()}
+                  disabled={busy || !urls.trim()}
+                  className={buttonClassName(
+                    "secondary",
+                    "rounded-lg py-2 disabled:opacity-40",
+                  )}
+                >
+                  Импортировать ссылки
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <p
+            className="min-h-5 text-xs leading-5 text-muted"
+            aria-live="polite"
+          >
+            {busy ? "Обработка…" : message}
+          </p>
+          {references.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void clearAll()}
+              disabled={busy}
+              className="shrink-0 text-xs font-bold text-red-300 hover:text-red-200 disabled:opacity-40"
+            >
+              Очистить
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section className="mt-7 rounded-2xl border border-border bg-background p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -153,8 +359,8 @@ export function ReferenceManager({ projectId, initialReferences, maxCount = 10 }
 
       {tab === "files" ? (
         <div className="mt-5">
-          <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void uploadFiles(event.target.files)} />
-          <button type="button" onClick={() => inputRef.current?.click()} disabled={busy || references.length >= maxCount} className={buttonClassName("secondary", "w-full rounded-xl border-dashed py-5 disabled:opacity-40")}>＋ Выбрать изображения</button>
+          {hiddenFileInput}
+          <button type="button" onClick={() => inputRef.current?.click()} disabled={busy || references.length >= maxCount} className={buttonClassName("secondary", "w-full rounded-xl border-dashed py-5 disabled:opacity-40")}><Upload size={17} aria-hidden="true" />Выбрать изображения</button>
         </div>
       ) : (
         <div className="mt-5 grid gap-3">
@@ -175,9 +381,9 @@ export function ReferenceManager({ projectId, initialReferences, maxCount = 10 }
                   <img src={item.previewUrl} alt={`Референс ${index + 1}`} className="size-full object-cover" />
                 </a>
                 <div className="grid grid-cols-3 gap-1 p-2">
-                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0 || busy} className="rounded-md bg-surface-elevated py-2 disabled:opacity-30" aria-label="Переместить влево">←</button>
-                  <button type="button" onClick={() => move(index, 1)} disabled={index === references.length - 1 || busy} className="rounded-md bg-surface-elevated py-2 disabled:opacity-30" aria-label="Переместить вправо">→</button>
-                  <button type="button" onClick={() => void remove(item.id)} disabled={busy} className="rounded-md bg-surface-elevated py-2 text-red-300" aria-label="Удалить референс">×</button>
+                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0 || busy} className="grid place-items-center rounded-md bg-surface-elevated py-2 disabled:opacity-30" aria-label="Переместить влево"><ArrowLeft size={16} /></button>
+                  <button type="button" onClick={() => move(index, 1)} disabled={index === references.length - 1 || busy} className="grid place-items-center rounded-md bg-surface-elevated py-2 disabled:opacity-30" aria-label="Переместить вправо"><ArrowRight size={16} /></button>
+                  <button type="button" onClick={() => void remove(item.id)} disabled={busy} className="grid place-items-center rounded-md bg-surface-elevated py-2 text-red-300" aria-label="Удалить референс"><Trash2 size={16} /></button>
                 </div>
               </article>
             ))}

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { Settings2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { CanvasViewport } from "@/components/design/canvas-viewport";
-import { ReferenceManager } from "@/components/design/reference-manager";
+import { DesignInspector } from "@/components/design/design-inspector";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
@@ -18,6 +19,17 @@ type Model = {
 };
 
 type Style = { code: string; name: string; imageUrl: string };
+type Usage = {
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  timezone: string;
+  plan: {
+    code: string;
+    name: string;
+    watermarkRequired: boolean;
+  };
+};
 
 async function readJson(response: Response) {
   const payload = await response.json();
@@ -32,11 +44,14 @@ function isActiveGeneration(status: WorkspaceGenerationStatus) {
 export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceProps) {
   const queryClient = useQueryClient();
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
-  const inspectorRef = useRef<HTMLDivElement>(null);
-  const [prompt] = useState(project.prompt ?? "");
-  const [modelCode] = useState("");
-  const [aspectRatio] = useState(project.aspectRatio);
-  const [styleCode] = useState<string>();
+  const inspectorDialogRef = useRef<HTMLDialogElement>(null);
+  const inspectorTriggerRef = useRef<HTMLButtonElement>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [desktopInspector, setDesktopInspector] = useState(false);
+  const [prompt, setPrompt] = useState(project.prompt ?? "");
+  const [modelCode, setModelCode] = useState("");
+  const [aspectRatio, setAspectRatio] = useState(project.aspectRatio);
+  const [styleCode, setStyleCode] = useState<string>();
   const [selectedCanvasItem, setSelectedCanvasItem] = useState<string>("source");
   const [tool, setTool] = useState<VisualPromptTool>("select");
   const [color, setColor] = useState("#afea4d");
@@ -59,10 +74,22 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
     queryKey: ["config"],
     queryFn: async () => (await readJson(await fetch("/api/v1/config"))).interiorStyles as Style[],
   });
+  const usageQuery = useQuery({
+    queryKey: ["usage", "today"],
+    queryFn: async () => readJson(await fetch("/api/v1/usage/today")) as Promise<Usage | null>,
+  });
+
+  const selectedModelCode = modelCode || modelsQuery.data?.[0]?.code || "";
+  const selectedModel = modelsQuery.data?.find(
+    (model) => model.code === selectedModelCode,
+  );
+  const selectedAspectRatio =
+    selectedModel?.supportedAspectRatios.includes(aspectRatio)
+      ? aspectRatio
+      : selectedModel?.supportedAspectRatios[0] ?? "";
 
   const createGeneration = useMutation({
     mutationFn: async () => {
-      const selectedModelCode = modelCode || modelsQuery.data?.[0]?.code;
       if (!selectedModelCode) throw new Error("Выберите модель");
       if (prompt.trim().length < 3) throw new Error("Опишите изменения не менее чем в трёх символах");
       if (!visualPromptRef.current) throw new Error("Редактор разметки ещё не готов");
@@ -70,21 +97,55 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       return readJson(await fetch("/api/v1/generations", {
         method: "POST",
         headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
-        body: JSON.stringify({ projectId: project.id, prompt, modelCode: selectedModelCode, aspectRatio, styleCode }),
+        body: JSON.stringify({
+          projectId: project.id,
+          prompt,
+          modelCode: selectedModelCode,
+          aspectRatio: selectedAspectRatio,
+          styleCode,
+        }),
       }));
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+      ]);
+    },
   });
-  const cancelGeneration = useMutation({
-    mutationFn: async (generationId: string) => readJson(await fetch(`/api/v1/generations/${generationId}/cancel`, { method: "POST" })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
-  });
-
   const generations = generationsQuery.data?.items ?? [];
-  const selectedModel = modelCode || modelsQuery.data?.[0]?.code || "";
-  const selectedStyle = configQuery.data?.find((style) => style.code === styleCode);
-  const selectedGeneration = generations.find((generation) => generation.id === selectedCanvasItem);
-  const generationError = createGeneration.error ?? cancelGeneration.error;
+  const generationError = createGeneration.error;
+  const inspectorDataError =
+    modelsQuery.error?.message ??
+    usageQuery.error?.message ??
+    configQuery.error?.message ??
+    null;
+  const inspectorDataLoading =
+    modelsQuery.isLoading || usageQuery.isLoading || configQuery.isLoading;
+  const disabledReasons: string[] = [];
+  if (createGeneration.isPending) {
+    disabledReasons.push("Генерация уже запускается.");
+  }
+  if (modelsQuery.isLoading || usageQuery.isLoading) {
+    disabledReasons.push("Загружаем доступные параметры.");
+  }
+  if (modelsQuery.isError || usageQuery.isError) {
+    disabledReasons.push("Не удалось проверить модель или дневной лимит.");
+  }
+  if (!modelsQuery.isLoading && !modelsQuery.isError && !selectedModelCode) {
+    disabledReasons.push("Нет доступной модели.");
+  }
+  if (!selectedAspectRatio) {
+    disabledReasons.push("Для модели не найден доступный формат.");
+  }
+  if (prompt.trim().length < 3) {
+    disabledReasons.push("Опишите изменения минимум в трёх символах.");
+  } else if (prompt.length > 4000) {
+    disabledReasons.push("Сократите инструкцию до 4000 символов.");
+  }
+  if (usageQuery.data?.remaining === 0) {
+    disabledReasons.push("Дневной лимит генераций исчерпан.");
+  }
   const canvasGenerations = generations.map((generation, index) => ({
     id: generation.id,
     node: (
@@ -96,6 +157,39 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       </div>
     ),
   }));
+
+  function openInspector() {
+    setInspectorOpen(true);
+  }
+
+  function closeInspector() {
+    const dialog = inspectorDialogRef.current;
+    if (dialog?.open) dialog.close();
+    setInspectorOpen(false);
+    requestAnimationFrame(() => inspectorTriggerRef.current?.focus());
+  }
+
+  useEffect(() => {
+    const dialog = inspectorDialogRef.current;
+    if (!dialog || !inspectorOpen || dialog.open) return;
+    dialog.showModal();
+  }, [inspectorOpen]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const updateInspectorMode = () => {
+      if (desktop.matches) {
+        if (inspectorDialogRef.current?.open) {
+          inspectorDialogRef.current.close();
+        }
+        setInspectorOpen(false);
+      }
+      setDesktopInspector(desktop.matches);
+    };
+    updateInspectorMode();
+    desktop.addEventListener("change", updateInspectorMode);
+    return () => desktop.removeEventListener("change", updateInspectorMode);
+  }, []);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -109,6 +203,17 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       />
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className="relative min-h-0 overflow-hidden bg-background" aria-label="Холст проекта">
+          <button
+            ref={inspectorTriggerRef}
+            type="button"
+            onClick={openInspector}
+            className="absolute top-3 right-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-sm font-black shadow-xl transition-colors hover:bg-surface-elevated lg:hidden"
+            aria-haspopup="dialog"
+            aria-expanded={inspectorOpen}
+          >
+            <Settings2 size={18} aria-hidden="true" />
+            <span className="hidden sm:inline">AI-настройки</span>
+          </button>
           <CanvasViewport
             source={{
               projectId: project.id,
@@ -141,28 +246,74 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             onClear={() => visualPromptRef.current?.clear()}
           />
         </section>
-        <aside ref={inspectorRef} className="hidden min-h-0 border-l border-border bg-surface lg:flex lg:w-[380px] lg:flex-col" aria-label="AI-настройки">
-          <div className="border-b border-border px-5 py-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-accent">AI-настройки</p>
-            <p className="mt-1 text-sm text-muted">Панель параметров появится здесь.</p>
-          </div>
-          <div className="min-h-0 flex-1 overflow-auto p-5">
-            <p className="text-sm font-bold">Исходное изображение</p>
-            <p className="mt-1 text-sm leading-6 text-muted">Разметка, референсы и параметры генерации останутся привязаны к этому проекту.</p>
-            <ReferenceManager projectId={project.id} initialReferences={initialReferences} />
-            <div className="mt-5 rounded-xl border border-border bg-background p-4 text-sm text-muted">
-              Референсов: {initialReferences.length}<br />
-              Генераций: {generations.length}<br />
-              {selectedGeneration ? `Выбрано: ${selectedGeneration.model.name}` : "Выбрано: исходное изображение"}<br />
-              {selectedModel ? `Модель: ${selectedModel}` : "Модель ещё не выбрана"}<br />
-              {selectedStyle ? `Стиль: ${selectedStyle.name}` : "Стиль не выбран"}<br />
-              Формат: {aspectRatio}<br />
-              {prompt.trim() ? "Инструкция подготовлена" : "Инструкция ещё не задана"}
+        <dialog
+          ref={inspectorDialogRef}
+          open={desktopInspector || undefined}
+          aria-labelledby="design-inspector-title"
+          onCancel={(event) => {
+            event.preventDefault();
+            closeInspector();
+          }}
+          onClose={() => {
+            setInspectorOpen(false);
+            requestAnimationFrame(() => inspectorTriggerRef.current?.focus());
+          }}
+          className={`fixed inset-x-0 bottom-0 z-50 m-0 max-h-none w-full max-w-none flex-col overflow-hidden rounded-t-2xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/65 ${
+            inspectorOpen ? "flex" : "hidden"
+          } h-[min(82dvh,720px)] md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:w-[380px] md:rounded-none md:border-y-0 md:border-r-0 lg:static lg:flex lg:h-auto lg:min-h-0 lg:w-[380px] lg:border-l lg:shadow-none`}
+        >
+          <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border px-5">
+            <div>
+              <h2
+                id="design-inspector-title"
+                className="text-xs font-black uppercase tracking-[0.18em] text-accent"
+              >
+                AI-настройки
+              </h2>
+              <p className="mt-1 text-xs text-muted">Параметры нового дизайна</p>
             </div>
-            {(generationsQuery.isLoading || createGeneration.isPending || cancelGeneration.isPending) && <p className="mt-4 text-sm text-muted">Обновляем данные проекта…</p>}
-            {generationError && <p className="mt-4 text-sm text-red-300">{generationError.message}</p>}
+            <button
+              type="button"
+              onClick={closeInspector}
+              className="grid size-10 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-foreground lg:hidden"
+              aria-label="Закрыть AI-настройки"
+            >
+              <X size={19} aria-hidden="true" />
+            </button>
           </div>
-        </aside>
+          <DesignInspector
+            projectId={project.id}
+            initialReferences={initialReferences}
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            styles={configQuery.data ?? []}
+            styleCode={styleCode}
+            onStyleChange={setStyleCode}
+            models={modelsQuery.data ?? []}
+            modelCode={selectedModelCode}
+            onModelChange={(nextModelCode) => {
+              setModelCode(nextModelCode);
+              const nextModel = modelsQuery.data?.find(
+                (model) => model.code === nextModelCode,
+              );
+              if (
+                nextModel &&
+                !nextModel.supportedAspectRatios.includes(aspectRatio)
+              ) {
+                setAspectRatio(nextModel.supportedAspectRatios[0] ?? "");
+              }
+            }}
+            aspectRatio={selectedAspectRatio}
+            onAspectRatioChange={setAspectRatio}
+            usage={usageQuery.data}
+            dataLoading={inspectorDataLoading}
+            dataError={inspectorDataError}
+            generationPending={createGeneration.isPending}
+            generationError={generationError?.message ?? null}
+            disabledReasons={disabledReasons}
+            onGenerate={() => createGeneration.mutate()}
+          />
+        </dialog>
       </div>
     </div>
   );
