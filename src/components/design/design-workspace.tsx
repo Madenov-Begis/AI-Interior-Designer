@@ -2,10 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { CanvasViewport } from "@/components/design/canvas-viewport";
 import { ReferenceManager } from "@/components/design/reference-manager";
-import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
+import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
+import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
 
 type GenerationList = { items: WorkspaceGeneration[]; nextCursor: string | null };
 
@@ -16,11 +18,6 @@ type Model = {
 };
 
 type Style = { code: string; name: string; imageUrl: string };
-
-type VisualPromptController = {
-  undo(): void;
-  redo(): void;
-};
 
 async function readJson(response: Response) {
   const payload = await response.json();
@@ -34,15 +31,20 @@ function isActiveGeneration(status: WorkspaceGenerationStatus) {
 
 export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceProps) {
   const queryClient = useQueryClient();
-  const visualPromptRef = useRef<VisualPromptController | null>(null);
+  const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const inspectorRef = useRef<HTMLDivElement>(null);
   const [prompt] = useState(project.prompt ?? "");
   const [modelCode] = useState("");
   const [aspectRatio] = useState(project.aspectRatio);
   const [styleCode] = useState<string>();
-  const [selectedCanvasItem] = useState<string>("source");
-  const [canUndo] = useState(false);
-  const [canRedo] = useState(false);
+  const [selectedCanvasItem, setSelectedCanvasItem] = useState<string>("source");
+  const [tool, setTool] = useState<VisualPromptTool>("select");
+  const [color, setColor] = useState("#afea4d");
+  const [strokeWidth, setStrokeWidth] = useState(12);
+  const [{ canUndo, canRedo }, setHistoryState] = useState({
+    canUndo: false,
+    canRedo: false,
+  });
 
   const generationsQuery = useQuery({
     queryKey: ["generations", project.id],
@@ -63,6 +65,8 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       const selectedModelCode = modelCode || modelsQuery.data?.[0]?.code;
       if (!selectedModelCode) throw new Error("Выберите модель");
       if (prompt.trim().length < 3) throw new Error("Опишите изменения не менее чем в трёх символах");
+      if (!visualPromptRef.current) throw new Error("Редактор разметки ещё не готов");
+      await visualPromptRef.current.persist();
       return readJson(await fetch("/api/v1/generations", {
         method: "POST",
         headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
@@ -93,20 +97,38 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
         onRedo={() => visualPromptRef.current?.redo()}
       />
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="relative min-h-0 overflow-auto bg-background p-4 sm:p-8" aria-label="Холст проекта">
-          <div className="grid min-h-full place-items-center rounded-[var(--radius-lg)] border border-dashed border-border bg-surface/40 p-4 sm:p-8">
-            <div className={`max-w-full overflow-hidden rounded-xl border bg-black shadow-2xl ${selectedCanvasItem === "source" ? "border-accent" : "border-border"}`}>
-              <VisualPromptEditor
-                projectId={project.id}
-                imageUrl={project.sourceUrl}
-                editorWidth={project.sourceWidth}
-                editorHeight={project.sourceHeight}
-                sourceWidth={project.sourceWidth}
-                sourceHeight={project.sourceHeight}
-                initialState={project.initialCanvasState}
-              />
-            </div>
-          </div>
+        <section className="relative min-h-0 overflow-hidden bg-background" aria-label="Холст проекта">
+          <CanvasViewport
+            source={{
+              projectId: project.id,
+              imageUrl: project.sourceUrl,
+              width: project.sourceWidth,
+              height: project.sourceHeight,
+              initialState: project.initialCanvasState,
+            }}
+            generations={generations}
+            selectedItemId={selectedCanvasItem}
+            tool={tool}
+            color={color}
+            strokeWidth={strokeWidth}
+            editorRef={visualPromptRef}
+            onHistoryStateChange={setHistoryState}
+            onSelectItem={setSelectedCanvasItem}
+          />
+          <WorkspaceToolbar
+            tool={tool}
+            color={color}
+            strokeWidth={strokeWidth}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onToolChange={setTool}
+            onColorChange={setColor}
+            onStrokeWidthChange={setStrokeWidth}
+            onUndo={() => void visualPromptRef.current?.undo()}
+            onRedo={() => void visualPromptRef.current?.redo()}
+            onDelete={() => visualPromptRef.current?.deleteSelected()}
+            onClear={() => visualPromptRef.current?.clear()}
+          />
         </section>
         <aside ref={inspectorRef} className="hidden min-h-0 border-l border-border bg-surface lg:flex lg:w-[380px] lg:flex-col" aria-label="AI-настройки">
           <div className="border-b border-border px-5 py-4">
