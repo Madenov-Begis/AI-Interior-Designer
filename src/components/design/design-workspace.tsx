@@ -347,7 +347,6 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       return;
     }
 
-    setCanvasActionError(null);
     try {
       // Both operations are enqueued immediately in this order, preserving the
       // editor's total FIFO across drawing, history, and generation actions.

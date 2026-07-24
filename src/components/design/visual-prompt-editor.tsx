@@ -25,7 +25,7 @@ type Props = {
   color: string;
   strokeWidth: number;
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
-  onPersistenceError(message: string): void;
+  onPersistenceStateChange(message: string | null): void;
 };
 
 function dataUrlToBlob(dataUrl: string) {
@@ -56,7 +56,9 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const colorRef = useRef(props.color);
     const strokeWidthRef = useRef(props.strokeWidth);
     const historyStateCallbackRef = useRef(props.onHistoryStateChange);
-    const persistenceErrorCallbackRef = useRef(props.onPersistenceError);
+    const persistenceStateCallbackRef = useRef(
+      props.onPersistenceStateChange,
+    );
     const hasSavedPromptRef = useRef(props.initialState !== null);
 
     useEffect(() => {
@@ -64,8 +66,8 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     }, [props.onHistoryStateChange]);
 
     useEffect(() => {
-      persistenceErrorCallbackRef.current = props.onPersistenceError;
-    }, [props.onPersistenceError]);
+      persistenceStateCallbackRef.current = props.onPersistenceStateChange;
+    }, [props.onPersistenceStateChange]);
 
     const emitHistoryState = useCallback(() => {
       historyStateCallbackRef.current({
@@ -277,6 +279,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
               );
             }
             hasSavedPromptRef.current = false;
+            persistenceStateCallbackRef.current(null);
             return;
           }
 
@@ -307,6 +310,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             );
           }
           hasSavedPromptRef.current = true;
+          persistenceStateCallbackRef.current(null);
         }),
       [
         props.editorHeight,
@@ -428,10 +432,16 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
                 scaleY > 0 &&
                 (scaleX !== 1 || scaleY !== 1)
               ) {
-                // Pre-multiplying the complete object matrix applies the
-                // coordinate-space change on canvas axes. This preserves paths,
-                // rectangles, rotations, and skews under non-uniform scaling.
+                // Legacy rectangles used strokeUniform, which would cancel the
+                // new object scale while rendering their stroke. Preserve each
+                // object's center while switching to transformable strokes
+                // before pre-multiplying the complete object matrix.
                 canvas.getObjects().forEach((object) => {
+                  if (object.strokeUniform) {
+                    const center = object.getRelativeCenterPoint();
+                    object.set({ strokeUniform: false });
+                    object.setPositionByOrigin(center, "center", "center");
+                  }
                   util.addTransformToObject(object, [
                     scaleX,
                     0,
@@ -458,7 +468,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           captureHistory();
           if (migratedCoordinateSpace) {
             void persist().catch((error: unknown) => {
-              persistenceErrorCallbackRef.current(
+              persistenceStateCallbackRef.current(
                 error instanceof Error
                   ? `Разметка восстановлена, но не удалось сохранить обновлённые координаты: ${error.message}`
                   : "Разметка восстановлена, но не удалось сохранить обновлённые координаты",

@@ -510,7 +510,7 @@ export const CanvasViewport = forwardRef<
                 color={color}
                 strokeWidth={strokeWidth}
                 onHistoryStateChange={onHistoryStateChange}
-                onPersistenceError={onEditorError}
+                onPersistenceStateChange={onEditorError}
               />
             </div>
           </div>
