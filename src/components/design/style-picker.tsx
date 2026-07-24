@@ -16,7 +16,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
         Выберите направление или оставьте интерьер без стилевого пресета.
       </p>
       <div
-        className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-2"
+        className="-mx-2 mt-3 flex gap-2 overflow-x-auto px-2 py-2"
         role="radiogroup"
         aria-label="Стиль интерьера"
       >
@@ -25,7 +25,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
           return (
             <label
               key={style.code}
-              className={`relative w-[116px] shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 bg-background transition-colors ${
+              className={`workspace-focus-proxy relative w-[116px] shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 bg-background transition-colors ${
                 selected
                   ? "border-accent"
                   : "border-border hover:border-muted"
@@ -42,7 +42,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
                 onChange={() => {
                   if (!selected) onChange(style.code);
                 }}
-                className="peer sr-only"
+                className="sr-only"
                 aria-label={
                   selected
                     ? `${style.name}, выбран. Нажмите ещё раз, чтобы снять выбор`

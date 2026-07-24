@@ -176,7 +176,7 @@ export function WorkspaceToolbar({
                 </button>
               ))}
               <label
-                className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg"
+                className="workspace-focus-proxy relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg"
                 title="Другой цвет"
               >
                 <span className="sr-only">Другой цвет</span>
