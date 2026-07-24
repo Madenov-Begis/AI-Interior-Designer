@@ -51,6 +51,7 @@ type Source = {
 
 export type CanvasGenerationNode = {
   id: string;
+  ariaLabel?: string;
   node: ReactNode;
 };
 
@@ -466,6 +467,7 @@ export const CanvasViewport = forwardRef<
           return (
             <article
               key={generation.id}
+              aria-label={generation.ariaLabel}
               className={`canvas-item ${
                 selectedItemId === generation.id
                   ? "canvas-item--selected"
@@ -477,7 +479,14 @@ export const CanvasViewport = forwardRef<
                 width: CARD_WIDTH,
                 height: RESULT_CARD_HEIGHT,
               }}
+              tabIndex={0}
               onClick={() => selectItem(generation.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  selectItem(generation.id);
+                }
+              }}
             >
               {generation.node}
             </article>

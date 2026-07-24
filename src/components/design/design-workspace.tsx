@@ -2,9 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Settings2, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport } from "@/components/design/canvas-viewport";
 import { DesignInspector } from "@/components/design/design-inspector";
+import { GenerationCanvasCard } from "@/components/design/generation-canvas-card";
+import { ResultActions } from "@/components/design/result-actions";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
@@ -53,6 +55,13 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
   const [aspectRatio, setAspectRatio] = useState(project.aspectRatio);
   const [styleCode, setStyleCode] = useState<string>();
   const [selectedCanvasItem, setSelectedCanvasItem] = useState<string>("source");
+  const [hiddenGenerationIds, setHiddenGenerationIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [openedResult, setOpenedResult] = useState<{
+    generationId: string;
+    resultUrl: string;
+  } | null>(null);
   const [tool, setTool] = useState<VisualPromptTool>("select");
   const [color, setColor] = useState("#afea4d");
   const [strokeWidth, setStrokeWidth] = useState(12);
@@ -88,15 +97,24 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       ? aspectRatio
       : selectedModel?.supportedAspectRatios[0] ?? "";
 
-  const createGeneration = useMutation({
-    mutationFn: async () => {
-      if (!selectedModelCode) throw new Error("Выберите модель");
-      if (prompt.trim().length < 3) throw new Error("Опишите изменения не менее чем в трёх символах");
-      if (!visualPromptRef.current) throw new Error("Редактор разметки ещё не готов");
-      await visualPromptRef.current.persist();
-      return readJson(await fetch("/api/v1/generations", {
+  async function reserveCurrentGeneration() {
+    if (!selectedModelCode) throw new Error("Выберите модель");
+    if (prompt.trim().length < 3) {
+      throw new Error("Опишите изменения не менее чем в трёх символах");
+    }
+    if (!visualPromptRef.current) {
+      throw new Error("Редактор разметки ещё не готов");
+    }
+
+    await visualPromptRef.current.persist();
+
+    return readJson(
+      await fetch("/api/v1/generations", {
         method: "POST",
-        headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() },
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": crypto.randomUUID(),
+        },
         body: JSON.stringify({
           projectId: project.id,
           prompt,
@@ -104,7 +122,43 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
           aspectRatio: selectedAspectRatio,
           styleCode,
         }),
-      }));
+      }),
+    );
+  }
+
+  const createGeneration = useMutation({
+    mutationFn: reserveCurrentGeneration,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+      ]);
+    },
+  });
+  const cancelGeneration = useMutation({
+    mutationFn: async (generationId: string) =>
+      readJson(
+        await fetch(`/api/v1/generations/${generationId}/cancel`, {
+          method: "POST",
+        }),
+      ),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+      ]);
+    },
+  });
+  const retryGeneration = useMutation({
+    mutationFn: async (generation: WorkspaceGeneration) => {
+      if (generation.status === "REJECTED") {
+        return reserveCurrentGeneration();
+      }
+      return readJson(
+        await fetch(`/api/v1/generations/${generation.id}/retry`, {
+          method: "POST",
+        }),
+      );
     },
     onSuccess: async () => {
       await Promise.all([
@@ -113,7 +167,23 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       ]);
     },
   });
-  const generations = generationsQuery.data?.items ?? [];
+  const indexedGenerations = useMemo(
+    () =>
+      [...(generationsQuery.data?.items ?? [])]
+        .sort(
+          (left, right) =>
+            left.createdAt.localeCompare(right.createdAt) ||
+            left.id.localeCompare(right.id),
+        )
+        .map((generation, index) => ({
+          generation,
+          variantNumber: index + 1,
+        })),
+    [generationsQuery.data?.items],
+  );
+  const visibleGenerations = indexedGenerations.filter(
+    ({ generation }) => !hiddenGenerationIds.has(generation.id),
+  );
   const generationError = createGeneration.error;
   const inspectorDataError =
     modelsQuery.error?.message ??
@@ -146,17 +216,65 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
   if (usageQuery.data?.remaining === 0) {
     disabledReasons.push("Дневной лимит генераций исчерпан.");
   }
-  const canvasGenerations = generations.map((generation, index) => ({
-    id: generation.id,
-    node: (
-      <div className="grid size-full place-items-center bg-surface-elevated px-8 text-center text-muted">
-        <div>
-          <p className="text-sm font-black text-foreground">Результат {index + 1}</p>
-          <p className="mt-2 text-xs">Карточка результата появится на следующем этапе.</p>
-        </div>
-      </div>
-    ),
-  }));
+  const canvasGenerations = visibleGenerations.map(
+    ({ generation, variantNumber }) => {
+      const cancelIsCurrent =
+        cancelGeneration.isPending &&
+        cancelGeneration.variables === generation.id;
+      const retryIsCurrent =
+        retryGeneration.isPending &&
+        retryGeneration.variables?.id === generation.id;
+      const actionError =
+        cancelGeneration.isError &&
+        cancelGeneration.variables === generation.id
+          ? cancelGeneration.error?.message
+          : retryGeneration.isError &&
+              retryGeneration.variables?.id === generation.id
+            ? retryGeneration.error?.message
+            : null;
+
+      return {
+        id: generation.id,
+        ariaLabel: `Вариант ${variantNumber}, статус ${generation.status}`,
+        node: (
+          <GenerationCanvasCard
+            generation={generation}
+            variantNumber={variantNumber}
+            cancelPending={cancelIsCurrent}
+            retryPending={retryIsCurrent}
+            actionError={actionError}
+            onCancel={() => cancelGeneration.mutate(generation.id)}
+            onRetry={() => retryGeneration.mutate(generation)}
+            onRemove={() => {
+              setHiddenGenerationIds((current) => {
+                const next = new Set(current);
+                next.add(generation.id);
+                return next;
+              });
+              if (selectedCanvasItem === generation.id) {
+                setSelectedCanvasItem("source");
+              }
+              if (openedResult?.generationId === generation.id) {
+                setOpenedResult(null);
+              }
+            }}
+            onOpenResult={(resultUrl) => {
+              setSelectedCanvasItem(generation.id);
+              setOpenedResult({
+                generationId: generation.id,
+                resultUrl,
+              });
+            }}
+          />
+        ),
+      };
+    },
+  );
+  const openedGeneration = openedResult
+    ? indexedGenerations.find(
+        ({ generation }) => generation.id === openedResult.generationId,
+      )?.generation
+    : undefined;
 
   function openInspector() {
     setInspectorOpen(true);
@@ -232,6 +350,14 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             onHistoryStateChange={setHistoryState}
             onSelectItem={setSelectedCanvasItem}
           />
+          {generationsQuery.isError ? (
+            <div
+              role="alert"
+              className="absolute bottom-24 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-red-400/30 bg-surface px-4 py-3 text-sm text-red-300 shadow-xl"
+            >
+              {generationsQuery.error.message}
+            </div>
+          ) : null}
           <WorkspaceToolbar
             tool={tool}
             color={color}
@@ -316,6 +442,15 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
           />
         </dialog>
       </div>
+      {openedGeneration && openedResult ? (
+        <ResultActions
+          generation={openedGeneration}
+          sourceUrl={project.sourceUrl}
+          resultUrl={openedResult.resultUrl}
+          onClose={() => setOpenedResult(null)}
+          onGenerateVariation={() => createGeneration.mutate()}
+        />
+      ) : null}
     </div>
   );
 }
