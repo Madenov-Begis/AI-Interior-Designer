@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { ReferenceManager } from "@/components/design/reference-manager";
+import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
 
@@ -38,7 +40,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
   const [modelCode] = useState("");
   const [aspectRatio] = useState(project.aspectRatio);
   const [styleCode] = useState<string>();
-  const [selectedCanvasItem, setSelectedCanvasItem] = useState<string>("source");
+  const [selectedCanvasItem] = useState<string>("source");
   const [canUndo] = useState(false);
   const [canRedo] = useState(false);
 
@@ -93,16 +95,17 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className="relative min-h-0 overflow-auto bg-background p-4 sm:p-8" aria-label="Холст проекта">
           <div className="grid min-h-full place-items-center rounded-[var(--radius-lg)] border border-dashed border-border bg-surface/40 p-4 sm:p-8">
-            <button
-              type="button"
-              onClick={() => setSelectedCanvasItem("source")}
-              className={`max-w-full overflow-hidden rounded-xl border bg-black text-left shadow-2xl transition-colors ${selectedCanvasItem === "source" ? "border-accent" : "border-border"}`}
-              aria-pressed={selectedCanvasItem === "source"}
-            >
-              {/* A signed Storage URL cannot use the stable Next image loader. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={project.sourceUrl} alt={`Исходное изображение проекта «${project.name}»`} width={project.sourceWidth} height={project.sourceHeight} className="max-h-[calc(100dvh-11rem)] max-w-full object-contain" />
-            </button>
+            <div className={`max-w-full overflow-hidden rounded-xl border bg-black shadow-2xl ${selectedCanvasItem === "source" ? "border-accent" : "border-border"}`}>
+              <VisualPromptEditor
+                projectId={project.id}
+                imageUrl={project.sourceUrl}
+                editorWidth={project.sourceWidth}
+                editorHeight={project.sourceHeight}
+                sourceWidth={project.sourceWidth}
+                sourceHeight={project.sourceHeight}
+                initialState={project.initialCanvasState}
+              />
+            </div>
           </div>
         </section>
         <aside ref={inspectorRef} className="hidden min-h-0 border-l border-border bg-surface lg:flex lg:w-[380px] lg:flex-col" aria-label="AI-настройки">
@@ -113,6 +116,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
           <div className="min-h-0 flex-1 overflow-auto p-5">
             <p className="text-sm font-bold">Исходное изображение</p>
             <p className="mt-1 text-sm leading-6 text-muted">Разметка, референсы и параметры генерации останутся привязаны к этому проекту.</p>
+            <ReferenceManager projectId={project.id} initialReferences={initialReferences} />
             <div className="mt-5 rounded-xl border border-border bg-background p-4 text-sm text-muted">
               Референсов: {initialReferences.length}<br />
               Генераций: {generations.length}<br />
