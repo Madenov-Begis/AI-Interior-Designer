@@ -31,11 +31,16 @@ export function ResultActions({
   onGenerateVariation,
 }: ResultActionsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const [variationPending, setVariationPending] = useState(false);
   const [variationError, setVariationError] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
 
@@ -69,13 +74,19 @@ export function ResultActions({
         event.preventDefault();
         close();
       }}
-      onClose={onClose}
+      onClose={() => {
+        onClose();
+        const returnFocus = returnFocusRef.current;
+        if (returnFocus?.isConnected) {
+          requestAnimationFrame(() => returnFocus.focus());
+        }
+      }}
       onClick={(event) => {
         if (event.target === event.currentTarget) close();
       }}
       className="fixed inset-0 z-[70] m-0 h-dvh max-h-dvh w-full max-w-none overflow-y-auto border-0 bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/75 md:inset-y-8 md:m-auto md:h-auto md:max-h-[calc(100dvh-4rem)] md:w-[min(960px,calc(100vw-3rem))] md:rounded-3xl md:border md:border-border"
     >
-      <div className="sticky top-0 z-10 flex min-h-16 items-center justify-between gap-4 border-b border-border bg-surface/95 px-5 backdrop-blur">
+      <div className="sticky top-0 z-10 flex min-h-16 items-center justify-between gap-4 border-b border-border bg-surface/95 px-5 pt-[env(safe-area-inset-top)] backdrop-blur md:pt-0">
         <div>
           <h2 id="result-actions-title" className="text-base font-black">
             Сравнение результата
@@ -93,7 +104,7 @@ export function ResultActions({
         </button>
       </div>
 
-      <div className="grid gap-6 p-4 sm:p-6">
+      <div className="grid gap-6 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
         <BeforeAfter beforeUrl={sourceUrl} afterUrl={resultUrl} />
 
         <div className="grid gap-3 sm:grid-cols-2">

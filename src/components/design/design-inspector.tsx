@@ -86,7 +86,7 @@ export function DesignInspector({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5">
         <section aria-labelledby="inspector-references-title">
           <div className="flex items-center justify-between gap-3">
             <h2
@@ -243,7 +243,9 @@ export function DesignInspector({
           </div>
         )}
         {dataError && (
-          <p className="mt-3 text-xs leading-5 text-red-300">{dataError}</p>
+          <p className="mt-3 text-xs leading-5 text-red-300" role="alert">
+            {dataError}
+          </p>
         )}
         {generationError && (
           <p className="mt-3 text-xs leading-5 text-red-300" role="alert">

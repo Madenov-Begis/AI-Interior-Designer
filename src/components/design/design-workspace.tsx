@@ -288,9 +288,16 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
 
   function closeInspector() {
     const dialog = inspectorDialogRef.current;
-    if (dialog?.open) dialog.close();
+    if (dialog?.open) {
+      dialog.close();
+      return;
+    }
     setInspectorOpen(false);
-    requestAnimationFrame(() => inspectorTriggerRef.current?.focus());
+    requestAnimationFrame(() => {
+      if (inspectorTriggerRef.current?.offsetParent !== null) {
+        inspectorTriggerRef.current?.focus();
+      }
+    });
   }
 
   useEffect(() => {
@@ -316,7 +323,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="canvas-workspace flex h-full min-h-0 flex-col">
       <WorkspaceHeader
         projectId={project.id}
         initialName={project.name}
@@ -389,7 +396,11 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
           }}
           onClose={() => {
             setInspectorOpen(false);
-            requestAnimationFrame(() => inspectorTriggerRef.current?.focus());
+            requestAnimationFrame(() => {
+              if (inspectorTriggerRef.current?.offsetParent !== null) {
+                inspectorTriggerRef.current?.focus();
+              }
+            });
           }}
           className={`fixed inset-0 z-50 m-0 h-dvh max-h-dvh w-full max-w-none flex-col overflow-hidden overscroll-contain border-0 bg-surface p-0 pb-[env(safe-area-inset-bottom)] text-foreground shadow-2xl backdrop:bg-black/65 ${
             inspectorOpen ? "flex" : "hidden"

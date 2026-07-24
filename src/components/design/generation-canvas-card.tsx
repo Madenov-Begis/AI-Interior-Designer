@@ -57,7 +57,11 @@ function CardHeader({
           {status === "SUCCEEDED" ? "Готовый дизайн" : "AI-генерация"}
         </p>
       </div>
-      <span className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+      <span
+        className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted"
+        role="status"
+        aria-live="polite"
+      >
         {statusLabels[status]}
       </span>
     </header>
@@ -68,15 +72,21 @@ function StatusPanel({
   icon,
   title,
   message,
+  tone = "status",
   children,
 }: {
   icon: React.ReactNode;
   title: string;
   message?: string | null;
+  tone?: "status" | "alert";
   children?: React.ReactNode;
 }) {
   return (
-    <div className="grid min-h-0 flex-1 place-items-center bg-surface-elevated px-10 text-center">
+    <div
+      className="grid min-h-0 flex-1 place-items-center bg-surface-elevated px-10 text-center"
+      role={tone}
+      aria-live={tone === "alert" ? "assertive" : "polite"}
+    >
       <div className="grid max-w-md justify-items-center gap-3">
         {icon}
         <p className="text-base font-black text-foreground">{title}</p>
@@ -193,6 +203,7 @@ export function GenerationCanvasCard({
             icon={<ImageOff size={30} className="text-muted" aria-hidden="true" />}
             title="Не удалось открыть изображение"
             message={resultQuery.error.message}
+            tone="alert"
           >
             <button
               type="button"
@@ -249,6 +260,7 @@ export function GenerationCanvasCard({
           }
           title="Не удалось создать интерьер"
           message={generation.errorMessage ?? "Произошла техническая ошибка."}
+          tone="alert"
         >
           <button
             type="button"
@@ -285,6 +297,7 @@ export function GenerationCanvasCard({
             />
           }
           title="Запрос отклонён"
+          tone="alert"
           message={
             generation.errorMessage ??
             "Запрос не прошёл проверку безопасности. Измените описание и попробуйте снова."

@@ -46,13 +46,13 @@ const COLORS = ["#afea4d", "#ff7474", "#58a6ff", "#f5f5f1", "#f2b84b"];
 
 function ToolbarButton({
   label,
-  active = false,
+  pressed,
   disabled = false,
   onClick,
   children,
 }: {
   label: string;
-  active?: boolean;
+  pressed?: boolean;
   disabled?: boolean;
   onClick(): void;
   children: React.ReactNode;
@@ -62,11 +62,11 @@ function ToolbarButton({
       type="button"
       aria-label={label}
       title={label}
-      aria-pressed={active || undefined}
+      aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
       className={`workspace-toolbar__button ${
-        active
+        pressed
           ? "bg-accent text-accent-foreground"
           : "text-muted hover:bg-surface-elevated hover:text-foreground"
       } disabled:pointer-events-none disabled:opacity-30`}
@@ -101,7 +101,7 @@ export function WorkspaceToolbar({
           <ToolbarButton
             key={id}
             label={label}
-            active={tool === id}
+            pressed={tool === id}
             onClick={() => {
               onToolChange(id);
               if (id === "select" || id === "pan") setSettingsOpen(false);
@@ -116,7 +116,7 @@ export function WorkspaceToolbar({
         {hasDrawingSettings && (
           <ToolbarButton
             label="Цвет и толщина"
-            active={settingsOpen}
+            pressed={settingsOpen}
             onClick={() => setSettingsOpen((open) => !open)}
           >
             <span
@@ -158,6 +158,9 @@ export function WorkspaceToolbar({
                   type="button"
                   aria-label={`Выбрать цвет ${preset}`}
                   title={`Цвет ${preset}`}
+                  aria-pressed={
+                    color.toLowerCase() === preset.toLowerCase()
+                  }
                   onClick={() => onColorChange(preset)}
                   className={`size-6 rounded-full border-2 ${
                     color.toLowerCase() === preset.toLowerCase()

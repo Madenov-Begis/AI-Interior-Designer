@@ -24,6 +24,12 @@ import type {
 type ViewportTransform = { x: number; y: number; scale: number };
 type ViewportSize = { width: number; height: number };
 type WorldBounds = { minX: number; minY: number; maxX: number; maxY: number };
+type ViewportInsets = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
 
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 2.5;
@@ -33,7 +39,7 @@ export const CARD_WIDTH = 760;
 export const CARD_GAP = 72;
 
 const RESULT_CARD_HEIGHT = 610;
-const VIEWPORT_PADDING = 40;
+const FIT_MIN_SCALE = 0.01;
 
 export type CanvasViewportHandle = {
   zoomIn(): void;
@@ -84,10 +90,12 @@ function constrainAxis(
   contentMinimum: number,
   contentMaximum: number,
   scale: number,
+  leadingInset: number,
+  trailingInset: number,
 ) {
   const trailingEdgeOffset =
-    viewportLength - VIEWPORT_PADDING - contentMaximum * scale;
-  const leadingEdgeOffset = VIEWPORT_PADDING - contentMinimum * scale;
+    viewportLength - trailingInset - contentMaximum * scale;
+  const leadingEdgeOffset = leadingInset - contentMinimum * scale;
   return clamp(
     offset,
     Math.min(trailingEdgeOffset, leadingEdgeOffset),
@@ -99,6 +107,7 @@ function constrainTransform(
   transform: ViewportTransform,
   viewport: ViewportSize,
   bounds: WorldBounds,
+  insets: ViewportInsets,
 ) {
   return {
     ...transform,
@@ -108,6 +117,8 @@ function constrainTransform(
       bounds.minX,
       bounds.maxX,
       transform.scale,
+      insets.left,
+      insets.right,
     ),
     y: constrainAxis(
       transform.y,
@@ -115,8 +126,17 @@ function constrainTransform(
       bounds.minY,
       bounds.maxY,
       transform.scale,
+      insets.top,
+      insets.bottom,
     ),
   };
+}
+
+function getViewportInsets(width: number): ViewportInsets {
+  if (width < 1200) {
+    return { top: 64, right: 40, bottom: 80, left: 40 };
+  }
+  return { top: 40, right: 40, bottom: 64, left: 72 };
 }
 
 export const CanvasViewport = forwardRef<
@@ -156,6 +176,10 @@ export const CanvasViewport = forwardRef<
     y: 0,
     scale: 1,
   });
+  const viewportInsets = useMemo(
+    () => getViewportInsets(viewportSize.width),
+    [viewportSize.width],
+  );
 
   const sourceCardHeight = 46 + (CARD_WIDTH * source.height) / source.width;
   const wrappedColumnCount =
@@ -212,33 +236,39 @@ export const CanvasViewport = forwardRef<
     const contentHeight = worldBounds.maxY - worldBounds.minY;
     const availableWidth = Math.max(
       1,
-      viewportSize.width - VIEWPORT_PADDING * 2,
+      viewportSize.width - viewportInsets.left - viewportInsets.right,
     );
     const availableHeight = Math.max(
       1,
-      viewportSize.height - VIEWPORT_PADDING * 2,
+      viewportSize.height - viewportInsets.top - viewportInsets.bottom,
     );
     const nextScale = clamp(
       Math.min(availableWidth / contentWidth, availableHeight / contentHeight),
-      MIN_SCALE,
+      FIT_MIN_SCALE,
       MAX_SCALE,
     );
 
     setTransform({
       scale: nextScale,
       x:
-        (viewportSize.width - contentWidth * nextScale) / 2 -
+        viewportInsets.left +
+        (availableWidth - contentWidth * nextScale) / 2 -
         worldBounds.minX * nextScale,
       y:
-        (viewportSize.height - contentHeight * nextScale) / 2 -
+        viewportInsets.top +
+        (availableHeight - contentHeight * nextScale) / 2 -
         worldBounds.minY * nextScale,
     });
-  }, [viewportSize, worldBounds]);
+  }, [viewportInsets, viewportSize, worldBounds]);
 
   const zoomAt = useCallback(
     (nextScale: number, pointerX: number, pointerY: number) => {
       setTransform((current) => {
-        const scale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
+        const scale = clamp(
+          nextScale,
+          Math.min(MIN_SCALE, current.scale),
+          MAX_SCALE,
+        );
         const worldX = (pointerX - current.x) / current.scale;
         const worldY = (pointerY - current.y) / current.scale;
         return constrainTransform(
@@ -249,10 +279,11 @@ export const CanvasViewport = forwardRef<
           },
           viewportSize,
           worldBounds,
+          viewportInsets,
         );
       });
     },
-    [viewportSize, worldBounds],
+    [viewportInsets, viewportSize, worldBounds],
   );
 
   const zoomFromCenter = useCallback(
@@ -305,9 +336,9 @@ export const CanvasViewport = forwardRef<
   useEffect(() => {
     if (!initialFitRef.current) return;
     setTransform((current) =>
-      constrainTransform(current, viewportSize, worldBounds),
+      constrainTransform(current, viewportSize, worldBounds, viewportInsets),
     );
-  }, [viewportSize, worldBounds]);
+  }, [viewportInsets, viewportSize, worldBounds]);
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (tool !== "pan" || (event.pointerType === "mouse" && event.button !== 0)) {
@@ -345,6 +376,7 @@ export const CanvasViewport = forwardRef<
         },
         viewportSize,
         worldBounds,
+        viewportInsets,
       ),
     );
   }
@@ -396,12 +428,18 @@ export const CanvasViewport = forwardRef<
         tool === "pan" ? "canvas-viewport--pan" : ""
       } ${isPanning ? "canvas-viewport--panning" : ""}`}
       aria-label="Холст проекта"
+      aria-describedby="canvas-viewport-instructions"
+      role="region"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={finishPan}
       onPointerCancel={finishPan}
       onWheel={handleWheel}
     >
+      <p id="canvas-viewport-instructions" className="sr-only">
+        Выберите инструмент перемещения, чтобы двигать холст. Используйте
+        кнопки масштаба, чтобы приблизить, отдалить или вписать всё содержимое.
+      </p>
       <div
         className="canvas-world"
         style={{
@@ -411,6 +449,9 @@ export const CanvasViewport = forwardRef<
         }}
       >
         <article
+          aria-label={`Исходное изображение${
+            selectedItemId === "source" ? ", выбрано" : ""
+          }`}
           className={`canvas-item ${
             selectedItemId === "source" ? "canvas-item--selected" : ""
           }`}
@@ -419,7 +460,17 @@ export const CanvasViewport = forwardRef<
             top: SOURCE_Y,
             width: CARD_WIDTH,
           }}
+          tabIndex={0}
           onClick={() => selectItem("source")}
+          onKeyDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              (event.key === "Enter" || event.key === " ")
+            ) {
+              event.preventDefault();
+              selectItem("source");
+            }
+          }}
         >
           <header className="flex h-[46px] items-center justify-between border-b border-border px-4">
             <div>
@@ -467,7 +518,9 @@ export const CanvasViewport = forwardRef<
           return (
             <article
               key={generation.id}
-              aria-label={generation.ariaLabel}
+              aria-label={`${generation.ariaLabel ?? "Результат генерации"}${
+                selectedItemId === generation.id ? ", выбрано" : ""
+              }`}
               className={`canvas-item ${
                 selectedItemId === generation.id
                   ? "canvas-item--selected"

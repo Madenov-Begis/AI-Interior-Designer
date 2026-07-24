@@ -32,7 +32,7 @@
   inset: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  touch-action: pan-x pan-y;
+  touch-action: none;
   background-color: var(--background);
   background-image: radial-gradient(
     circle,
@@ -139,8 +139,8 @@
 .canvas-zoom-controls {
   position: absolute;
   z-index: 20;
-  right: 1rem;
-  bottom: 1rem;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -251,12 +251,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 @keyframes ticker { to { transform: translateX(-48%); } }
 
-@media (max-width: 767px) {
+@media (max-width: 1199px) {
   .workspace-toolbar {
     top: auto;
-    right: 0.75rem;
-    bottom: 0.75rem;
-    left: 0.75rem;
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: max(0.75rem, env(safe-area-inset-left));
     transform: none;
   }
 
@@ -266,6 +266,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
     max-width: 100%;
     margin-inline: auto;
     overflow-x: auto;
+  }
+
+  .workspace-toolbar__button {
+    width: 2.75rem;
+    height: 2.75rem;
   }
 
   .workspace-toolbar__divider {
@@ -284,9 +289,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   }
 
   .canvas-zoom-controls {
-    top: 0.75rem;
-    right: 0.75rem;
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: auto;
     bottom: auto;
+    left: max(0.75rem, env(safe-area-inset-left));
   }
 }
 
@@ -294,7 +300,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
   html { scroll-behavior: auto; }
   .ticker__track { animation: none; }
   .canvas-item,
-  .workspace-toolbar__button {
+  .workspace-toolbar__button,
+  .canvas-workspace .transition-colors,
+  .canvas-workspace .transition-transform {
     transition: none;
   }
 }
