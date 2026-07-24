@@ -1,7 +1,7 @@
 "use client";
 
-import { Download, Sparkles, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Download, LoaderCircle, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { BeforeAfter } from "@/components/design/before-after";
 import type { WorkspaceGeneration } from "@/components/design/workspace-types";
 import { buttonClassName } from "@/components/ui/button";
@@ -11,7 +11,7 @@ export type ResultActionsProps = {
   sourceUrl: string;
   resultUrl: string;
   onClose(): void;
-  onGenerateVariation(): void;
+  onGenerateVariation(): Promise<void>;
 };
 
 function formatCreationDate(value: string) {
@@ -31,6 +31,8 @@ export function ResultActions({
   onGenerateVariation,
 }: ResultActionsProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [variationPending, setVariationPending] = useState(false);
+  const [variationError, setVariationError] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -38,7 +40,25 @@ export function ResultActions({
   }, []);
 
   function close() {
+    if (variationPending) return;
     dialogRef.current?.close();
+  }
+
+  async function generateVariation() {
+    setVariationError(null);
+    setVariationPending(true);
+    try {
+      await onGenerateVariation();
+      setVariationPending(false);
+      dialogRef.current?.close();
+    } catch (error) {
+      setVariationError(
+        error instanceof Error
+          ? error.message
+          : "Не удалось создать ещё один вариант",
+      );
+      setVariationPending(false);
+    }
   }
 
   return (
@@ -65,6 +85,7 @@ export function ResultActions({
         <button
           type="button"
           onClick={close}
+          disabled={variationPending}
           className="grid size-11 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-elevated hover:text-foreground"
           aria-label="Закрыть сравнение"
         >
@@ -85,16 +106,30 @@ export function ResultActions({
           </a>
           <button
             type="button"
-            onClick={() => {
-              onGenerateVariation();
-              close();
-            }}
-            className={buttonClassName("primary", "rounded-xl")}
+            onClick={() => void generateVariation()}
+            disabled={variationPending}
+            className={buttonClassName(
+              "primary",
+              "rounded-xl disabled:cursor-wait disabled:opacity-50",
+            )}
           >
-            <Sparkles size={17} aria-hidden="true" />
-            Создать ещё вариант
+            {variationPending ? (
+              <LoaderCircle
+                size={17}
+                className="animate-spin"
+                aria-hidden="true"
+              />
+            ) : (
+              <Sparkles size={17} aria-hidden="true" />
+            )}
+            {variationPending ? "Создаём вариант…" : "Создать ещё вариант"}
           </button>
         </div>
+        {variationError ? (
+          <p role="alert" aria-live="polite" className="text-sm text-red-300">
+            {variationError}
+          </p>
+        ) : null}
 
         <section
           className="rounded-2xl border border-border bg-surface-elevated p-5"

@@ -154,6 +154,12 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       if (generation.status === "REJECTED") {
         return reserveCurrentGeneration();
       }
+      if (!visualPromptRef.current) {
+        throw new Error("Редактор разметки ещё не готов");
+      }
+
+      await visualPromptRef.current.persist();
+
       return readJson(
         await fetch(`/api/v1/generations/${generation.id}/retry`, {
           method: "POST",
@@ -448,7 +454,9 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
           sourceUrl={project.sourceUrl}
           resultUrl={openedResult.resultUrl}
           onClose={() => setOpenedResult(null)}
-          onGenerateVariation={() => createGeneration.mutate()}
+          onGenerateVariation={async () => {
+            await createGeneration.mutateAsync();
+          }}
         />
       ) : null}
     </div>

@@ -141,7 +141,9 @@ export function GenerationCanvasCard({
             {cancelPending ? "Отменяем…" : "Отменить"}
           </button>
           {actionError ? (
-            <p className="text-xs text-red-300">{actionError}</p>
+            <p role="alert" className="text-xs text-red-300">
+              {actionError}
+            </p>
           ) : null}
         </StatusPanel>
       );
@@ -265,7 +267,9 @@ export function GenerationCanvasCard({
             {retryPending ? "Повторяем…" : "Повторить"}
           </button>
           {actionError ? (
-            <p className="text-xs text-red-300">{actionError}</p>
+            <p role="alert" className="text-xs text-red-300">
+              {actionError}
+            </p>
           ) : null}
         </StatusPanel>
       );
@@ -303,7 +307,9 @@ export function GenerationCanvasCard({
             {retryPending ? "Запускаем…" : "Повторить"}
           </button>
           {actionError ? (
-            <p className="text-xs text-red-300">{actionError}</p>
+            <p role="alert" className="text-xs text-red-300">
+              {actionError}
+            </p>
           ) : null}
         </StatusPanel>
       );

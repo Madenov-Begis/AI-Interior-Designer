@@ -482,7 +482,10 @@ export const CanvasViewport = forwardRef<
               tabIndex={0}
               onClick={() => selectItem(generation.id)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
+                if (
+                  event.target === event.currentTarget &&
+                  (event.key === "Enter" || event.key === " ")
+                ) {
                   event.preventDefault();
                   selectItem(generation.id);
                 }
