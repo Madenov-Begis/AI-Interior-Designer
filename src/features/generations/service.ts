@@ -41,7 +41,7 @@ export async function listOwnedGenerations(userId: string, input: { limit: numbe
     ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
     select: {
       id: true, projectId: true, status: true, prompt: true, aspectRatio: true, visualPromptUsed: true,
-      resultUserId: true, errorCode: true, queuedAt: true, completedAt: true, durationMs: true,
+      resultUserId: true, errorCode: true, errorMessage: true, createdAt: true, queuedAt: true, completedAt: true, durationMs: true,
       project: { select: { name: true, sourcePreviewId: true } },
       model: { select: { code: true, name: true } },
       _count: { select: { references: true } },
