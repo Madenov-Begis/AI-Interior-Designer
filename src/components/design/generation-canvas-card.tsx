@@ -59,8 +59,6 @@ function CardHeader({
       </div>
       <span
         className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted"
-        role="status"
-        aria-live="polite"
       >
         {statusLabels[status]}
       </span>
@@ -72,21 +70,15 @@ function StatusPanel({
   icon,
   title,
   message,
-  tone = "status",
   children,
 }: {
   icon: React.ReactNode;
   title: string;
   message?: string | null;
-  tone?: "status" | "alert";
   children?: React.ReactNode;
 }) {
   return (
-    <div
-      className="grid min-h-0 flex-1 place-items-center bg-surface-elevated px-10 text-center"
-      role={tone}
-      aria-live={tone === "alert" ? "assertive" : "polite"}
-    >
+    <div className="grid min-h-0 flex-1 place-items-center bg-surface-elevated px-10 text-center">
       <div className="grid max-w-md justify-items-center gap-3">
         {icon}
         <p className="text-base font-black text-foreground">{title}</p>
@@ -118,6 +110,32 @@ export function GenerationCanvasCard({
     staleTime: 8 * 60_000,
     refetchInterval: 8 * 60_000,
   });
+  const resultUnavailable =
+    generation.status === "SUCCEEDED" && !generation.resultUserId;
+  const announcementIsError =
+    generation.status === "FAILED" ||
+    generation.status === "REJECTED" ||
+    resultUnavailable ||
+    resultQuery.isError ||
+    Boolean(actionError);
+  let announcement = statusLabels[generation.status];
+  if (actionError) {
+    announcement = actionError;
+  } else if (resultQuery.isError) {
+    announcement = resultQuery.error.message;
+  } else if (resultUnavailable) {
+    announcement = "Результат недоступен";
+  } else if (generation.status === "FAILED") {
+    announcement =
+      generation.errorMessage ?? "Не удалось создать интерьер";
+  } else if (generation.status === "REJECTED") {
+    announcement = generation.errorMessage ?? "Запрос отклонён";
+  } else if (
+    generation.status === "SUCCEEDED" &&
+    resultQuery.isPending
+  ) {
+    announcement = "Загружаем вариант";
+  }
 
   let content: React.ReactNode;
 
@@ -151,7 +169,7 @@ export function GenerationCanvasCard({
             {cancelPending ? "Отменяем…" : "Отменить"}
           </button>
           {actionError ? (
-            <p role="alert" className="text-xs text-red-300">
+            <p className="text-xs text-red-300">
               {actionError}
             </p>
           ) : null}
@@ -203,7 +221,6 @@ export function GenerationCanvasCard({
             icon={<ImageOff size={30} className="text-muted" aria-hidden="true" />}
             title="Не удалось открыть изображение"
             message={resultQuery.error.message}
-            tone="alert"
           >
             <button
               type="button"
@@ -260,7 +277,6 @@ export function GenerationCanvasCard({
           }
           title="Не удалось создать интерьер"
           message={generation.errorMessage ?? "Произошла техническая ошибка."}
-          tone="alert"
         >
           <button
             type="button"
@@ -279,7 +295,7 @@ export function GenerationCanvasCard({
             {retryPending ? "Повторяем…" : "Повторить"}
           </button>
           {actionError ? (
-            <p role="alert" className="text-xs text-red-300">
+            <p className="text-xs text-red-300">
               {actionError}
             </p>
           ) : null}
@@ -297,7 +313,6 @@ export function GenerationCanvasCard({
             />
           }
           title="Запрос отклонён"
-          tone="alert"
           message={
             generation.errorMessage ??
             "Запрос не прошёл проверку безопасности. Измените описание и попробуйте снова."
@@ -320,7 +335,7 @@ export function GenerationCanvasCard({
             {retryPending ? "Запускаем…" : "Повторить"}
           </button>
           {actionError ? (
-            <p role="alert" className="text-xs text-red-300">
+            <p className="text-xs text-red-300">
               {actionError}
             </p>
           ) : null}
@@ -353,6 +368,13 @@ export function GenerationCanvasCard({
 
   return (
     <div className="flex size-full min-h-0 flex-col overflow-hidden bg-surface">
+      <span
+        className="sr-only"
+        role={announcementIsError ? "alert" : "status"}
+        aria-live={announcementIsError ? "assertive" : "polite"}
+      >
+        {announcement}
+      </span>
       <CardHeader
         variantNumber={variantNumber}
         status={generation.status}

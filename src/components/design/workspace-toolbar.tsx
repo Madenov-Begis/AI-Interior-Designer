@@ -162,24 +162,34 @@ export function WorkspaceToolbar({
                     color.toLowerCase() === preset.toLowerCase()
                   }
                   onClick={() => onColorChange(preset)}
-                  className={`size-6 rounded-full border-2 ${
-                    color.toLowerCase() === preset.toLowerCase()
-                      ? "border-foreground"
-                      : "border-transparent"
-                  }`}
-                  style={{ backgroundColor: preset }}
-                />
+                  className="grid size-11 shrink-0 place-items-center rounded-lg"
+                >
+                  <span
+                    className={`size-6 rounded-full border-2 ${
+                      color.toLowerCase() === preset.toLowerCase()
+                        ? "border-foreground"
+                        : "border-transparent"
+                    }`}
+                    style={{ backgroundColor: preset }}
+                    aria-hidden="true"
+                  />
+                </button>
               ))}
               <label
-                className="grid size-7 cursor-pointer place-items-center overflow-hidden rounded-full border border-border bg-surface-elevated"
+                className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg"
                 title="Другой цвет"
               >
                 <span className="sr-only">Другой цвет</span>
+                <span
+                  className="size-7 rounded-full border border-border"
+                  style={{ backgroundColor: color }}
+                  aria-hidden="true"
+                />
                 <input
                   type="color"
                   value={color}
                   onChange={(event) => onColorChange(event.target.value)}
-                  className="size-10 cursor-pointer border-0 bg-transparent p-0"
+                  className="absolute inset-0 size-full cursor-pointer opacity-0"
                 />
               </label>
             </div>
@@ -194,7 +204,7 @@ export function WorkspaceToolbar({
               onChange={(event) =>
                 onStrokeWidthChange(Number(event.target.value))
               }
-              className="w-48 accent-[var(--accent)]"
+              className="h-11 w-48 accent-[var(--accent)]"
             />
           </label>
         </div>

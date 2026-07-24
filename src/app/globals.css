@@ -153,8 +153,8 @@
 
 .canvas-zoom-controls button {
   display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.75rem;
+  height: 2.75rem;
   cursor: pointer;
   place-items: center;
   border: 0;
