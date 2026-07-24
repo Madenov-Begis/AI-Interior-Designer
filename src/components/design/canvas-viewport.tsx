@@ -70,7 +70,7 @@ type CanvasViewportProps = {
   strokeWidth: number;
   editorRef: Ref<VisualPromptEditorHandle>;
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
-  onEditorError(message: string): void;
+  onEditorError(message: string | null): void;
   onSelectItem(itemId: string): void;
 };
 
