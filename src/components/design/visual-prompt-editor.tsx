@@ -47,6 +47,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const historyRef = useRef<string[]>([]);
     const historyIndexRef = useRef(-1);
     const loadingHistoryRef = useRef(false);
+    const historyLoadQueueRef = useRef<Promise<void>>(Promise.resolve());
     const rectangleRef = useRef<FabricRect | null>(null);
     const rectangleStartRef = useRef<{ x: number; y: number } | null>(null);
     const toolRef = useRef<VisualPromptTool>(props.tool);
@@ -125,33 +126,39 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     }, [emitHistoryState]);
 
     const loadSnapshot = useCallback(
-      async (snapshot: string) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+      (snapshot: string) => {
+        const operation = historyLoadQueueRef.current.then(async () => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
 
-        loadingHistoryRef.current = true;
-        try {
-          canvas.discardActiveObject();
-          await canvas.loadFromJSON(JSON.parse(snapshot));
-          configureCanvas(
-            canvas,
-            toolRef.current,
-            colorRef.current,
-            strokeWidthRef.current,
-          );
-        } finally {
-          loadingHistoryRef.current = false;
-          emitHistoryState();
-        }
+          loadingHistoryRef.current = true;
+          try {
+            canvas.discardActiveObject();
+            await canvas.loadFromJSON(JSON.parse(snapshot));
+            configureCanvas(
+              canvas,
+              toolRef.current,
+              colorRef.current,
+              strokeWidthRef.current,
+            );
+          } finally {
+            loadingHistoryRef.current = false;
+          }
+        });
+        // Keep the queue usable after a failed load while returning that failure
+        // to the caller of the specific undo/redo action.
+        historyLoadQueueRef.current = operation.catch(() => undefined);
+        return operation;
       },
-      [configureCanvas, emitHistoryState],
+      [configureCanvas],
     );
 
     const undo = useCallback(async () => {
       if (historyIndexRef.current <= 0) return;
       historyIndexRef.current -= 1;
+      emitHistoryState();
       await loadSnapshot(historyRef.current[historyIndexRef.current]);
-    }, [loadSnapshot]);
+    }, [emitHistoryState, loadSnapshot]);
 
     const redo = useCallback(async () => {
       if (
@@ -161,8 +168,9 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         return;
       }
       historyIndexRef.current += 1;
+      emitHistoryState();
       await loadSnapshot(historyRef.current[historyIndexRef.current]);
-    }, [loadSnapshot]);
+    }, [emitHistoryState, loadSnapshot]);
 
     const deleteSelected = useCallback(() => {
       const canvas = canvasRef.current;

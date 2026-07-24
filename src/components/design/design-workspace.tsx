@@ -85,6 +85,17 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
   const selectedStyle = configQuery.data?.find((style) => style.code === styleCode);
   const selectedGeneration = generations.find((generation) => generation.id === selectedCanvasItem);
   const generationError = createGeneration.error ?? cancelGeneration.error;
+  const canvasGenerations = generations.map((generation, index) => ({
+    id: generation.id,
+    node: (
+      <div className="grid size-full place-items-center bg-surface-elevated px-8 text-center text-muted">
+        <div>
+          <p className="text-sm font-black text-foreground">Результат {index + 1}</p>
+          <p className="mt-2 text-xs">Карточка результата появится на следующем этапе.</p>
+        </div>
+      </div>
+    ),
+  }));
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -106,7 +117,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
               height: project.sourceHeight,
               initialState: project.initialCanvasState,
             }}
-            generations={generations}
+            generations={canvasGenerations}
             selectedItemId={selectedCanvasItem}
             tool={tool}
             color={color}

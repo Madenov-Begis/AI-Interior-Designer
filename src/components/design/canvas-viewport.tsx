@@ -1,13 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import {
-  ImageOff,
-  LoaderCircle,
-  Maximize2,
-  Minus,
-  Plus,
-} from "lucide-react";
+import { Maximize2, Minus, Plus } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -18,10 +11,10 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
   type Ref,
+  type ReactNode,
   type WheelEvent as ReactWheelEvent,
 } from "react";
 import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
-import type { WorkspaceGeneration } from "@/components/design/workspace-types";
 import type {
   VisualPromptCanvasState,
   VisualPromptEditorHandle,
@@ -56,9 +49,14 @@ type Source = {
   initialState: VisualPromptCanvasState | null;
 };
 
+export type CanvasGenerationNode = {
+  id: string;
+  node: ReactNode;
+};
+
 type CanvasViewportProps = {
   source: Source;
-  generations: WorkspaceGeneration[];
+  generations: CanvasGenerationNode[];
   selectedItemId: string;
   tool: VisualPromptTool;
   color: string;
@@ -86,17 +84,14 @@ function constrainAxis(
   contentMaximum: number,
   scale: number,
 ) {
-  const contentLength = (contentMaximum - contentMinimum) * scale;
-  if (contentLength + VIEWPORT_PADDING * 2 <= viewportLength) {
-    return (
-      (viewportLength - contentLength) / 2 - contentMinimum * scale
-    );
-  }
-
-  const minimumOffset =
+  const trailingEdgeOffset =
     viewportLength - VIEWPORT_PADDING - contentMaximum * scale;
-  const maximumOffset = VIEWPORT_PADDING - contentMinimum * scale;
-  return clamp(offset, minimumOffset, maximumOffset);
+  const leadingEdgeOffset = VIEWPORT_PADDING - contentMinimum * scale;
+  return clamp(
+    offset,
+    Math.min(trailingEdgeOffset, leadingEdgeOffset),
+    Math.max(trailingEdgeOffset, leadingEdgeOffset),
+  );
 }
 
 function constrainTransform(
@@ -121,89 +116,6 @@ function constrainTransform(
       transform.scale,
     ),
   };
-}
-
-function generationStatusLabel(status: WorkspaceGeneration["status"]) {
-  switch (status) {
-    case "QUEUED":
-      return "В очереди";
-    case "PROCESSING":
-      return "Создаём дизайн";
-    case "SUCCEEDED":
-      return "Готово";
-    case "FAILED":
-      return "Ошибка";
-    case "CANCELLED":
-      return "Отменено";
-    case "REJECTED":
-      return "Отклонено";
-  }
-}
-
-async function getSignedResultUrl(fileId: string) {
-  const response = await fetch(`/api/v1/media/${fileId}/signed-url`);
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Не удалось загрузить результат");
-  }
-  return payload.data.url as string;
-}
-
-function GenerationArtwork({
-  generation,
-}: {
-  generation: WorkspaceGeneration;
-}) {
-  const resultQuery = useQuery({
-    queryKey: ["workspace-result", generation.resultUserId],
-    queryFn: () => getSignedResultUrl(generation.resultUserId!),
-    enabled: Boolean(generation.resultUserId),
-    staleTime: 4 * 60_000,
-  });
-
-  if (
-    generation.status === "QUEUED" ||
-    generation.status === "PROCESSING"
-  ) {
-    return (
-      <div className="grid h-[520px] place-items-center bg-surface-elevated text-muted">
-        <div className="grid justify-items-center gap-3">
-          <LoaderCircle className="animate-spin text-accent" size={28} />
-          <span className="text-sm font-bold">
-            {generationStatusLabel(generation.status)}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  if (resultQuery.data) {
-    return (
-      <div className="h-[520px] bg-black">
-        {/* Signed Storage URLs are short lived and cannot use a stable image loader. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={resultQuery.data}
-          alt={`Результат генерации ${generation.model.name}`}
-          className="size-full object-contain"
-          draggable={false}
-        />
-      </div>
-    );
-  }
-
-  const message =
-    resultQuery.error?.message ??
-    generation.errorMessage ??
-    generationStatusLabel(generation.status);
-  return (
-    <div className="grid h-[520px] place-items-center bg-surface-elevated px-10 text-center text-muted">
-      <div className="grid justify-items-center gap-3">
-        <ImageOff size={28} />
-        <span className="text-sm leading-6">{message}</span>
-      </div>
-    </div>
-  );
 }
 
 export const CanvasViewport = forwardRef<
@@ -567,26 +479,7 @@ export const CanvasViewport = forwardRef<
               }}
               onClick={() => selectItem(generation.id)}
             >
-              <header className="flex h-[58px] items-center justify-between gap-4 border-b border-border px-4">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-black">
-                    {generation.model.name}
-                  </p>
-                  <p className="truncate text-[11px] text-muted">
-                    {generation.prompt}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-surface-elevated px-2.5 py-1 text-[10px] font-bold text-muted">
-                  {generationStatusLabel(generation.status)}
-                </span>
-              </header>
-              <GenerationArtwork generation={generation} />
-              <footer className="flex h-8 items-center justify-between px-4 text-[11px] text-muted">
-                <span>{generation.aspectRatio}</span>
-                <time dateTime={generation.createdAt}>
-                  {new Date(generation.createdAt).toLocaleDateString("ru-RU")}
-                </time>
-              </footer>
+              {generation.node}
             </article>
           );
         })}
