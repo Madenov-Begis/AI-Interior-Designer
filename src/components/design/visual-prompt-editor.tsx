@@ -47,7 +47,8 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const historyRef = useRef<string[]>([]);
     const historyIndexRef = useRef(-1);
     const loadingHistoryRef = useRef(false);
-    const historyLoadQueueRef = useRef<Promise<void>>(Promise.resolve());
+    const canvasOperationQueueRef = useRef<Promise<void>>(Promise.resolve());
+    const pendingHistoryLoadsRef = useRef(0);
     const rectangleRef = useRef<FabricRect | null>(null);
     const rectangleStartRef = useRef<{ x: number; y: number } | null>(null);
     const toolRef = useRef<VisualPromptTool>(props.tool);
@@ -109,9 +110,40 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       [],
     );
 
+    const lockCanvasInteraction = useCallback((canvas: Canvas) => {
+      canvas.isDrawingMode = false;
+      canvas.selection = false;
+      canvas.skipTargetFind = true;
+      canvas.defaultCursor = "wait";
+      canvas.forEachObject((object) =>
+        object.set({ selectable: false, evented: false }),
+      );
+      canvas.upperCanvasEl.style.pointerEvents = "none";
+      canvas.wrapperEl.style.touchAction = "auto";
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+    }, []);
+
+    const enqueueCanvasOperation = useCallback(
+      (action: () => Promise<void> | void) => {
+        const operation = canvasOperationQueueRef.current.then(action);
+        // Each caller receives its own rejection, while the internal tail always
+        // recovers so a later user action can still execute.
+        canvasOperationQueueRef.current = operation.catch(() => undefined);
+        return operation;
+      },
+      [],
+    );
+
     const captureHistory = useCallback(() => {
       const canvas = canvasRef.current;
-      if (!canvas || loadingHistoryRef.current) return;
+      if (
+        !canvas ||
+        loadingHistoryRef.current ||
+        pendingHistoryLoadsRef.current > 0
+      ) {
+        return;
+      }
 
       const snapshot = JSON.stringify(canvas.toJSON());
       if (historyRef.current[historyIndexRef.current] === snapshot) return;
@@ -127,30 +159,39 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
 
     const loadSnapshot = useCallback(
       (snapshot: string) => {
-        const operation = historyLoadQueueRef.current.then(async () => {
-          const canvas = canvasRef.current;
-          if (!canvas) return;
+        pendingHistoryLoadsRef.current += 1;
+        loadingHistoryRef.current = true;
+        const activeCanvas = canvasRef.current;
+        if (activeCanvas) lockCanvasInteraction(activeCanvas);
 
-          loadingHistoryRef.current = true;
+        return enqueueCanvasOperation(async () => {
           try {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
             canvas.discardActiveObject();
             await canvas.loadFromJSON(JSON.parse(snapshot));
-            configureCanvas(
-              canvas,
-              toolRef.current,
-              colorRef.current,
-              strokeWidthRef.current,
-            );
           } finally {
-            loadingHistoryRef.current = false;
+            pendingHistoryLoadsRef.current = Math.max(
+              0,
+              pendingHistoryLoadsRef.current - 1,
+            );
+            if (pendingHistoryLoadsRef.current === 0) {
+              loadingHistoryRef.current = false;
+              const canvas = canvasRef.current;
+              if (canvas) {
+                configureCanvas(
+                  canvas,
+                  toolRef.current,
+                  colorRef.current,
+                  strokeWidthRef.current,
+                );
+              }
+            }
           }
         });
-        // Keep the queue usable after a failed load while returning that failure
-        // to the caller of the specific undo/redo action.
-        historyLoadQueueRef.current = operation.catch(() => undefined);
-        return operation;
       },
-      [configureCanvas],
+      [configureCanvas, enqueueCanvasOperation, lockCanvasInteraction],
     );
 
     const undo = useCallback(async () => {
@@ -172,37 +213,37 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       await loadSnapshot(historyRef.current[historyIndexRef.current]);
     }, [emitHistoryState, loadSnapshot]);
 
-    const deleteSelected = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+    const deleteSelected = useCallback(async () => {
+      await enqueueCanvasOperation(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
-      const selected = canvas.getActiveObjects();
-      if (selected.length === 0) return;
+        const selected = canvas.getActiveObjects();
+        if (selected.length === 0) return;
 
-      loadingHistoryRef.current = true;
-      canvas.discardActiveObject();
-      selected.forEach((object) => canvas.remove(object));
-      loadingHistoryRef.current = false;
-      canvas.requestRenderAll();
-      captureHistory();
-    }, [captureHistory]);
+        canvas.discardActiveObject();
+        selected.forEach((object) => canvas.remove(object));
+        canvas.requestRenderAll();
+        captureHistory();
+      });
+    }, [captureHistory, enqueueCanvasOperation]);
 
-    const clear = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas || canvas.getObjects().length === 0) return;
+    const clear = useCallback(async () => {
+      await enqueueCanvasOperation(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || canvas.getObjects().length === 0) return;
 
-      loadingHistoryRef.current = true;
-      canvas.discardActiveObject();
-      canvas.getObjects().forEach((object) => canvas.remove(object));
-      loadingHistoryRef.current = false;
-      canvas.requestRenderAll();
-      captureHistory();
-    }, [captureHistory]);
+        canvas.discardActiveObject();
+        canvas.getObjects().forEach((object) => canvas.remove(object));
+        canvas.requestRenderAll();
+        captureHistory();
+      });
+    }, [captureHistory, enqueueCanvasOperation]);
 
     const persist = useCallback(async () => {
       if (persistInFlightRef.current) return persistInFlightRef.current;
 
-      const request = (async () => {
+      const request = enqueueCanvasOperation(async () => {
         const canvas = canvasRef.current;
         if (!canvas) {
           throw new Error("Редактор разметки ещё не готов");
@@ -257,7 +298,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           );
         }
         hasSavedPromptRef.current = true;
-      })();
+      });
 
       persistInFlightRef.current = request;
       try {
@@ -271,6 +312,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       props.projectId,
       props.sourceHeight,
       props.sourceWidth,
+      enqueueCanvasOperation,
     ]);
 
     useImperativeHandle(
@@ -407,6 +449,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
 
       const canvas = canvasRef.current;
       if (!canvas) return;
+      if (pendingHistoryLoadsRef.current > 0) return;
       configureCanvas(canvas, props.tool, props.color, props.strokeWidth);
     }, [
       configureCanvas,

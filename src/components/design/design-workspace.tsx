@@ -104,8 +104,8 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
         initialName={project.name}
         canUndo={canUndo}
         canRedo={canRedo}
-        onUndo={() => visualPromptRef.current?.undo()}
-        onRedo={() => visualPromptRef.current?.redo()}
+        onUndo={() => void visualPromptRef.current?.undo()}
+        onRedo={() => void visualPromptRef.current?.redo()}
       />
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className="relative min-h-0 overflow-hidden bg-background" aria-label="Холст проекта">
@@ -137,8 +137,8 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             onStrokeWidthChange={setStrokeWidth}
             onUndo={() => void visualPromptRef.current?.undo()}
             onRedo={() => void visualPromptRef.current?.redo()}
-            onDelete={() => visualPromptRef.current?.deleteSelected()}
-            onClear={() => visualPromptRef.current?.clear()}
+            onDelete={() => void visualPromptRef.current?.deleteSelected()}
+            onClear={() => void visualPromptRef.current?.clear()}
           />
         </section>
         <aside ref={inspectorRef} className="hidden min-h-0 border-l border-border bg-surface lg:flex lg:w-[380px] lg:flex-col" aria-label="AI-настройки">
