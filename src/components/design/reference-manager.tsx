@@ -178,13 +178,13 @@ export function ReferenceManager({
           {references.map((item, index) => (
             <article
               key={item.id}
-              className="group relative size-[76px] shrink-0 overflow-hidden rounded-xl border border-border bg-background"
+              className="w-[136px] shrink-0 overflow-hidden rounded-xl border border-border bg-background"
             >
               <a
                 href={item.previewUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block size-full overflow-hidden bg-black"
+                className="block h-[92px] overflow-hidden bg-black"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -193,33 +193,33 @@ export function ReferenceManager({
                   className="size-full object-cover"
                 />
               </a>
-              <div className="absolute inset-x-1 bottom-1 grid grid-cols-3 gap-0.5 rounded-lg bg-background/90 p-0.5 opacity-0 shadow-lg transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+              <div className="grid grid-cols-3 border-t border-border bg-surface">
                 <button
                   type="button"
                   onClick={() => move(index, -1)}
                   disabled={index === 0 || busy}
-                  className="grid size-6 place-items-center rounded-md text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
+                  className="grid size-11 place-items-center text-muted transition-colors hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
                   aria-label="Переместить влево"
                 >
-                  <ArrowLeft size={13} />
+                  <ArrowLeft size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => move(index, 1)}
                   disabled={index === references.length - 1 || busy}
-                  className="grid size-6 place-items-center rounded-md text-muted hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
+                  className="grid size-11 place-items-center border-x border-border text-muted transition-colors hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
                   aria-label="Переместить вправо"
                 >
-                  <ArrowRight size={13} />
+                  <ArrowRight size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => void remove(item.id)}
                   disabled={busy}
-                  className="grid size-6 place-items-center rounded-md text-red-300 hover:bg-surface-elevated disabled:opacity-30"
+                  className="grid size-11 place-items-center text-red-300 transition-colors hover:bg-surface-elevated disabled:opacity-30"
                   aria-label="Удалить референс"
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </article>
@@ -230,7 +230,8 @@ export function ReferenceManager({
             disabled={busy || references.length >= maxCount}
             aria-expanded={addOpen}
             aria-controls="compact-reference-add"
-            className="grid size-[76px] shrink-0 place-items-center rounded-xl border border-dashed border-muted bg-background text-center text-muted transition-colors hover:border-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label={`Добавить референс. Добавлено ${references.length} из ${maxCount}`}
+            className="grid min-h-[137px] w-[92px] shrink-0 place-items-center rounded-xl border border-dashed border-muted bg-background text-center text-muted transition-colors hover:border-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
           >
             <span>
               <Plus size={20} className="mx-auto" aria-hidden="true" />
@@ -253,7 +254,7 @@ export function ReferenceManager({
                 type="button"
                 onClick={() => setTab("files")}
                 aria-pressed={tab === "files"}
-                className={`inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black ${
+                className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black ${
                   tab === "files"
                     ? "bg-accent text-accent-foreground"
                     : "bg-surface-elevated text-muted"
@@ -266,7 +267,7 @@ export function ReferenceManager({
                 type="button"
                 onClick={() => setTab("urls")}
                 aria-pressed={tab === "urls"}
-                className={`inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black ${
+                className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-3 text-xs font-black ${
                   tab === "urls"
                     ? "bg-accent text-accent-foreground"
                     : "bg-surface-elevated text-muted"
@@ -278,7 +279,7 @@ export function ReferenceManager({
               <button
                 type="button"
                 onClick={() => setAddOpen(false)}
-                className="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface-elevated hover:text-foreground"
+                className="grid size-11 place-items-center rounded-lg text-muted hover:bg-surface-elevated hover:text-foreground"
                 aria-label="Закрыть добавление референсов"
               >
                 <X size={16} />
@@ -335,7 +336,7 @@ export function ReferenceManager({
               type="button"
               onClick={() => void clearAll()}
               disabled={busy}
-              className="shrink-0 text-xs font-bold text-red-300 hover:text-red-200 disabled:opacity-40"
+              className="min-h-11 shrink-0 rounded-lg px-2 text-xs font-bold text-red-300 hover:bg-surface-elevated hover:text-red-200 disabled:opacity-40"
             >
               Очистить
             </button>

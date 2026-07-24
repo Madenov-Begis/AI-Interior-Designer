@@ -176,7 +176,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
   }, [inspectorOpen]);
 
   useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 1024px)");
+    const desktop = window.matchMedia("(min-width: 1200px)");
     const updateInspectorMode = () => {
       if (desktop.matches) {
         if (inspectorDialogRef.current?.open) {
@@ -201,13 +201,14 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
         onUndo={() => void visualPromptRef.current?.undo()}
         onRedo={() => void visualPromptRef.current?.redo()}
       />
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
         <section className="relative min-h-0 overflow-hidden bg-background" aria-label="Холст проекта">
           <button
             ref={inspectorTriggerRef}
             type="button"
             onClick={openInspector}
-            className="absolute top-3 right-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-sm font-black shadow-xl transition-colors hover:bg-surface-elevated lg:hidden"
+            className="absolute top-3 right-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-sm font-black shadow-xl transition-colors hover:bg-surface-elevated min-[1200px]:hidden"
+            aria-label="Открыть AI-настройки"
             aria-haspopup="dialog"
             aria-expanded={inspectorOpen}
           >
@@ -258,11 +259,11 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             setInspectorOpen(false);
             requestAnimationFrame(() => inspectorTriggerRef.current?.focus());
           }}
-          className={`fixed inset-x-0 bottom-0 z-50 m-0 max-h-none w-full max-w-none flex-col overflow-hidden rounded-t-2xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/65 ${
+          className={`fixed inset-0 z-50 m-0 h-dvh max-h-dvh w-full max-w-none flex-col overflow-hidden overscroll-contain border-0 bg-surface p-0 pb-[env(safe-area-inset-bottom)] text-foreground shadow-2xl backdrop:bg-black/65 ${
             inspectorOpen ? "flex" : "hidden"
-          } h-[min(82dvh,720px)] md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:w-[380px] md:rounded-none md:border-y-0 md:border-r-0 lg:static lg:flex lg:h-auto lg:min-h-0 lg:w-[380px] lg:border-l lg:shadow-none`}
+          } md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:w-[380px] md:border-l md:border-border md:pb-0 min-[1200px]:static min-[1200px]:flex min-[1200px]:h-auto min-[1200px]:min-h-0 min-[1200px]:w-[380px] min-[1200px]:shadow-none`}
         >
-          <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border px-5">
+          <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border px-5 pt-[env(safe-area-inset-top)] md:pt-0">
             <div>
               <h2
                 id="design-inspector-title"
@@ -275,7 +276,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             <button
               type="button"
               onClick={closeInspector}
-              className="grid size-10 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-foreground lg:hidden"
+              className="grid size-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-foreground min-[1200px]:hidden"
               aria-label="Закрыть AI-настройки"
             >
               <X size={19} aria-hidden="true" />
