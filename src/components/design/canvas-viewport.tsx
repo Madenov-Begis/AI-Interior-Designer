@@ -70,6 +70,7 @@ type CanvasViewportProps = {
   strokeWidth: number;
   editorRef: Ref<VisualPromptEditorHandle>;
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
+  onEditorError(message: string): void;
   onSelectItem(itemId: string): void;
 };
 
@@ -152,6 +153,7 @@ export const CanvasViewport = forwardRef<
     strokeWidth,
     editorRef,
     onHistoryStateChange,
+    onEditorError,
     onSelectItem,
   },
   ref,
@@ -508,6 +510,7 @@ export const CanvasViewport = forwardRef<
                 color={color}
                 strokeWidth={strokeWidth}
                 onHistoryStateChange={onHistoryStateChange}
+                onPersistenceError={onEditorError}
               />
             </div>
           </div>

@@ -25,6 +25,7 @@ type Props = {
   color: string;
   strokeWidth: number;
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
+  onPersistenceError(message: string): void;
 };
 
 function dataUrlToBlob(dataUrl: string) {
@@ -55,11 +56,16 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const colorRef = useRef(props.color);
     const strokeWidthRef = useRef(props.strokeWidth);
     const historyStateCallbackRef = useRef(props.onHistoryStateChange);
+    const persistenceErrorCallbackRef = useRef(props.onPersistenceError);
     const hasSavedPromptRef = useRef(props.initialState !== null);
 
     useEffect(() => {
       historyStateCallbackRef.current = props.onHistoryStateChange;
     }, [props.onHistoryStateChange]);
+
+    useEffect(() => {
+      persistenceErrorCallbackRef.current = props.onPersistenceError;
+    }, [props.onPersistenceError]);
 
     const emitHistoryState = useCallback(() => {
       historyStateCallbackRef.current({
@@ -231,17 +237,19 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       });
     }, [captureHistory, enqueueCanvasOperation]);
 
-    const clear = useCallback(() => {
-      void enqueueCanvasOperation(() => {
-        const canvas = canvasRef.current;
-        if (!canvas || canvas.getObjects().length === 0) return;
+    const clear = useCallback(
+      () =>
+        enqueueCanvasOperation(() => {
+          const canvas = canvasRef.current;
+          if (!canvas || canvas.getObjects().length === 0) return;
 
-        canvas.discardActiveObject();
-        canvas.getObjects().forEach((object) => canvas.remove(object));
-        canvas.requestRenderAll();
-        captureHistory(true);
-      });
-    }, [captureHistory, enqueueCanvasOperation]);
+          canvas.discardActiveObject();
+          canvas.getObjects().forEach((object) => canvas.remove(object));
+          canvas.requestRenderAll();
+          captureHistory(true);
+        }),
+      [captureHistory, enqueueCanvasOperation],
+    );
 
     const persist = useCallback(
       () =>
@@ -323,7 +331,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       let canvas: Canvas | null = null;
 
       void import("fabric").then(
-        async ({ Canvas: FabricCanvas, PencilBrush, Rect }) => {
+        async ({ Canvas: FabricCanvas, PencilBrush, Rect, util }) => {
           if (disposed || !canvasElementRef.current) return;
 
           canvas = new FabricCanvas(canvasElementRef.current, {
@@ -398,6 +406,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             captureHistory();
           });
 
+          let migratedCoordinateSpace = false;
           if (
             props.initialState?.version === 1 &&
             props.initialState.fabric
@@ -405,6 +414,36 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             loadingHistoryRef.current = true;
             try {
               await canvas.loadFromJSON(props.initialState.fabric);
+              const savedWidth =
+                props.initialState.coordinateSpace.editorWidth;
+              const savedHeight =
+                props.initialState.coordinateSpace.editorHeight;
+              const scaleX = props.editorWidth / savedWidth;
+              const scaleY = props.editorHeight / savedHeight;
+
+              if (
+                Number.isFinite(scaleX) &&
+                Number.isFinite(scaleY) &&
+                scaleX > 0 &&
+                scaleY > 0 &&
+                (scaleX !== 1 || scaleY !== 1)
+              ) {
+                // Pre-multiplying the complete object matrix applies the
+                // coordinate-space change on canvas axes. This preserves paths,
+                // rectangles, rotations, and skews under non-uniform scaling.
+                canvas.getObjects().forEach((object) => {
+                  util.addTransformToObject(object, [
+                    scaleX,
+                    0,
+                    0,
+                    scaleY,
+                    0,
+                    0,
+                  ]);
+                  object.setCoords();
+                });
+                migratedCoordinateSpace = true;
+              }
             } finally {
               loadingHistoryRef.current = false;
             }
@@ -417,6 +456,15 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             strokeWidthRef.current,
           );
           captureHistory();
+          if (migratedCoordinateSpace) {
+            void persist().catch((error: unknown) => {
+              persistenceErrorCallbackRef.current(
+                error instanceof Error
+                  ? `Разметка восстановлена, но не удалось сохранить обновлённые координаты: ${error.message}`
+                  : "Разметка восстановлена, но не удалось сохранить обновлённые координаты",
+              );
+            });
+          }
         },
       );
 
@@ -435,6 +483,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       props.editorHeight,
       props.editorWidth,
       props.initialState,
+      persist,
     ]);
 
     useEffect(() => {

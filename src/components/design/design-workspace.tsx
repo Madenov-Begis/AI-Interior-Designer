@@ -12,7 +12,11 @@ import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
 import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
 
-type GenerationList = { items: WorkspaceGeneration[]; nextCursor: string | null };
+type GenerationList = {
+  items: WorkspaceGeneration[];
+  nextCursor: string | null;
+  total: number;
+};
 
 type Model = {
   code: string;
@@ -33,6 +37,9 @@ type Usage = {
   };
 };
 
+const DEFAULT_PROMPT =
+  "Сделай современный ремонт. Используй предметы интерьера из референсов. Не меняй ракурс, пропорции и геометрию помещения.";
+
 async function readJson(response: Response) {
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error?.message ?? "Запрос не выполнен");
@@ -43,14 +50,28 @@ function isActiveGeneration(status: WorkspaceGenerationStatus) {
   return status === "QUEUED" || status === "PROCESSING";
 }
 
+function isTerminalGeneration(status: WorkspaceGenerationStatus) {
+  return (
+    status === "SUCCEEDED" ||
+    status === "FAILED" ||
+    status === "REJECTED" ||
+    status === "CANCELLED"
+  );
+}
+
+function terminalCompletionSignature(generation: WorkspaceGeneration) {
+  return `${generation.id}:${generation.status}:${generation.completedAt ?? "terminal"}`;
+}
+
 export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceProps) {
   const queryClient = useQueryClient();
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
+  const observedTerminalSignaturesRef = useRef(new Set<string>());
   const inspectorDialogRef = useRef<HTMLDialogElement>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [desktopInspector, setDesktopInspector] = useState(false);
-  const [prompt, setPrompt] = useState(project.prompt ?? "");
+  const [prompt, setPrompt] = useState(project.prompt ?? DEFAULT_PROMPT);
   const [modelCode, setModelCode] = useState("");
   const [aspectRatio, setAspectRatio] = useState(project.aspectRatio);
   const [styleCode, setStyleCode] = useState<string>();
@@ -65,6 +86,9 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
   const [tool, setTool] = useState<VisualPromptTool>("select");
   const [color, setColor] = useState("#afea4d");
   const [strokeWidth, setStrokeWidth] = useState(12);
+  const [canvasActionError, setCanvasActionError] = useState<string | null>(
+    null,
+  );
   const [{ canUndo, canRedo }, setHistoryState] = useState({
     canUndo: false,
     canRedo: false,
@@ -87,6 +111,23 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
     queryKey: ["usage", "today"],
     queryFn: async () => readJson(await fetch("/api/v1/usage/today")) as Promise<Usage | null>,
   });
+
+  useEffect(() => {
+    const terminalSignatures =
+      generationsQuery.data?.items
+        .filter((generation) => isTerminalGeneration(generation.status))
+        .map(terminalCompletionSignature) ?? [];
+    let hasNewTerminalCompletion = false;
+    terminalSignatures.forEach((signature) => {
+      if (observedTerminalSignaturesRef.current.has(signature)) return;
+      observedTerminalSignaturesRef.current.add(signature);
+      hasNewTerminalCompletion = true;
+    });
+
+    if (hasNewTerminalCompletion) {
+      void queryClient.invalidateQueries({ queryKey: ["usage", "today"] });
+    }
+  }, [generationsQuery.data?.items, queryClient]);
 
   const selectedModelCode = modelCode || modelsQuery.data?.[0]?.code || "";
   const selectedModel = modelsQuery.data?.find(
@@ -174,18 +215,23 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
     },
   });
   const indexedGenerations = useMemo(
-    () =>
-      [...(generationsQuery.data?.items ?? [])]
+    () => {
+      const items = generationsQuery.data?.items ?? [];
+      const total = generationsQuery.data?.total ?? items.length;
+      return items
+        .map((generation, descendingIndex) => ({
+          generation,
+          variantNumber: total - descendingIndex,
+        }))
         .sort(
           (left, right) =>
-            left.createdAt.localeCompare(right.createdAt) ||
-            left.id.localeCompare(right.id),
-        )
-        .map((generation, index) => ({
-          generation,
-          variantNumber: index + 1,
-        })),
-    [generationsQuery.data?.items],
+            left.generation.createdAt.localeCompare(
+              right.generation.createdAt,
+            ) ||
+            left.generation.id.localeCompare(right.generation.id),
+        );
+    },
+    [generationsQuery.data],
   );
   const visibleGenerations = indexedGenerations.filter(
     ({ generation }) => !hiddenGenerationIds.has(generation.id),
@@ -286,6 +332,38 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
     setInspectorOpen(true);
   }
 
+  async function clearVisualPrompt() {
+    if (
+      !window.confirm(
+        "Восстановить исходное изображение и очистить всю разметку? Исходник, проект, история генераций и референсы останутся без изменений.",
+      )
+    ) {
+      return;
+    }
+
+    const editor = visualPromptRef.current;
+    if (!editor) {
+      setCanvasActionError("Редактор разметки ещё не готов");
+      return;
+    }
+
+    setCanvasActionError(null);
+    try {
+      // Both operations are enqueued immediately in this order, preserving the
+      // editor's total FIFO across drawing, history, and generation actions.
+      const clearOperation = editor.clear();
+      const persistOperation = editor.persist();
+      await clearOperation;
+      await persistOperation;
+    } catch (error) {
+      setCanvasActionError(
+        error instanceof Error
+          ? error.message
+          : "Не удалось очистить сохранённую разметку",
+      );
+    }
+  }
+
   function closeInspector() {
     const dialog = inspectorDialogRef.current;
     if (dialog?.open) {
@@ -361,14 +439,15 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             strokeWidth={strokeWidth}
             editorRef={visualPromptRef}
             onHistoryStateChange={setHistoryState}
+            onEditorError={setCanvasActionError}
             onSelectItem={setSelectedCanvasItem}
           />
-          {generationsQuery.isError ? (
+          {generationsQuery.isError || canvasActionError ? (
             <div
               role="alert"
               className="absolute bottom-24 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-red-400/30 bg-surface px-4 py-3 text-sm text-red-300 shadow-xl"
             >
-              {generationsQuery.error.message}
+              {canvasActionError ?? generationsQuery.error?.message}
             </div>
           ) : null}
           <WorkspaceToolbar
@@ -383,7 +462,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
             onUndo={() => void visualPromptRef.current?.undo()}
             onRedo={() => void visualPromptRef.current?.redo()}
             onDelete={() => visualPromptRef.current?.deleteSelected()}
-            onClear={() => visualPromptRef.current?.clear()}
+            onClear={() => void clearVisualPrompt()}
           />
         </section>
         <dialog

@@ -280,6 +280,19 @@ export function GenerationCanvasCard({
         >
           <button
             type="button"
+            aria-label={`Убрать вариант ${variantNumber} с холста`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemove();
+            }}
+            className={buttonClassName("secondary", "mt-2 rounded-xl")}
+          >
+            <X size={16} aria-hidden="true" />
+            Убрать с холста
+          </button>
+          <button
+            type="button"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -288,7 +301,7 @@ export function GenerationCanvasCard({
             disabled={retryPending}
             className={buttonClassName(
               "primary",
-              "mt-2 rounded-xl disabled:opacity-40",
+              "rounded-xl disabled:opacity-40",
             )}
           >
             <RotateCcw size={16} aria-hidden="true" />
@@ -320,6 +333,19 @@ export function GenerationCanvasCard({
         >
           <button
             type="button"
+            aria-label={`Убрать вариант ${variantNumber} с холста`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemove();
+            }}
+            className={buttonClassName("secondary", "mt-2 rounded-xl")}
+          >
+            <X size={16} aria-hidden="true" />
+            Убрать с холста
+          </button>
+          <button
+            type="button"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -328,7 +354,7 @@ export function GenerationCanvasCard({
             disabled={retryPending}
             className={buttonClassName(
               "primary",
-              "mt-2 rounded-xl disabled:opacity-40",
+              "rounded-xl disabled:opacity-40",
             )}
           >
             <RotateCcw size={16} aria-hidden="true" />
@@ -351,6 +377,7 @@ export function GenerationCanvasCard({
         >
           <button
             type="button"
+            aria-label={`Убрать вариант ${variantNumber} с холста`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
