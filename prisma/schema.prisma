@@ -273,6 +273,7 @@ model Generation {
   idempotencyKey      String?
   jobId               String?          @unique
   prompt              String
+  styleCode           String?
   finalPrompt         String?
   aspectRatio         AspectRatio
   visualPromptUsed    Boolean          @default(false)

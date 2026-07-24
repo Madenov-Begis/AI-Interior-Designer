@@ -85,6 +85,7 @@ export async function reserveGeneration(input: {
         modelId: model.id,
         idempotencyKey: input.idempotencyKey,
         prompt: input.prompt,
+        styleCode: input.styleCode ?? null,
         finalPrompt,
         aspectRatio: input.aspectRatio,
         visualPromptUsed: project.visualPromptUsed && Boolean(project.visualPrompt),

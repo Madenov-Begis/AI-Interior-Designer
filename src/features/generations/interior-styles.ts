@@ -9,6 +9,10 @@ export const INTERIOR_STYLE_CODES = [
 
 export type InteriorStyleCode = (typeof INTERIOR_STYLE_CODES)[number];
 
+export function isInteriorStyleCode(code: string | null | undefined): code is InteriorStyleCode {
+  return typeof code === "string" && INTERIOR_STYLE_CODES.some((styleCode) => styleCode === code);
+}
+
 export const INTERIOR_STYLES = [
   {
     code: "modern",
