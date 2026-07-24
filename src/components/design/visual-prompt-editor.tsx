@@ -56,7 +56,6 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const strokeWidthRef = useRef(props.strokeWidth);
     const historyStateCallbackRef = useRef(props.onHistoryStateChange);
     const hasSavedPromptRef = useRef(props.initialState !== null);
-    const persistInFlightRef = useRef<Promise<void> | null>(null);
 
     useEffect(() => {
       historyStateCallbackRef.current = props.onHistoryStateChange;
@@ -244,79 +243,72 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       });
     }, [captureHistory, enqueueCanvasOperation]);
 
-    const persist = useCallback(async () => {
-      if (persistInFlightRef.current) return persistInFlightRef.current;
+    const persist = useCallback(
+      () =>
+        enqueueCanvasOperation(async () => {
+          const canvas = canvasRef.current;
+          if (!canvas) {
+            throw new Error("Редактор разметки ещё не готов");
+          }
 
-      const request = enqueueCanvasOperation(async () => {
-        const canvas = canvasRef.current;
-        if (!canvas) {
-          throw new Error("Редактор разметки ещё не готов");
-        }
+          canvas.requestRenderAll();
 
-        canvas.requestRenderAll();
+          if (canvas.getObjects().length === 0) {
+            if (!hasSavedPromptRef.current) return;
 
-        if (canvas.getObjects().length === 0) {
-          if (!hasSavedPromptRef.current) return;
+            const response = await fetch(
+              `/api/v1/projects/${props.projectId}/visual-prompt`,
+              { method: "DELETE" },
+            );
+            if (!response.ok) {
+              throw new Error(
+                await responseError(
+                  response,
+                  "Не удалось очистить сохранённую разметку",
+                ),
+              );
+            }
+            hasSavedPromptRef.current = false;
+            return;
+          }
+
+          const state: VisualPromptCanvasState = {
+            version: 1,
+            coordinateSpace: {
+              editorWidth: props.editorWidth,
+              editorHeight: props.editorHeight,
+              sourceWidth: props.sourceWidth,
+              sourceHeight: props.sourceHeight,
+            },
+            fabric: canvas.toJSON() as Record<string, unknown>,
+          };
+          const overlay = await dataUrlToBlob(
+            canvas.toDataURL({ format: "png", multiplier: 1 }),
+          );
+          const formData = new FormData();
+          formData.set("overlay", overlay, "visual-prompt.png");
+          formData.set("canvasState", JSON.stringify(state));
 
           const response = await fetch(
             `/api/v1/projects/${props.projectId}/visual-prompt`,
-            { method: "DELETE" },
+            { method: "PUT", body: formData },
           );
           if (!response.ok) {
             throw new Error(
-              await responseError(
-                response,
-                "Не удалось очистить сохранённую разметку",
-              ),
+              await responseError(response, "Не удалось сохранить разметку"),
             );
           }
-          hasSavedPromptRef.current = false;
-          return;
-        }
-
-        const state: VisualPromptCanvasState = {
-          version: 1,
-          coordinateSpace: {
-            editorWidth: props.editorWidth,
-            editorHeight: props.editorHeight,
-            sourceWidth: props.sourceWidth,
-            sourceHeight: props.sourceHeight,
-          },
-          fabric: canvas.toJSON() as Record<string, unknown>,
-        };
-        const overlay = await dataUrlToBlob(
-          canvas.toDataURL({ format: "png", multiplier: 1 }),
-        );
-        const formData = new FormData();
-        formData.set("overlay", overlay, "visual-prompt.png");
-        formData.set("canvasState", JSON.stringify(state));
-
-        const response = await fetch(
-          `/api/v1/projects/${props.projectId}/visual-prompt`,
-          { method: "PUT", body: formData },
-        );
-        if (!response.ok) {
-          throw new Error(
-            await responseError(response, "Не удалось сохранить разметку"),
-          );
-        }
-        hasSavedPromptRef.current = true;
-      });
-
-      persistInFlightRef.current = request;
-      try {
-        await request;
-      } finally {
-        persistInFlightRef.current = null;
-      }
-    }, [
-      props.editorHeight,
-      props.editorWidth,
-      props.projectId,
-      props.sourceHeight,
-      props.sourceWidth,
-      enqueueCanvasOperation,
-    ]);
+          hasSavedPromptRef.current = true;
+        }),
+      [
+        props.editorHeight,
+        props.editorWidth,
+        props.projectId,
+        props.sourceHeight,
+        props.sourceWidth,
+        enqueueCanvasOperation,
+      ],
+    );
 
     useImperativeHandle(
       ref,
