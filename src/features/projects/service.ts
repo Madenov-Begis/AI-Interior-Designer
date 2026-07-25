@@ -16,6 +16,27 @@ export function createProject(userId: string, name: string) {
   return getDb().project.create({ data: { userId, name }, select: projectSummarySelect });
 }
 
+export async function getOrCreateEntryProject(userId: string) {
+  const existing = await getDb().project.findFirst({
+    where: {
+      userId,
+      status: "DRAFT",
+      deletedAt: null,
+      sourceImageId: null,
+      sourcePreviewId: null,
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { id: true },
+  });
+
+  if (existing) return existing;
+
+  return getDb().project.create({
+    data: { userId, name: "Новый интерьер" },
+    select: { id: true },
+  });
+}
+
 export async function listProjects(userId: string, limit: number, cursor?: string) {
   const rows = await getDb().project.findMany({
     where: { userId, deletedAt: null },

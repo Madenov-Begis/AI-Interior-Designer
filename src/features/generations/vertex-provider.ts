@@ -5,6 +5,7 @@ import { GoogleGenAI, Modality, type Part } from "@google/genai";
 import sharp from "sharp";
 import type { AspectRatio } from "@/generated/prisma/enums";
 import type { ImageGenerationProvider, ProviderImage, ProviderInput, ProviderOutput } from "@/features/generations/provider";
+import { parseVertexCredentials } from "@/features/generations/vertex-auth";
 
 const ASPECT_RATIOS: Record<AspectRatio, string> = {
   RATIO_1_1: "1:1",
@@ -47,25 +48,39 @@ function buildParts(input: ProviderInput): Part[] {
 async function readVertexConfig() {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID?.trim();
   const location = process.env.GOOGLE_CLOUD_LOCATION?.trim() || "global";
+  const credentialsJson =
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
   const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
-  if (!project || !credentialsPath) throw new Error("VERTEX_PROVIDER_NOT_CONFIGURED");
+  if (!project || (!credentialsJson && !credentialsPath)) {
+    throw new Error("VERTEX_PROVIDER_NOT_CONFIGURED");
+  }
+  if (credentialsJson) {
+    return {
+      project,
+      location,
+      googleAuthOptions: {
+        credentials: parseVertexCredentials(credentialsJson),
+      },
+    };
+  }
   try {
-    await access(credentialsPath);
+    await access(credentialsPath!);
   } catch {
     throw new Error("VERTEX_CREDENTIALS_NOT_FOUND");
   }
-  return { project, location };
+  return { project, location, googleAuthOptions: undefined };
 }
 
 export class VertexGeminiImageProvider implements ImageGenerationProvider {
   constructor(private readonly modelId: string, private readonly timeoutSeconds: number) {}
 
   async generate(input: ProviderInput): Promise<ProviderOutput> {
-    const { project, location } = await readVertexConfig();
+    const { project, location, googleAuthOptions } = await readVertexConfig();
     const ai = new GoogleGenAI({
       vertexai: true,
       project,
       location,
+      googleAuthOptions,
       apiVersion: "v1",
       httpOptions: { timeout: this.timeoutSeconds * 1000 },
     });

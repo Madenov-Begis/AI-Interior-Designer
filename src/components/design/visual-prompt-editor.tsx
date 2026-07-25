@@ -13,6 +13,7 @@ import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt/types";
+import { dataUrlToBlob } from "@/lib/client/data-url";
 
 type Props = {
   projectId: string;
@@ -27,10 +28,6 @@ type Props = {
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
   onPersistenceStateChange(message: string | null): void;
 };
-
-function dataUrlToBlob(dataUrl: string) {
-  return fetch(dataUrl).then((response) => response.blob());
-}
 
 async function responseError(response: Response, fallback: string) {
   try {

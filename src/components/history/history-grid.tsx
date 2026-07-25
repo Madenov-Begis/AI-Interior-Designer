@@ -53,7 +53,7 @@ export function HistoryGrid() {
       </div>
       {history.isLoading && <p className="mt-8 text-muted">Загружаем историю…</p>}
       {history.error && <p className="mt-8 text-red-300">{history.error.message}</p>}
-      {!history.isLoading && items.length === 0 && <div className="mt-8 rounded-2xl border border-dashed border-border p-12 text-center"><h2 className="text-xl font-bold">История пока пуста</h2><Link href="/app/design" className={buttonClassName("primary", "mt-5 rounded-xl")}>Создать дизайн</Link></div>}
+      {!history.isLoading && items.length === 0 && <div className="mt-8 rounded-2xl border border-dashed border-border p-12 text-center"><h2 className="text-xl font-bold">История пока пуста</h2><Link href="/app" className={buttonClassName("primary", "mt-5 rounded-xl")}>Создать дизайн</Link></div>}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {items.map((item) => (
           <article key={item.id} className="overflow-hidden rounded-2xl border border-border bg-background">
@@ -62,7 +62,7 @@ export function HistoryGrid() {
               <div className="flex items-start justify-between gap-3"><h2 className="font-black">{item.project.name}</h2><span className="rounded-full bg-surface-elevated px-2 py-1 text-[10px] font-bold">{item.status}</span></div>
               <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{item.prompt}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted"><span>{item.model.name}</span><span>·</span><span>{item._count.references} реф.</span><span>·</span><span>{new Date(item.queuedAt).toLocaleDateString("ru-RU")}</span></div>
-              <div className="mt-4 grid grid-cols-2 gap-2"><Link href={`/app/design/${item.projectId}`} className={buttonClassName("secondary", "rounded-lg text-center")}>Открыть</Link>{item.status === "SUCCEEDED" ? <a href={`/api/v1/generations/${item.id}/download`} className={buttonClassName("secondary", "rounded-lg text-center")}>Скачать</a> : <button type="button" onClick={() => remove.mutate(item.id)} disabled={remove.isPending || ["QUEUED", "PROCESSING"].includes(item.status)} className={buttonClassName("secondary", "rounded-lg text-red-300 disabled:opacity-30")}>Удалить</button>}</div>
+              <div className="mt-4 grid grid-cols-2 gap-2"><Link href={`/app/${item.projectId}`} className={buttonClassName("secondary", "rounded-lg text-center")}>Открыть</Link>{item.status === "SUCCEEDED" ? <a href={`/api/v1/generations/${item.id}/download`} className={buttonClassName("secondary", "rounded-lg text-center")}>Скачать</a> : <button type="button" onClick={() => remove.mutate(item.id)} disabled={remove.isPending || ["QUEUED", "PROCESSING"].includes(item.status)} className={buttonClassName("secondary", "rounded-lg text-red-300 disabled:opacity-30")}>Удалить</button>}</div>
             </div>
           </article>
         ))}

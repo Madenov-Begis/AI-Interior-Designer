@@ -5,6 +5,7 @@ import { Settings2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport } from "@/components/design/canvas-viewport";
 import { DesignInspector } from "@/components/design/design-inspector";
+import { EmptySourceWorkspace } from "@/components/design/empty-source-workspace";
 import { GenerationCanvasCard } from "@/components/design/generation-canvas-card";
 import { ResultActions } from "@/components/design/result-actions";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
@@ -63,7 +64,35 @@ function terminalCompletionSignature(generation: WorkspaceGeneration) {
   return `${generation.id}:${generation.status}:${generation.completedAt ?? "terminal"}`;
 }
 
-export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceProps) {
+type ReadyDesignWorkspaceProps = Omit<DesignWorkspaceProps, "project"> & {
+  project: DesignWorkspaceProps["project"] & {
+    source: NonNullable<DesignWorkspaceProps["project"]["source"]>;
+  };
+};
+
+export function DesignWorkspace(props: DesignWorkspaceProps) {
+  if (!props.project.source) {
+    return (
+      <EmptySourceWorkspace
+        projectId={props.project.id}
+        projectName={props.project.name}
+      />
+    );
+  }
+
+  return (
+    <ReadyDesignWorkspace
+      project={{ ...props.project, source: props.project.source }}
+      initialReferences={props.initialReferences}
+    />
+  );
+}
+
+function ReadyDesignWorkspace({
+  project,
+  initialReferences,
+}: ReadyDesignWorkspaceProps) {
+  const source = project.source;
   const queryClient = useQueryClient();
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const observedTerminalSignaturesRef = useRef(new Set<string>());
@@ -426,10 +455,10 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
           <CanvasViewport
             source={{
               projectId: project.id,
-              imageUrl: project.sourceUrl,
-              width: project.sourceWidth,
-              height: project.sourceHeight,
-              initialState: project.initialCanvasState,
+              imageUrl: source.url,
+              width: source.width,
+              height: source.height,
+              initialState: source.initialCanvasState,
             }}
             generations={canvasGenerations}
             selectedItemId={selectedCanvasItem}
@@ -480,9 +509,9 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
               }
             });
           }}
-          className={`fixed inset-0 z-50 m-0 h-dvh max-h-dvh w-full max-w-none flex-col overflow-hidden overscroll-contain border-0 bg-surface p-0 pb-[env(safe-area-inset-bottom)] text-foreground shadow-2xl backdrop:bg-black/65 ${
+          className={`fixed inset-0 z-50 m-0 h-full max-h-dvh w-full max-w-none flex-col overflow-hidden overscroll-contain border-0 bg-surface p-0 pb-[env(safe-area-inset-bottom)] text-foreground shadow-2xl backdrop:bg-black/65 ${
             inspectorOpen ? "flex" : "hidden"
-          } md:inset-y-0 md:right-0 md:left-auto md:h-dvh md:max-h-none md:w-[380px] md:border-l md:border-border md:pb-0 min-[1200px]:static min-[1200px]:flex min-[1200px]:h-auto min-[1200px]:min-h-0 min-[1200px]:w-[380px] min-[1200px]:shadow-none`}
+          } md:inset-y-0 md:right-0 md:left-auto md:max-h-none md:w-[380px] md:border-l md:border-border md:pb-0 min-[1200px]:static min-[1200px]:flex min-[1200px]:min-h-0 min-[1200px]:w-[380px] min-[1200px]:shadow-none`}
         >
           <div className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border px-5 pt-[env(safe-area-inset-top)] md:pt-0">
             <div>
@@ -540,7 +569,7 @@ export function DesignWorkspace({ project, initialReferences }: DesignWorkspaceP
       {openedGeneration && openedResult ? (
         <ResultActions
           generation={openedGeneration}
-          sourceUrl={project.sourceUrl}
+          sourceUrl={source.url}
           resultUrl={openedResult.resultUrl}
           onClose={() => setOpenedResult(null)}
           onGenerateVariation={async () => {

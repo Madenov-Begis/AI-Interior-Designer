@@ -6,7 +6,15 @@ import { buttonClassName } from "@/components/ui/button";
 
 type UploadState = "idle" | "ready" | "uploading" | "success" | "error";
 
-export function SourceUpload() {
+type SourceUploadProps = {
+  projectId: string;
+  initialProjectName: string;
+};
+
+export function SourceUpload({
+  projectId,
+  initialProjectName,
+}: SourceUploadProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -31,61 +39,141 @@ export function SourceUpload() {
   async function upload() {
     if (!file || state === "uploading") return;
     setState("uploading");
-    setMessage("Создаём проект и обрабатываем фотографию…");
+    setMessage("Проверяем и обрабатываем фотографию…");
 
     try {
-      const projectResponse = await fetch("/api/v1/projects", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: file.name.replace(/\.[^.]+$/, "") || "Новый дизайн" }),
-      });
-      const projectPayload = await projectResponse.json();
-      if (!projectResponse.ok) throw new Error(projectPayload.error?.message ?? "Не удалось создать проект");
-
       const formData = new FormData();
       formData.set("file", file);
-      const uploadResponse = await fetch(`/api/v1/projects/${projectPayload.data.id}/source`, { method: "POST", body: formData });
+      const uploadResponse = await fetch(
+        `/api/v1/projects/${projectId}/source`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
       const uploadPayload = await uploadResponse.json();
-      if (!uploadResponse.ok) throw new Error(uploadPayload.error?.message ?? "Не удалось загрузить фотографию");
+      if (!uploadResponse.ok) {
+        throw new Error(
+          uploadPayload.error?.message ?? "Не удалось загрузить фотографию",
+        );
+      }
+
+      const derivedName =
+        file.name.replace(/\.[^.]+$/, "").trim().slice(0, 120) ||
+        "Новый интерьер";
+      if (
+        initialProjectName === "Новый интерьер" &&
+        derivedName !== initialProjectName
+      ) {
+        await fetch(`/api/v1/projects/${projectId}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: derivedName }),
+        }).catch(() => undefined);
+      }
 
       setState("success");
-      setMessage("Фотография проверена и сохранена в приватном хранилище.");
-      router.push(`/app/design/${projectPayload.data.id}`);
+      setMessage("Фотография проверена и сохранена.");
+      router.refresh();
     } catch (error) {
       setState("error");
-      setMessage(error instanceof Error ? error.message : "Не удалось загрузить фотографию");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Не удалось загрузить фотографию",
+      );
     }
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+    <div className="w-full max-w-[820px] rounded-3xl border border-border bg-surface p-3 shadow-2xl shadow-black/30 sm:p-5">
       <section
-        className="relative min-h-[460px] overflow-hidden rounded-2xl border border-dashed border-border bg-background"
+        className="relative min-h-[360px] overflow-hidden rounded-2xl border border-dashed border-border bg-background sm:min-h-[480px]"
         onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => { event.preventDefault(); chooseFile(event.dataTransfer.files[0]); }}
+        onDrop={(event) => {
+          event.preventDefault();
+          chooseFile(event.dataTransfer.files[0]);
+        }}
       >
         {previewUrl ? (
           // The local blob URL exists only in the browser and is not optimized by Next Image.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={previewUrl} alt="Предпросмотр загруженной комнаты" className="absolute inset-0 size-full object-contain" />
+          <img
+            src={previewUrl}
+            alt="Предпросмотр загруженной комнаты"
+            className="absolute inset-0 size-full object-contain"
+          />
         ) : (
-          <button type="button" onClick={() => inputRef.current?.click()} className="absolute inset-0 grid size-full cursor-pointer place-items-center p-6 text-center">
-            <span><span className="mx-auto grid size-16 place-items-center rounded-full bg-accent text-3xl font-light text-accent-foreground">＋</span><b className="mt-5 block text-xl">Перетащите фотографию комнаты</b><span className="mt-2 block text-sm leading-6 text-muted">или нажмите, чтобы выбрать файл</span></span>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="absolute inset-0 grid size-full cursor-pointer place-items-center p-6 text-center transition-colors hover:bg-surface-elevated/40"
+          >
+            <span>
+              <span className="mx-auto grid size-16 place-items-center rounded-full bg-accent text-3xl font-light text-accent-foreground">
+                ＋
+              </span>
+              <b className="mt-5 block text-xl sm:text-2xl">
+                Загрузите фотографию комнаты
+              </b>
+              <span className="mt-2 block text-sm leading-6 text-muted">
+                Перетащите файл сюда или нажмите, чтобы выбрать
+              </span>
+              <span className="mt-1 block text-xs text-muted">
+                JPG, PNG или WEBP · до 15 МБ · минимум 512 × 512 px
+              </span>
+            </span>
           </button>
         )}
-        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => chooseFile(event.target.files?.[0])} />
-        {previewUrl && <button type="button" onClick={() => inputRef.current?.click()} className="absolute right-4 bottom-4 rounded-xl border border-white/15 bg-black/65 px-4 py-3 text-sm font-bold backdrop-blur">Заменить фото</button>}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          aria-label="Выбрать фотографию помещения"
+          onChange={(event) => chooseFile(event.target.files?.[0])}
+        />
+        {previewUrl ? (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={state === "uploading" || state === "success"}
+            className="absolute right-4 bottom-4 rounded-xl border border-white/15 bg-black/65 px-4 py-3 text-sm font-bold backdrop-blur disabled:opacity-50"
+          >
+            Заменить фото
+          </button>
+        ) : null}
       </section>
 
-      <aside className="rounded-2xl border border-border bg-background p-5 sm:p-6">
-        <p className="text-xs font-black tracking-[0.18em] text-accent uppercase">Шаг 1 из 3</p>
-        <h2 className="mt-3 text-2xl font-black italic">Фото помещения</h2>
-        <p className={`mt-4 min-h-12 text-sm leading-6 ${state === "error" ? "text-red-300" : state === "success" ? "text-accent" : "text-muted"}`}>{message}</p>
-        <div className="mt-7 space-y-3 border-t border-border pt-6 text-sm text-muted"><p>✓ Проверим реальный тип файла</p><p>✓ Исправим EXIF-поворот</p><p>✓ Удалим лишние metadata</p><p>✓ Создадим быстрый preview</p></div>
-        <button type="button" onClick={upload} disabled={!file || state === "uploading" || state === "success"} className={buttonClassName("primary", "mt-8 w-full rounded-xl disabled:cursor-not-allowed disabled:opacity-50")}>
-          {state === "uploading" ? "Обрабатываем…" : state === "success" ? "Фото сохранено ✓" : "Сохранить и продолжить →"}
+      <div className="flex flex-col gap-4 px-1 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p
+          className={`min-h-6 text-sm leading-6 ${
+            state === "error"
+              ? "text-red-300"
+              : state === "success"
+                ? "text-accent"
+                : "text-muted"
+          }`}
+          role={state === "error" ? "alert" : "status"}
+        >
+          {message}
+        </p>
+        <button
+          type="button"
+          onClick={upload}
+          disabled={!file || state === "uploading" || state === "success"}
+          className={buttonClassName(
+            "primary",
+            "w-full shrink-0 rounded-xl disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto",
+          )}
+        >
+          {state === "uploading"
+            ? "Обрабатываем…"
+            : state === "success"
+              ? "Фото сохранено ✓"
+              : "Сохранить фото"}
         </button>
-      </aside>
+      </div>
     </div>
   );
 }

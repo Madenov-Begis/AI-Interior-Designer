@@ -35,10 +35,12 @@ export type DesignWorkspaceProps = {
     name: string;
     prompt: string | null;
     aspectRatio: string;
-    sourceUrl: string;
-    sourceWidth: number;
-    sourceHeight: number;
-    initialCanvasState: VisualPromptCanvasState | null;
+    source: {
+      url: string;
+      width: number;
+      height: number;
+      initialCanvasState: VisualPromptCanvasState | null;
+    } | null;
   };
   initialReferences: WorkspaceReference[];
 };

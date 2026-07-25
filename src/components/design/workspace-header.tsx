@@ -82,7 +82,7 @@ export function WorkspaceHeader({
   return (
     <header className="flex min-h-16 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 sm:px-5">
       <Link href="/app" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-bold text-muted transition-colors hover:bg-surface-elevated hover:text-foreground">
-        <span aria-hidden="true">←</span><span className="hidden sm:inline">Проекты</span>
+        <span aria-hidden="true">＋</span><span className="hidden sm:inline">Новый дизайн</span>
       </Link>
       <div className="min-w-0 flex-1">
         <label className="sr-only" htmlFor="workspace-project-name">Название проекта</label>
