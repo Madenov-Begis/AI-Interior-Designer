@@ -1,9 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safeReturnPath } from "@/lib/auth/route-policy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const callbackUrl = new URL("/auth/callback", request.nextUrl.origin);
+  callbackUrl.searchParams.set(
+    "next",
+    safeReturnPath(request.nextUrl.searchParams.get("next")),
+  );
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {

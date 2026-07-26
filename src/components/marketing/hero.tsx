@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
+import { authEntry } from "@/lib/auth/route-policy";
 
-export function Hero() {
+export function Hero({ authenticated }: { authenticated: boolean }) {
+  const entry = authEntry(authenticated);
+
   return (
     <section className="page-grid hero-glow relative isolate min-h-[690px] border-b border-border">
       <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-18 sm:px-6 sm:py-24 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-28">
@@ -15,7 +18,7 @@ export function Hero() {
             Загрузите фотографию, добавьте референсы и получите фотореалистичный дизайн без изменения ракурса, пропорций и геометрии помещения.
           </p>
           <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
-            <Link href="/login" className={buttonClassName("primary", "min-h-14 w-full px-7 text-base sm:w-auto")}>Создать новый интерьер <span aria-hidden="true">→</span></Link>
+            <Link href={entry.href} className={buttonClassName("primary", "min-h-14 w-full px-7 text-base sm:w-auto")}>{authenticated ? "Продолжить работу" : "Создать новый интерьер"} <span aria-hidden="true">→</span></Link>
             <a href="#process" className={buttonClassName("secondary", "min-h-14 w-full px-7 text-base sm:w-auto")}>Как это работает</a>
           </div>
         </div>

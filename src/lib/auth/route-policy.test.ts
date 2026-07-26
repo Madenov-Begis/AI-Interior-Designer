@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  authEntry,
   isProtectedPath,
   safeReturnPath,
 } from "./route-policy.ts";
@@ -25,4 +26,15 @@ test("accepts only local safe return paths", () => {
   assert.equal(safeReturnPath("https://evil.example"), "/app");
   assert.equal(safeReturnPath("/app\nX-Header: bad"), "/app");
   assert.equal(safeReturnPath(null), "/app");
+});
+
+test("maps verified auth state to the correct application entry", () => {
+  assert.deepEqual(authEntry(true), {
+    href: "/app",
+    label: "Продолжить",
+  });
+  assert.deepEqual(authEntry(false), {
+    href: "/login",
+    label: "Войти",
+  });
 });

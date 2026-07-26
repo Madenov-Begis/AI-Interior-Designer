@@ -18,3 +18,9 @@ export function safeReturnPath(value: string | null, fallback = "/app") {
   }
   return value;
 }
+
+export function authEntry(authenticated: boolean) {
+  return authenticated
+    ? { href: "/app", label: "Продолжить" }
+    : { href: "/login", label: "Войти" };
+}

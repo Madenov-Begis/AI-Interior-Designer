@@ -1,12 +1,19 @@
 import { Hero } from "@/components/marketing/hero";
 import { ProcessSection } from "@/components/marketing/process-section";
 import { SiteHeader } from "@/components/marketing/site-header";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getClaims();
+  const authenticated = Boolean(data?.claims?.sub);
+
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
-      <SiteHeader />
-      <Hero />
+      <SiteHeader authenticated={authenticated} />
+      <Hero authenticated={authenticated} />
       <div className="ticker" aria-hidden="true">
         <div className="ticker__track">
           <span>СОХРАНЯЕМ ГЕОМЕТРИЮ</span>
