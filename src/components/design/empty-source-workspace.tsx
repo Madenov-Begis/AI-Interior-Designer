@@ -24,7 +24,7 @@ export function EmptySourceWorkspace({
       />
       <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
         <section
-          className="page-grid grid min-h-0 place-items-center overflow-auto bg-background p-4 sm:p-8"
+          className="min-h-0 overflow-hidden bg-background"
           aria-label="Загрузка фотографии помещения"
         >
           <SourceUpload

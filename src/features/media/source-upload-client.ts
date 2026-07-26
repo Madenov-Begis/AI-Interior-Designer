@@ -12,12 +12,28 @@ type SourceUploadPayload = {
   };
 };
 
+const ACCEPTED_SOURCE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
+
+export function isAcceptedSourceFile(file: File) {
+  return (
+    ACCEPTED_SOURCE_TYPES.has(file.type) &&
+    file.size > 0 &&
+    file.size <= MAX_SOURCE_BYTES
+  );
+}
+
 export async function uploadProjectSource({
   projectId,
   file,
   signal,
   fetcher = fetch,
 }: UploadProjectSourceInput) {
+  signal.throwIfAborted();
   const formData = new FormData();
   formData.set("file", file);
 

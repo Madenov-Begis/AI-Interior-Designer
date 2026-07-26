@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  isAcceptedSourceFile,
   sourceProjectName,
   uploadProjectSource,
 } from "./source-upload-client.ts";
@@ -47,4 +48,54 @@ test("derives a safe project name from the source filename", () => {
   assert.equal(sourceProjectName("  living-room.final.jpg  "), "living-room.final");
   assert.equal(sourceProjectName(".jpg"), "Новый интерьер");
   assert.equal(sourceProjectName("x".repeat(140)), "x".repeat(120));
+});
+
+test("accepts only supported room image types within the size limit", () => {
+  assert.equal(
+    isAcceptedSourceFile(
+      new File(["x"], "room.jpg", { type: "image/jpeg" }),
+    ),
+    true,
+  );
+  assert.equal(
+    isAcceptedSourceFile(
+      new File(["x"], "room.webp", { type: "image/webp" }),
+    ),
+    true,
+  );
+  assert.equal(
+    isAcceptedSourceFile(
+      new File(["x"], "room.gif", { type: "image/gif" }),
+    ),
+    false,
+  );
+  assert.equal(
+    isAcceptedSourceFile({
+      name: "huge.png",
+      type: "image/png",
+      size: 15 * 1024 * 1024 + 1,
+    } as File),
+    false,
+  );
+});
+
+test("does not start a request after the upload signal was aborted", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  let called = false;
+
+  await assert.rejects(
+    uploadProjectSource({
+      projectId: "project-1",
+      file: new File(["room"], "room.jpg", { type: "image/jpeg" }),
+      signal: controller.signal,
+      fetcher: async () => {
+        called = true;
+        return Response.json({ data: {} });
+      },
+    }),
+    (error: unknown) =>
+      error instanceof DOMException && error.name === "AbortError",
+  );
+  assert.equal(called, false);
 });
