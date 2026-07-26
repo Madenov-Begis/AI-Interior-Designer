@@ -62,3 +62,24 @@ export function sourceProjectName(fileName: string) {
       .slice(0, 120) || "Новый интерьер"
   );
 }
+
+export function createLatestSourceUpload(fetcher: typeof fetch = fetch) {
+  let controller: AbortController | null = null;
+
+  return {
+    upload(projectId: string, file: File) {
+      controller?.abort();
+      controller = new AbortController();
+      return uploadProjectSource({
+        projectId,
+        file,
+        signal: controller.signal,
+        fetcher,
+      });
+    },
+    abort() {
+      controller?.abort();
+      controller = null;
+    },
+  };
+}

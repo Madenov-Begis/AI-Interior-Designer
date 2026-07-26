@@ -8,6 +8,7 @@ import { DesignInspector } from "@/components/design/design-inspector";
 import { EmptySourceWorkspace } from "@/components/design/empty-source-workspace";
 import { GenerationCanvasCard } from "@/components/design/generation-canvas-card";
 import { ResultActions } from "@/components/design/result-actions";
+import { SourceReplaceControl } from "@/components/design/source-replace-control";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
@@ -440,6 +441,7 @@ function ReadyDesignWorkspace({
       />
       <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
         <section className="relative min-h-0 overflow-hidden bg-background" aria-label="Холст проекта">
+          <SourceReplaceControl projectId={project.id} />
           <button
             ref={inspectorTriggerRef}
             type="button"
