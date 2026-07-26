@@ -1,5 +1,9 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
+import {
+  convertGenerationDownloadToJpeg,
+  generationDownloadFilename,
+} from "@/features/generations/jpeg-download";
 import { generationIdSchema } from "@/features/generations/schema";
 import { getDb } from "@/lib/db";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -19,8 +23,19 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     if (!generation?.resultUser) return apiError("GENERATION_NOT_FOUND", "Результат не найден", requestId, 404);
     const downloaded = await getSupabaseAdmin().storage.from(generation.resultUser.bucket).download(generation.resultUser.path);
     if (downloaded.error || !downloaded.data) return apiError("DOWNLOAD_FAILED", "Не удалось скачать результат", requestId, 502);
-    const filename = `interior-design-${generation.createdAt.toISOString().slice(0, 10)}.webp`;
-    return new Response(downloaded.data, { headers: { "content-type": generation.resultUser.mimeType, "content-disposition": `attachment; filename="${filename}"`, "cache-control": "private, no-store", "x-request-id": requestId } });
+
+    const storedImage = Buffer.from(await downloaded.data.arrayBuffer());
+    const jpeg = await convertGenerationDownloadToJpeg(storedImage);
+    const filename = generationDownloadFilename(generation.createdAt);
+
+    return new Response(new Uint8Array(jpeg), {
+      headers: {
+        "content-type": "image/jpeg",
+        "content-disposition": `attachment; filename="${filename}"`,
+        "cache-control": "private, no-store",
+        "x-request-id": requestId,
+      },
+    });
   } catch (error) {
     if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
     if (error instanceof ZodError) return apiError("GENERATION_NOT_FOUND", "Результат не найден", requestId, 404);
