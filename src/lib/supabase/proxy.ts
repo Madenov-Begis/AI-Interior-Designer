@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-const protectedPrefixes = ["/app", "/admin"];
+import { isProtectedPath, safeReturnPath } from "@/lib/auth/route-policy";
 
 export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -12,22 +11,32 @@ export async function updateSupabaseSession(request: NextRequest) {
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        setAll: (cookiesToSet, headers) => {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
           response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+          Object.entries(headers).forEach(([name, value]) =>
+            response.headers.set(name, value),
+          );
         },
       },
     },
   );
 
   const { data } = await supabase.auth.getClaims();
-  const needsAuth = protectedPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
 
-  if (needsAuth && !data?.claims) {
+  if (isProtectedPath(request.nextUrl.pathname) && !data?.claims) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.search = "";
+    loginUrl.searchParams.set(
+      "next",
+      safeReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
+    );
     return NextResponse.redirect(loginUrl);
   }
 
