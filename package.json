@@ -2,6 +2,7 @@
   "name": "project-foundation",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@11.13.0",
   "engines": {
     "node": ">=24"
@@ -11,6 +12,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
+    "test": "node --test --experimental-strip-types src/features/media/source-upload-client.test.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
