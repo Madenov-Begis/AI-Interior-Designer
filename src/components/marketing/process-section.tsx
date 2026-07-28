@@ -1,7 +1,7 @@
 const steps = [
   { number: "01", title: "Загрузите фото", copy: "Подойдёт обычная фотография комнаты со смартфона или камеры." },
   { number: "02", title: "Добавьте референсы", copy: "Покажите желаемые стили, мебель, материалы, цвета и освещение." },
-  { number: "03", title: "Опишите результат", copy: "Добавьте инструкцию, выберите модель и запустите визуализацию." },
+  { number: "03", title: "Опишите результат", copy: "Добавьте инструкцию, выберите формат и запустите визуализацию." },
 ];
 
 export function ProcessSection() {
@@ -27,7 +27,7 @@ export function ProcessSection() {
           <div>
             <p className="text-xs font-black tracking-[0.2em] text-accent uppercase">Рабочая область</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight italic sm:text-5xl">Весь проект на одном экране</h2>
-            <p className="mt-5 leading-7 text-muted">Редактор разметки, референсы, текстовая инструкция, модель и формат собраны в последовательный процесс.</p>
+            <p className="mt-5 leading-7 text-muted">Редактор разметки, референсы, текстовая инструкция, стиль и формат собраны в последовательный процесс.</p>
           </div>
           <div className="grid gap-3 rounded-2xl border border-border bg-background p-3 sm:grid-cols-[1fr_220px]">
             <div className="room-preview relative min-h-64 rounded-xl"><span className="absolute bottom-3 left-3 rounded-lg bg-black/60 px-3 py-2 text-xs">До / После</span></div>

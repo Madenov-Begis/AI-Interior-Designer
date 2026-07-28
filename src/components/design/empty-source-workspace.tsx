@@ -40,7 +40,7 @@ export function EmptySourceWorkspace({
             Начните с фотографии
           </h2>
           <p className="mt-4 text-sm leading-6 text-muted">
-            После загрузки здесь появятся референсы, инструкция, стиль, модель
+            После загрузки здесь появятся референсы, инструкция, стиль
             и кнопка генерации.
           </p>
           <div className="mt-6 rounded-xl border border-border bg-background p-4 text-sm text-muted">

@@ -58,6 +58,7 @@ type Source = {
 export type CanvasGenerationNode = {
   id: string;
   ariaLabel?: string;
+  height?: number;
   node: ReactNode;
 };
 
@@ -195,8 +196,11 @@ export const CanvasViewport = forwardRef<
           4,
         )
       : Math.max(1, generations.length);
-  const rowHeight =
-    Math.max(sourceCardHeight, RESULT_CARD_HEIGHT) + CARD_GAP;
+  const tallestGeneration = Math.max(
+    RESULT_CARD_HEIGHT,
+    ...generations.map((generation) => generation.height ?? RESULT_CARD_HEIGHT),
+  );
+  const rowHeight = Math.max(sourceCardHeight, tallestGeneration) + CARD_GAP;
 
   const generationPositions = useMemo(
     () =>
@@ -218,9 +222,12 @@ export const CanvasViewport = forwardRef<
     let maxX = SOURCE_X + CARD_WIDTH;
     let maxY = SOURCE_Y + sourceCardHeight;
 
-    generationPositions.forEach((position) => {
+    generationPositions.forEach((position, index) => {
       maxX = Math.max(maxX, position.x + CARD_WIDTH);
-      maxY = Math.max(maxY, position.y + RESULT_CARD_HEIGHT);
+      maxY = Math.max(
+        maxY,
+        position.y + (generations[index]?.height ?? RESULT_CARD_HEIGHT),
+      );
     });
 
     return {
@@ -229,7 +236,7 @@ export const CanvasViewport = forwardRef<
       maxX: maxX + SOURCE_X,
       maxY: maxY + SOURCE_Y,
     };
-  }, [generationPositions, sourceCardHeight]);
+  }, [generationPositions, generations, sourceCardHeight]);
 
   const fitToContent = useCallback(() => {
     if (viewportSize.width === 0 || viewportSize.height === 0) return;
@@ -533,7 +540,7 @@ export const CanvasViewport = forwardRef<
                 left: position.x,
                 top: position.y,
                 width: CARD_WIDTH,
-                height: RESULT_CARD_HEIGHT,
+                height: generation.height ?? RESULT_CARD_HEIGHT,
               }}
               tabIndex={0}
               onClick={() => selectItem(generation.id)}

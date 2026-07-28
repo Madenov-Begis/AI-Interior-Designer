@@ -29,7 +29,13 @@ export async function getTodayUsage(userId: string) {
 export function getOwnedGeneration(userId: string, id: string) {
   return getDb().generation.findFirst({
     where: { id, userId, deletedAt: null },
-    select: { id: true, projectId: true, status: true, prompt: true, finalPrompt: true, aspectRatio: true, visualPromptUsed: true, resultUserId: true, errorCode: true, errorMessage: true, queuedAt: true, startedAt: true, completedAt: true, durationMs: true, model: { select: { code: true, name: true } } },
+    select: {
+      id: true, projectId: true, parentGenerationId: true, status: true, prompt: true, finalPrompt: true,
+      aspectRatio: true, visualPromptUsed: true, resultUserId: true, errorCode: true, errorMessage: true,
+      queuedAt: true, startedAt: true, completedAt: true, durationMs: true,
+      resultUser: { select: { width: true, height: true } },
+      references: { orderBy: { position: "asc" }, select: { fileId: true, position: true } },
+    },
   });
 }
 
@@ -49,10 +55,11 @@ export async function listOwnedGenerations(userId: string, input: { limit: numbe
       take: input.limit + 1,
       ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
       select: {
-        id: true, projectId: true, status: true, prompt: true, aspectRatio: true, visualPromptUsed: true,
+        id: true, projectId: true, parentGenerationId: true, status: true, prompt: true, aspectRatio: true, visualPromptUsed: true,
         resultUserId: true, errorCode: true, errorMessage: true, createdAt: true, queuedAt: true, completedAt: true, durationMs: true,
         project: { select: { name: true, sourcePreviewId: true } },
-        model: { select: { code: true, name: true } },
+        resultUser: { select: { width: true, height: true } },
+        references: { orderBy: { position: "asc" }, select: { fileId: true, position: true } },
         _count: { select: { references: true } },
       },
     }),

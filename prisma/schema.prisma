@@ -268,6 +268,7 @@ model Generation {
   id                  String           @id @default(uuid()) @db.Uuid
   userId              String           @db.Uuid
   projectId           String           @db.Uuid
+  parentGenerationId  String?          @db.Uuid
   modelId             String           @db.Uuid
   status              GenerationStatus @default(QUEUED)
   idempotencyKey      String?
@@ -296,6 +297,8 @@ model Generation {
 
   user              Profile               @relation(fields: [userId], references: [id])
   project           Project               @relation(fields: [projectId], references: [id])
+  parentGeneration  Generation?            @relation("GenerationRefinements", fields: [parentGenerationId], references: [id])
+  refinements       Generation[]           @relation("GenerationRefinements")
   model             AiModel               @relation(fields: [modelId], references: [id])
   sourceImage       MediaFile             @relation("GenerationSourceImage", fields: [sourceImageId], references: [id])
   visualPromptImage MediaFile?            @relation("GenerationVisualPrompt", fields: [visualPromptImageId], references: [id])
@@ -307,6 +310,7 @@ model Generation {
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
+  @@index([parentGenerationId, createdAt])
   @@index([status, queuedAt])
   @@index([deletedAt])
 }

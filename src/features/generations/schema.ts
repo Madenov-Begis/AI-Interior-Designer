@@ -1,13 +1,26 @@
 import { z } from "zod";
-import { INTERIOR_STYLE_CODES } from "@/features/generations/interior-styles";
+import { INTERIOR_STYLE_CODES } from "./interior-styles.ts";
 
 export const createGenerationSchema = z.object({
   projectId: z.uuid(),
   prompt: z.string().trim().min(3).max(4000),
-  modelCode: z.string().trim().min(1).max(100).default(process.env.AI_PROVIDER === "vertex" ? "gemini-interior-v1" : "fake-interior-v1"),
   aspectRatio: z.enum(["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"]).default("RATIO_16_9"),
   styleCode: z.enum(INTERIOR_STYLE_CODES).optional(),
-});
+}).strict();
+
+export const createRefinementSchema = z.object({
+  prompt: z.string().trim().min(3).max(4000),
+  referenceFileIds: z.array(z.uuid()).max(10),
+}).strict();
+
+export const refinementVisualPromptPairSchema = z.object({
+  overlayPresent: z.boolean(),
+  canvasStatePresent: z.boolean(),
+}).strict().refine(
+  ({ overlayPresent, canvasStatePresent }) =>
+    overlayPresent === canvasStatePresent,
+  { message: "Разметка и состояние холста должны быть переданы вместе" },
+);
 
 export const idempotencyKeySchema = z.string().trim().min(16).max(128);
 

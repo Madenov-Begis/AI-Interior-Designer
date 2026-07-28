@@ -16,7 +16,7 @@ import type {
 import { dataUrlToBlob } from "@/lib/client/data-url";
 
 type Props = {
-  projectId: string;
+  projectId?: string;
   editorWidth: number;
   editorHeight: number;
   sourceWidth: number;
@@ -125,14 +125,14 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     }, []);
 
     const enqueueCanvasOperation = useCallback(
-      (action: () => Promise<void> | void) => {
+      function enqueue<T>(action: () => Promise<T> | T): Promise<T> {
         pendingCanvasOperationsRef.current += 1;
         const activeCanvas = canvasRef.current;
         if (activeCanvas) lockCanvasInteraction(activeCanvas);
 
         const operation = canvasOperationQueueRef.current.then(async () => {
           try {
-            await action();
+            return await action();
           } finally {
             pendingCanvasOperationsRef.current = Math.max(
               0,
@@ -153,7 +153,10 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         });
         // Each caller receives its own rejection, while the internal tail always
         // recovers so a later user action can still execute.
-        canvasOperationQueueRef.current = operation.catch(() => undefined);
+        canvasOperationQueueRef.current = operation.then(
+          () => undefined,
+          () => undefined,
+        );
         return operation;
       },
       [configureCanvas, lockCanvasInteraction],
@@ -298,7 +301,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           formData.set("canvasState", JSON.stringify(state));
 
           const response = await fetch(
-            `/api/v1/projects/${props.projectId}/visual-prompt`,
+            `/api/v1/projects/${props.projectId!}/visual-prompt`,
             { method: "PUT", body: formData },
           );
           if (!response.ok) {
@@ -319,10 +322,40 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       ],
     );
 
+    const snapshot = useCallback(
+      () =>
+        enqueueCanvasOperation(async () => {
+          const canvas = canvasRef.current;
+          if (!canvas || canvas.getObjects().length === 0) return null;
+          canvas.requestRenderAll();
+          const state: VisualPromptCanvasState = {
+            version: 1,
+            coordinateSpace: {
+              editorWidth: props.editorWidth,
+              editorHeight: props.editorHeight,
+              sourceWidth: props.sourceWidth,
+              sourceHeight: props.sourceHeight,
+            },
+            fabric: canvas.toJSON() as Record<string, unknown>,
+          };
+          const overlay = await dataUrlToBlob(
+            canvas.toDataURL({ format: "png", multiplier: 1 }),
+          );
+          return { state, overlay };
+        }),
+      [
+        enqueueCanvasOperation,
+        props.editorHeight,
+        props.editorWidth,
+        props.sourceHeight,
+        props.sourceWidth,
+      ],
+    );
+
     useImperativeHandle(
       ref,
-      () => ({ persist, undo, redo, deleteSelected, clear }),
-      [clear, deleteSelected, persist, redo, undo],
+      () => ({ persist, snapshot, undo, redo, deleteSelected, clear }),
+      [clear, deleteSelected, persist, redo, snapshot, undo],
     );
 
     useEffect(() => {

@@ -9,15 +9,29 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
+import type { ReactNode, Ref } from "react";
+import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
 import type { WorkspaceGeneration } from "@/components/design/workspace-types";
 import { buttonClassName } from "@/components/ui/button";
+import type {
+  VisualPromptEditorHandle,
+  VisualPromptTool,
+} from "@/features/visual-prompt/types";
 
 type GenerationCanvasCardProps = {
   generation: WorkspaceGeneration;
-  variantNumber: number;
+  variantNumber: string;
   cancelPending?: boolean;
   retryPending?: boolean;
   actionError?: string | null;
+  selected: boolean;
+  editorRef: Ref<VisualPromptEditorHandle>;
+  tool: VisualPromptTool;
+  color: string;
+  strokeWidth: number;
+  refinementComposer?: ReactNode;
+  onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
+  onEditorError(message: string | null): void;
   onCancel(): void;
   onRetry(): void;
   onRemove(): void;
@@ -46,7 +60,7 @@ function CardHeader({
   variantNumber,
   status,
 }: {
-  variantNumber: number;
+  variantNumber: string;
   status: WorkspaceGeneration["status"];
 }) {
   return (
@@ -97,6 +111,14 @@ export function GenerationCanvasCard({
   cancelPending = false,
   retryPending = false,
   actionError,
+  selected,
+  editorRef,
+  tool,
+  color,
+  strokeWidth,
+  refinementComposer,
+  onHistoryStateChange,
+  onEditorError,
   onCancel,
   onRetry,
   onRemove,
@@ -243,10 +265,29 @@ export function GenerationCanvasCard({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={resultQuery.data}
-              alt={`Вариант ${variantNumber}: ${generation.model.name}`}
+              alt={`Готовый интерьер, вариант ${variantNumber}`}
               className="size-full object-contain"
               draggable={false}
             />
+            {selected &&
+            generation.resultUser?.width &&
+            generation.resultUser.height ? (
+              <div className="absolute inset-0">
+                <VisualPromptEditor
+                  ref={editorRef}
+                  editorWidth={generation.resultUser.width}
+                  editorHeight={generation.resultUser.height}
+                  sourceWidth={generation.resultUser.width}
+                  sourceHeight={generation.resultUser.height}
+                  initialState={null}
+                  tool={tool}
+                  color={color}
+                  strokeWidth={strokeWidth}
+                  onHistoryStateChange={onHistoryStateChange}
+                  onPersistenceStateChange={onEditorError}
+                />
+              </div>
+            ) : null}
             <button
               type="button"
               onPointerDown={(event) => event.stopPropagation()}
@@ -407,6 +448,9 @@ export function GenerationCanvasCard({
         status={generation.status}
       />
       {content}
+      {selected && generation.status === "SUCCEEDED"
+        ? refinementComposer
+        : null}
     </div>
   );
 }

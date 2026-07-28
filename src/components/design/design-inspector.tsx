@@ -1,21 +1,10 @@
 "use client";
 
-import {
-  AlertCircle,
-  ChevronDown,
-  LoaderCircle,
-  Sparkles,
-} from "lucide-react";
+import { AlertCircle, LoaderCircle, Sparkles } from "lucide-react";
 import { ReferenceManager } from "@/components/design/reference-manager";
 import { StylePicker } from "@/components/design/style-picker";
 import { buttonClassName } from "@/components/ui/button";
 import type { WorkspaceReference } from "@/components/design/workspace-types";
-
-type Model = {
-  code: string;
-  name: string;
-  supportedAspectRatios: string[];
-};
 
 type Usage = {
   used: number;
@@ -36,9 +25,6 @@ export type DesignInspectorProps = {
   styles: Array<{ code: string; name: string; imageUrl: string }>;
   styleCode: string | undefined;
   onStyleChange(value: string | undefined): void;
-  models: Model[];
-  modelCode: string;
-  onModelChange(value: string): void;
   aspectRatio: string;
   onAspectRatioChange(value: string): void;
   usage: Usage | null | undefined;
@@ -66,9 +52,6 @@ export function DesignInspector({
   styles,
   styleCode,
   onStyleChange,
-  models,
-  modelCode,
-  onModelChange,
   aspectRatio,
   onAspectRatioChange,
   usage,
@@ -79,14 +62,13 @@ export function DesignInspector({
   disabledReasons,
   onGenerate,
 }: DesignInspectorProps) {
-  const selectedModel = models.find((model) => model.code === modelCode);
-  const supportedAspectRatios = selectedModel?.supportedAspectRatios ?? [];
+  const supportedAspectRatios = Object.keys(ASPECT_RATIO_LABELS);
   const promptIsInvalid =
     prompt.length > 0 && (prompt.trim().length < 3 || prompt.length > 4000);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5">
+    <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
+      <div className="min-h-0 min-w-0 max-w-full flex-1 space-y-6 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5">
         <section aria-labelledby="inspector-references-title">
           <div className="flex items-center justify-between gap-3">
             <h2
@@ -150,60 +132,33 @@ export function DesignInspector({
           onChange={onStyleChange}
         />
 
-        <details className="group rounded-xl border border-border bg-background">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black marker:content-none">
-            Модель и формат
-            <ChevronDown
-              size={18}
-              className="text-muted transition-transform group-open:rotate-180"
-              aria-hidden="true"
-            />
-          </summary>
-          <div className="space-y-5 border-t border-border px-4 py-4">
-            <label className="grid gap-2 text-xs font-bold text-muted">
-              Модель
-              <select
-                value={modelCode}
-                onChange={(event) => onModelChange(event.target.value)}
-                disabled={!models.length}
-                className="min-h-11 rounded-lg border border-border bg-surface px-3 text-sm font-bold text-foreground outline-none focus:border-accent disabled:opacity-50"
+        <fieldset className="rounded-xl border border-border bg-background px-4 py-4">
+          <legend className="px-1 text-sm font-black text-foreground">
+            Формат
+          </legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {supportedAspectRatios.map((ratio) => (
+              <label
+                key={ratio}
+                className={`workspace-focus-proxy inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-xs font-black transition-colors ${
+                  aspectRatio === ratio
+                    ? "border-accent bg-accent text-accent-foreground"
+                    : "border-border bg-surface text-foreground hover:border-muted"
+                }`}
               >
-                {!models.length && <option value="">Нет доступных моделей</option>}
-                {models.map((model) => (
-                  <option key={model.code} value={model.code}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <fieldset>
-              <legend className="text-xs font-bold text-muted">Формат</legend>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {supportedAspectRatios.map((ratio) => (
-                  <label
-                    key={ratio}
-                    className={`workspace-focus-proxy inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-xs font-black transition-colors ${
-                      aspectRatio === ratio
-                        ? "border-accent bg-accent text-accent-foreground"
-                        : "border-border bg-surface text-foreground hover:border-muted"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="aspect-ratio"
-                      value={ratio}
-                      checked={aspectRatio === ratio}
-                      onChange={() => onAspectRatioChange(ratio)}
-                      className="sr-only"
-                    />
-                    {ASPECT_RATIO_LABELS[ratio] ?? ratio}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+                <input
+                  type="radio"
+                  name="aspect-ratio"
+                  value={ratio}
+                  checked={aspectRatio === ratio}
+                  onChange={() => onAspectRatioChange(ratio)}
+                  className="sr-only"
+                />
+                {ASPECT_RATIO_LABELS[ratio] ?? ratio}
+              </label>
+            ))}
           </div>
-        </details>
+        </fieldset>
       </div>
 
       <div className="shrink-0 border-t border-border bg-surface px-5 py-4">

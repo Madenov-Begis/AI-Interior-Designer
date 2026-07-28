@@ -15,12 +15,13 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
       <p className="mt-1 text-xs leading-5 text-muted">
         Выберите направление или оставьте интерьер без стилевого пресета.
       </p>
-      <div
-        className="-mx-2 mt-3 flex gap-2 overflow-x-auto px-2 py-2"
-        role="radiogroup"
-        aria-label="Стиль интерьера"
-      >
-        {styles.map((style) => {
+      <div className="mt-3 min-w-0 max-w-full overflow-hidden">
+        <div
+          className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-2 py-2"
+          role="radiogroup"
+          aria-label="Стиль интерьера"
+        >
+          {styles.map((style) => {
           const selected = value === style.code;
           return (
             <label
@@ -70,7 +71,8 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
               )}
             </label>
           );
-        })}
+          })}
+        </div>
       </div>
     </fieldset>
   );

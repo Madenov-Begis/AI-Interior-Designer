@@ -91,7 +91,6 @@ export function ResultActions({
           <h2 id="result-actions-title" className="text-base font-black">
             Сравнение результата
           </h2>
-          <p className="mt-0.5 text-xs text-muted">{generation.model.name}</p>
         </div>
         <button
           type="button"
@@ -150,12 +149,6 @@ export function ResultActions({
             Детали генерации
           </h3>
           <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-                Модель
-              </dt>
-              <dd className="mt-1 font-medium">{generation.model.name}</dd>
-            </div>
             <div>
               <dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
                 Формат

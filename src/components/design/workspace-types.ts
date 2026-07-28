@@ -10,15 +10,17 @@ export type WorkspaceGenerationStatus =
 
 export type WorkspaceGeneration = {
   id: string;
+  parentGenerationId: string | null;
   status: WorkspaceGenerationStatus;
   prompt: string;
   aspectRatio: string;
   resultUserId: string | null;
+  resultUser: { width: number | null; height: number | null } | null;
+  references: Array<{ fileId: string; position: number }>;
   errorCode: string | null;
   errorMessage: string | null;
   createdAt: string;
   completedAt: string | null;
-  model: { code: string; name: string };
 };
 
 export type WorkspaceReference = {

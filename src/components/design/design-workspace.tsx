@@ -1,29 +1,30 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Settings2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport } from "@/components/design/canvas-viewport";
 import { DesignInspector } from "@/components/design/design-inspector";
 import { EmptySourceWorkspace } from "@/components/design/empty-source-workspace";
 import { GenerationCanvasCard } from "@/components/design/generation-canvas-card";
+import { GenerationRefinementComposer } from "@/components/design/generation-refinement-composer";
 import { ResultActions } from "@/components/design/result-actions";
 import { SourceReplaceControl } from "@/components/design/source-replace-control";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
+import { buildGenerationLabels } from "@/features/generations/tree";
 import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
 
 type GenerationList = {
   items: WorkspaceGeneration[];
   nextCursor: string | null;
   total: number;
-};
-
-type Model = {
-  code: string;
-  name: string;
-  supportedAspectRatios: string[];
 };
 
 type Style = { code: string; name: string; imageUrl: string };
@@ -96,13 +97,17 @@ function ReadyDesignWorkspace({
   const source = project.source;
   const queryClient = useQueryClient();
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
+  const refinementPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const observedTerminalSignaturesRef = useRef(new Set<string>());
+  const observedPointTerminalIdsRef = useRef(new Set<string>());
   const inspectorDialogRef = useRef<HTMLDialogElement>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [trackedGenerationIds, setTrackedGenerationIds] = useState<string[]>(
+    [],
+  );
   const [desktopInspector, setDesktopInspector] = useState(false);
   const [prompt, setPrompt] = useState(project.prompt ?? DEFAULT_PROMPT);
-  const [modelCode, setModelCode] = useState("");
   const [aspectRatio, setAspectRatio] = useState(project.aspectRatio);
   const [styleCode, setStyleCode] = useState<string>();
   const [selectedCanvasItem, setSelectedCanvasItem] = useState<string>("source");
@@ -127,11 +132,6 @@ function ReadyDesignWorkspace({
   const generationsQuery = useQuery({
     queryKey: ["generations", project.id],
     queryFn: async () => readJson(await fetch(`/api/v1/generations?projectId=${project.id}&limit=20`)) as Promise<GenerationList>,
-    refetchInterval: (query) => query.state.data?.items.some((item) => isActiveGeneration(item.status)) ? 1500 : false,
-  });
-  const modelsQuery = useQuery({
-    queryKey: ["models"],
-    queryFn: async () => (await readJson(await fetch("/api/v1/models"))).models as Model[],
   });
   const configQuery = useQuery({
     queryKey: ["config"],
@@ -159,17 +159,7 @@ function ReadyDesignWorkspace({
     }
   }, [generationsQuery.data?.items, queryClient]);
 
-  const selectedModelCode = modelCode || modelsQuery.data?.[0]?.code || "";
-  const selectedModel = modelsQuery.data?.find(
-    (model) => model.code === selectedModelCode,
-  );
-  const selectedAspectRatio =
-    selectedModel?.supportedAspectRatios.includes(aspectRatio)
-      ? aspectRatio
-      : selectedModel?.supportedAspectRatios[0] ?? "";
-
   async function reserveCurrentGeneration() {
-    if (!selectedModelCode) throw new Error("Выберите модель");
     if (prompt.trim().length < 3) {
       throw new Error("Опишите изменения не менее чем в трёх символах");
     }
@@ -189,8 +179,7 @@ function ReadyDesignWorkspace({
         body: JSON.stringify({
           projectId: project.id,
           prompt,
-          modelCode: selectedModelCode,
-          aspectRatio: selectedAspectRatio,
+          aspectRatio,
           styleCode,
         }),
       }),
@@ -199,7 +188,10 @@ function ReadyDesignWorkspace({
 
   const createGeneration = useMutation({
     mutationFn: reserveCurrentGeneration,
-    onSuccess: async () => {
+    onSuccess: async (data: { id: string }) => {
+      setTrackedGenerationIds((current) =>
+        current.includes(data.id) ? current : [...current, data.id],
+      );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
         queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
@@ -213,7 +205,10 @@ function ReadyDesignWorkspace({
           method: "POST",
         }),
       ),
-    onSuccess: async () => {
+    onSuccess: async (data: { id: string }) => {
+      setTrackedGenerationIds((current) =>
+        current.includes(data.id) ? current : [...current, data.id],
+      );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
         queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
@@ -237,7 +232,106 @@ function ReadyDesignWorkspace({
         }),
       );
     },
-    onSuccess: async () => {
+    onSuccess: async (data: { id: string }) => {
+      setTrackedGenerationIds((current) =>
+        current.includes(data.id) ? current : [...current, data.id],
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+      ]);
+    },
+  });
+  const activeGenerationIds = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...trackedGenerationIds,
+          ...(generationsQuery.data?.items ?? [])
+            .filter((generation) => isActiveGeneration(generation.status))
+            .map((generation) => generation.id),
+        ]),
+      ),
+    [generationsQuery.data?.items, trackedGenerationIds],
+  );
+  const activeGenerationQueries = useQueries({
+    queries: activeGenerationIds.map((generationId) => ({
+      queryKey: ["generation", generationId],
+      queryFn: async () =>
+        readJson(
+          await fetch(`/api/v1/generations/${generationId}`),
+        ) as Promise<WorkspaceGeneration>,
+      refetchInterval: (query: {
+        state: { data?: WorkspaceGeneration };
+      }) =>
+        query.state.data && !isActiveGeneration(query.state.data.status)
+          ? false
+          : 1500,
+    })),
+  });
+
+  useEffect(() => {
+    for (const query of activeGenerationQueries) {
+      const generation = query.data;
+      if (
+        !generation ||
+        isActiveGeneration(generation.status) ||
+        observedPointTerminalIdsRef.current.has(generation.id)
+      ) {
+        continue;
+      }
+      observedPointTerminalIdsRef.current.add(generation.id);
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["generations", project.id],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+      ]);
+    }
+  }, [activeGenerationQueries, project.id, queryClient]);
+  const createRefinement = useMutation({
+    mutationFn: async (input: {
+      generationId: string;
+      prompt: string;
+      referenceFileIds: string[];
+      files: File[];
+    }) => {
+      let referenceFileIds = input.referenceFileIds;
+      if (input.files.length) {
+        const uploadBody = new FormData();
+        input.files.forEach((file) => uploadBody.append("files", file));
+        const uploaded = await readJson(
+          await fetch(
+            `/api/v1/generations/${input.generationId}/refinement-references`,
+            { method: "POST", body: uploadBody },
+          ),
+        );
+        referenceFileIds = [
+          ...referenceFileIds,
+          ...uploaded.references.map((item: { fileId: string }) => item.fileId),
+        ];
+      }
+
+      const body = new FormData();
+      body.set("prompt", input.prompt);
+      body.set("referenceFileIds", JSON.stringify(referenceFileIds));
+      const visualPrompt = await refinementPromptRef.current?.snapshot();
+      if (visualPrompt) {
+        body.set("overlay", visualPrompt.overlay, "visual-prompt.png");
+        body.set("canvasState", JSON.stringify(visualPrompt.state));
+      }
+      return readJson(
+        await fetch(`/api/v1/generations/${input.generationId}/refinements`, {
+          method: "POST",
+          headers: { "idempotency-key": crypto.randomUUID() },
+          body,
+        }),
+      );
+    },
+    onSuccess: async (data: { id: string }) => {
+      setTrackedGenerationIds((current) =>
+        current.includes(data.id) ? current : [...current, data.id],
+      );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
         queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
@@ -247,11 +341,11 @@ function ReadyDesignWorkspace({
   const indexedGenerations = useMemo(
     () => {
       const items = generationsQuery.data?.items ?? [];
-      const total = generationsQuery.data?.total ?? items.length;
+      const labels = buildGenerationLabels(items);
       return items
-        .map((generation, descendingIndex) => ({
+        .map((generation) => ({
           generation,
-          variantNumber: total - descendingIndex,
+          variantNumber: labels.get(generation.id) ?? "—",
         }))
         .sort(
           (left, right) =>
@@ -268,27 +362,18 @@ function ReadyDesignWorkspace({
   );
   const generationError = createGeneration.error;
   const inspectorDataError =
-    modelsQuery.error?.message ??
-    usageQuery.error?.message ??
-    configQuery.error?.message ??
-    null;
+    usageQuery.error?.message ?? configQuery.error?.message ?? null;
   const inspectorDataLoading =
-    modelsQuery.isLoading || usageQuery.isLoading || configQuery.isLoading;
+    usageQuery.isLoading || configQuery.isLoading;
   const disabledReasons: string[] = [];
   if (createGeneration.isPending) {
     disabledReasons.push("Генерация уже запускается.");
   }
-  if (modelsQuery.isLoading || usageQuery.isLoading) {
+  if (usageQuery.isLoading) {
     disabledReasons.push("Загружаем доступные параметры.");
   }
-  if (modelsQuery.isError || usageQuery.isError) {
-    disabledReasons.push("Не удалось проверить модель или дневной лимит.");
-  }
-  if (!modelsQuery.isLoading && !modelsQuery.isError && !selectedModelCode) {
-    disabledReasons.push("Нет доступной модели.");
-  }
-  if (!selectedAspectRatio) {
-    disabledReasons.push("Для модели не найден доступный формат.");
+  if (usageQuery.isError) {
+    disabledReasons.push("Не удалось проверить дневной лимит.");
   }
   if (prompt.trim().length < 3) {
     disabledReasons.push("Опишите изменения минимум в трёх символах.");
@@ -318,10 +403,47 @@ function ReadyDesignWorkspace({
       return {
         id: generation.id,
         ariaLabel: `Вариант ${variantNumber}, статус ${generation.status}`,
+        height:
+          selectedCanvasItem === generation.id &&
+          generation.status === "SUCCEEDED"
+            ? 850
+            : 610,
         node: (
           <GenerationCanvasCard
             generation={generation}
             variantNumber={variantNumber}
+            selected={selectedCanvasItem === generation.id}
+            editorRef={refinementPromptRef}
+            tool={tool}
+            color={color}
+            strokeWidth={strokeWidth}
+            onHistoryStateChange={setHistoryState}
+            onEditorError={setCanvasActionError}
+            refinementComposer={
+              <GenerationRefinementComposer
+                generationId={generation.id}
+                userScope={project.id}
+                initialReferenceFileIds={generation.references.map(
+                  (reference) => reference.fileId,
+                )}
+                pending={
+                  createRefinement.isPending &&
+                  createRefinement.variables?.generationId === generation.id
+                }
+                error={
+                  createRefinement.isError &&
+                  createRefinement.variables?.generationId === generation.id
+                    ? createRefinement.error.message
+                    : null
+                }
+                onSubmit={async (input) => {
+                  await createRefinement.mutateAsync({
+                    generationId: generation.id,
+                    ...input,
+                  });
+                }}
+              />
+            }
             cancelPending={cancelIsCurrent}
             retryPending={retryIsCurrent}
             actionError={actionError}
@@ -371,19 +493,20 @@ function ReadyDesignWorkspace({
       return;
     }
 
-    const editor = visualPromptRef.current;
+    const editor =
+      selectedCanvasItem === "source"
+        ? visualPromptRef.current
+        : refinementPromptRef.current;
     if (!editor) {
       setCanvasActionError("Редактор разметки ещё не готов");
       return;
     }
 
     try {
-      // Both operations are enqueued immediately in this order, preserving the
-      // editor's total FIFO across drawing, history, and generation actions.
-      const clearOperation = editor.clear();
-      const persistOperation = editor.persist();
-      await clearOperation;
-      await persistOperation;
+      await editor.clear();
+      if (selectedCanvasItem === "source") {
+        await editor.persist();
+      }
     } catch (error) {
       setCanvasActionError(
         error instanceof Error
@@ -436,8 +559,18 @@ function ReadyDesignWorkspace({
         initialName={project.name}
         canUndo={canUndo}
         canRedo={canRedo}
-        onUndo={() => void visualPromptRef.current?.undo()}
-        onRedo={() => void visualPromptRef.current?.redo()}
+        onUndo={() =>
+          void (selectedCanvasItem === "source"
+            ? visualPromptRef.current
+            : refinementPromptRef.current
+          )?.undo()
+        }
+        onRedo={() =>
+          void (selectedCanvasItem === "source"
+            ? visualPromptRef.current
+            : refinementPromptRef.current
+          )?.redo()
+        }
       />
       <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
         <section className="relative min-h-0 overflow-hidden bg-background" aria-label="Холст проекта">
@@ -489,9 +622,24 @@ function ReadyDesignWorkspace({
             onToolChange={setTool}
             onColorChange={setColor}
             onStrokeWidthChange={setStrokeWidth}
-            onUndo={() => void visualPromptRef.current?.undo()}
-            onRedo={() => void visualPromptRef.current?.redo()}
-            onDelete={() => visualPromptRef.current?.deleteSelected()}
+            onUndo={() =>
+              void (selectedCanvasItem === "source"
+                ? visualPromptRef.current
+                : refinementPromptRef.current
+              )?.undo()
+            }
+            onRedo={() =>
+              void (selectedCanvasItem === "source"
+                ? visualPromptRef.current
+                : refinementPromptRef.current
+              )?.redo()
+            }
+            onDelete={() =>
+              (selectedCanvasItem === "source"
+                ? visualPromptRef.current
+                : refinementPromptRef.current
+              )?.deleteSelected()
+            }
             onClear={() => void clearVisualPrompt()}
           />
         </section>
@@ -542,21 +690,7 @@ function ReadyDesignWorkspace({
             styles={configQuery.data ?? []}
             styleCode={styleCode}
             onStyleChange={setStyleCode}
-            models={modelsQuery.data ?? []}
-            modelCode={selectedModelCode}
-            onModelChange={(nextModelCode) => {
-              setModelCode(nextModelCode);
-              const nextModel = modelsQuery.data?.find(
-                (model) => model.code === nextModelCode,
-              );
-              if (
-                nextModel &&
-                !nextModel.supportedAspectRatios.includes(aspectRatio)
-              ) {
-                setAspectRatio(nextModel.supportedAspectRatios[0] ?? "");
-              }
-            }}
-            aspectRatio={selectedAspectRatio}
+            aspectRatio={aspectRatio}
             onAspectRatioChange={setAspectRatio}
             usage={usageQuery.data}
             dataLoading={inspectorDataLoading}

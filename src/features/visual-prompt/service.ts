@@ -116,6 +116,90 @@ export async function saveVisualPrompt(userId: string, projectId: string, overla
   }
 }
 
+export async function saveGenerationRefinementVisualPrompt(
+  userId: string,
+  parentGenerationId: string,
+  overlayFile: File,
+  state: VisualPromptCanvasState,
+) {
+  const parent = await getDb().generation.findFirst({
+    where: {
+      id: parentGenerationId,
+      userId,
+      status: "SUCCEEDED",
+      deletedAt: null,
+    },
+    include: { resultOriginal: true },
+  });
+  if (!parent?.resultOriginal) {
+    throw new VisualPromptProjectNotFoundError("Результат не найден");
+  }
+
+  const overlay = await readOverlay(overlayFile, state);
+  const storage = getSupabaseAdmin();
+  const sourceDownload = await storage.storage
+    .from(parent.resultOriginal.bucket)
+    .download(parent.resultOriginal.path);
+  if (sourceDownload.error || !sourceDownload.data) {
+    throw new Error("SOURCE_DOWNLOAD_FAILED");
+  }
+  const source = Buffer.from(await sourceDownload.data.arrayBuffer());
+  const sourceMetadata = await sharp(source, { failOn: "error" }).metadata();
+  if (!sourceMetadata.width || !sourceMetadata.height) {
+    throw new Error("SOURCE_DIMENSIONS_MISSING");
+  }
+  if (
+    sourceMetadata.width !== state.coordinateSpace.sourceWidth ||
+    sourceMetadata.height !== state.coordinateSpace.sourceHeight
+  ) {
+    throw new VisualPromptValidationError(
+      "SOURCE_SIZE_MISMATCH",
+      "Результат изменился — перезагрузите редактор",
+    );
+  }
+
+  const scaledOverlay = await sharp(overlay)
+    .resize(sourceMetadata.width, sourceMetadata.height, { fit: "fill" })
+    .png()
+    .toBuffer();
+  const flattened = await sharp(source)
+    .rotate()
+    .toColorspace("srgb")
+    .composite([{ input: scaledOverlay, blend: "over" }])
+    .webp({ quality: VISUAL_PROMPT_RULES.outputQuality })
+    .toBuffer();
+  const fileId = randomUUID();
+  const path = `users/${userId}/generations/${parent.id}/refinement-visual-prompts/${fileId}.webp`;
+  const bucket = STORAGE_BUCKETS.visualPrompts;
+  const upload = await storage.storage.from(bucket).upload(path, flattened, {
+    contentType: "image/webp",
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (upload.error) throw upload.error;
+
+  try {
+    return await getDb().mediaFile.create({
+      data: {
+        id: fileId,
+        ownerId: userId,
+        bucket,
+        path,
+        originalName: "refinement-visual-prompt.webp",
+        mimeType: "image/webp",
+        extension: "webp",
+        sizeBytes: flattened.byteLength,
+        width: sourceMetadata.width,
+        height: sourceMetadata.height,
+        type: "VISUAL_PROMPT",
+      },
+    });
+  } catch (error) {
+    await storage.storage.from(bucket).remove([path]);
+    throw error;
+  }
+}
+
 export async function removeVisualPrompt(userId: string, projectId: string) {
   const db = getDb();
   const project = await db.project.findFirst({

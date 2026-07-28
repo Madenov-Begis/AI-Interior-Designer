@@ -7,7 +7,7 @@ import { buttonClassName } from "@/components/ui/button";
 
 type HistoryItem = {
   id: string; projectId: string; status: string; prompt: string; aspectRatio: string; resultUserId: string | null;
-  queuedAt: string; completedAt: string | null; durationMs: number | null; project: { name: string }; model: { name: string }; _count: { references: number };
+  queuedAt: string; completedAt: string | null; durationMs: number | null; project: { name: string }; _count: { references: number };
 };
 
 async function apiData(response: Response) {
@@ -61,7 +61,7 @@ export function HistoryGrid() {
             <div className="p-4">
               <div className="flex items-start justify-between gap-3"><h2 className="font-black">{item.project.name}</h2><span className="rounded-full bg-surface-elevated px-2 py-1 text-[10px] font-bold">{item.status}</span></div>
               <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{item.prompt}</p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted"><span>{item.model.name}</span><span>·</span><span>{item._count.references} реф.</span><span>·</span><span>{new Date(item.queuedAt).toLocaleDateString("ru-RU")}</span></div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted"><span>{item._count.references} реф.</span><span>·</span><span>{new Date(item.queuedAt).toLocaleDateString("ru-RU")}</span></div>
               <div className="mt-4 grid grid-cols-2 gap-2"><Link href={`/app/${item.projectId}`} className={buttonClassName("secondary", "rounded-lg text-center")}>Открыть</Link>{item.status === "SUCCEEDED" ? <a href={`/api/v1/generations/${item.id}/download`} className={buttonClassName("secondary", "rounded-lg text-center")}>Скачать</a> : <button type="button" onClick={() => remove.mutate(item.id)} disabled={remove.isPending || ["QUEUED", "PROCESSING"].includes(item.status)} className={buttonClassName("secondary", "rounded-lg text-red-300 disabled:opacity-30")}>Удалить</button>}</div>
             </div>
           </article>

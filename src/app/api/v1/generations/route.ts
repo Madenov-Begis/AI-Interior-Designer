@@ -1,7 +1,7 @@
 import { after, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { createGenerationSchema, idempotencyKeySchema, listGenerationsSchema } from "@/features/generations/schema";
-import { GenerationReservationError, reserveGeneration } from "@/features/generations/reservation";
+import { GenerationReservationError, reserveRootGeneration } from "@/features/generations/reservation";
 import { processGeneration } from "@/features/generations/worker";
 import { listOwnedGenerations } from "@/features/generations/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
@@ -27,14 +27,14 @@ export async function POST(request: NextRequest) {
     await upsertProfileFromAuthUser(user);
     const input = createGenerationSchema.parse(await request.json());
     const idempotencyKey = idempotencyKeySchema.parse(request.headers.get("idempotency-key"));
-    const reserved = await reserveGeneration({ userId: user.id, ...input, idempotencyKey });
+    const reserved = await reserveRootGeneration({ userId: user.id, ...input, idempotencyKey });
     if (!reserved.isExisting && reserved.generation.status === "QUEUED") after(() => processGeneration(reserved.generation.id));
     return apiSuccess({ id: reserved.generation.id, status: reserved.generation.status, isExisting: reserved.isExisting }, requestId, { status: reserved.isExisting ? 200 : 202 });
   } catch (error) {
     if (error instanceof RateLimitError) return apiError("RATE_LIMITED", error.message, requestId, 429);
     if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
     if (error instanceof GenerationReservationError) return apiError(error.code, error.message, requestId, reservationStatus[error.code] ?? 400);
-    if (error instanceof ZodError) return apiError("VALIDATION_ERROR", "Проверьте инструкцию, модель и формат", requestId, 400, error.flatten());
+    if (error instanceof ZodError) return apiError("VALIDATION_ERROR", "Проверьте инструкцию и формат", requestId, 400, error.flatten());
     return apiError("GENERATION_CREATE_FAILED", "Не удалось создать генерацию", requestId, 500);
   }
 }
