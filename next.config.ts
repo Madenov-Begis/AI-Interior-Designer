@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  outputFileTracingIncludes: {
+    "/*": [
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*",
+    ],
+  },
   async headers() {
     const isDevelopment = process.env.NODE_ENV === "development";
     const csp = [
