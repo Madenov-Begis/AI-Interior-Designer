@@ -1,7 +1,7 @@
 "use client";
 
 import { ImagePlus, LoaderCircle, Sparkles, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
 import {
   clearRefinementDraft,
@@ -15,6 +15,7 @@ type Props = {
   initialReferenceFileIds: string[];
   pending: boolean;
   error: string | null;
+  onClose(): void;
   onSubmit(input: {
     prompt: string;
     referenceFileIds: string[];
@@ -28,8 +29,10 @@ export function GenerationRefinementComposer({
   initialReferenceFileIds,
   pending,
   error,
+  onClose,
   onSubmit,
 }: Props) {
+  const promptRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState(() =>
     typeof window === "undefined"
       ? ""
@@ -51,17 +54,32 @@ export function GenerationRefinementComposer({
     });
   }, [generationId, prompt, userScope]);
 
+  useEffect(() => {
+    promptRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
   async function submit() {
     if (prompt.trim().length < 3 || pending) return;
     await onSubmit({ prompt, referenceFileIds, files });
     clearRefinementDraft(window.localStorage, userScope, generationId);
     setPrompt("");
     setFiles([]);
+    onClose();
   }
 
   return (
     <div
-      className="border-t border-border bg-surface p-4"
+      id="generation-refinement-popover"
+      role="dialog"
+      aria-labelledby={`refinement-title-${generationId}`}
+      className="generation-refinement-popover"
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
       onDragOver={(event) => {
@@ -78,21 +96,46 @@ export function GenerationRefinementComposer({
         ]);
       }}
     >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2
+            id={`refinement-title-${generationId}`}
+            className="text-lg font-black text-foreground"
+          >
+            Опишите изменения
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            Разметка и новые референсы добавятся к запросу
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="grid size-10 shrink-0 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          aria-label="Закрыть редактор доработки"
+        >
+          <X size={19} aria-hidden="true" />
+        </button>
+      </div>
       <label
         htmlFor={`refinement-prompt-${generationId}`}
-        className="text-sm font-black text-accent"
+        className="sr-only"
       >
         Что изменить в этом варианте?
       </label>
       <textarea
+        ref={promptRef}
         id={`refinement-prompt-${generationId}`}
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
-        rows={3}
+        rows={4}
         maxLength={4000}
         placeholder="Например: сделай фасады темнее и добавь светильник из референса"
-        className="mt-3 w-full resize-none rounded-xl border border-border bg-background px-3.5 py-3 text-sm outline-none focus:border-accent"
+        className="mt-4 w-full resize-none rounded-2xl border border-border bg-background px-4 py-3.5 text-sm leading-6 outline-none transition-colors focus:border-accent"
       />
+      <p className="-mt-7 mr-3 text-right text-xs text-muted" aria-live="polite">
+        {prompt.length} / 4000
+      </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {referenceFileIds.map((fileId, index) => (
           <span

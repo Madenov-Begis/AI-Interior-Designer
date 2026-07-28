@@ -12,6 +12,7 @@ import { CanvasViewport } from "@/components/design/canvas-viewport";
 import { DesignInspector } from "@/components/design/design-inspector";
 import { EmptySourceWorkspace } from "@/components/design/empty-source-workspace";
 import { GenerationCanvasCard } from "@/components/design/generation-canvas-card";
+import { GenerationContextOverlay } from "@/components/design/generation-context-overlay";
 import { GenerationRefinementComposer } from "@/components/design/generation-refinement-composer";
 import { ResultActions } from "@/components/design/result-actions";
 import { SourceReplaceControl } from "@/components/design/source-replace-control";
@@ -19,6 +20,7 @@ import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
 import { buildGenerationLabels } from "@/features/generations/tree";
+import { nextRefinementOverlayState } from "@/features/canvas/refinement-overlay-state";
 import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
 
 type GenerationList = {
@@ -111,9 +113,14 @@ function ReadyDesignWorkspace({
   const [aspectRatio, setAspectRatio] = useState(project.aspectRatio);
   const [styleCode, setStyleCode] = useState<string>();
   const [selectedCanvasItem, setSelectedCanvasItem] = useState<string>("source");
-  const [hiddenGenerationIds, setHiddenGenerationIds] = useState<Set<string>>(
+  const [hiddenCanvasItemIds, setHiddenCanvasItemIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [duplicatedGenerationInstances, setDuplicatedGenerationInstances] =
+    useState<Array<{ nodeId: string; generationId: string }>>([]);
+  const [refinementEditorNodeId, setRefinementEditorNodeId] = useState<
+    string | null
+  >(null);
   const [openedResult, setOpenedResult] = useState<{
     generationId: string;
     resultUrl: string;
@@ -357,9 +364,34 @@ function ReadyDesignWorkspace({
     },
     [generationsQuery.data],
   );
-  const visibleGenerations = indexedGenerations.filter(
-    ({ generation }) => !hiddenGenerationIds.has(generation.id),
-  );
+  const canvasGenerationInstances = useMemo(() => {
+    const byId = new Map(
+      indexedGenerations.map((item) => [item.generation.id, item]),
+    );
+    return [
+      ...indexedGenerations.map((item) => ({
+        ...item,
+        nodeId: item.generation.id,
+        duplicated: false,
+      })),
+      ...duplicatedGenerationInstances.flatMap((instance) => {
+        const item = byId.get(instance.generationId);
+        return item
+          ? [
+              {
+                ...item,
+                nodeId: instance.nodeId,
+                duplicated: true,
+              },
+            ]
+          : [];
+      }),
+    ].filter((item) => !hiddenCanvasItemIds.has(item.nodeId));
+  }, [
+    duplicatedGenerationInstances,
+    hiddenCanvasItemIds,
+    indexedGenerations,
+  ]);
   const generationError = createGeneration.error;
   const inspectorDataError =
     usageQuery.error?.message ?? configQuery.error?.message ?? null;
@@ -383,8 +415,8 @@ function ReadyDesignWorkspace({
   if (usageQuery.data?.remaining === 0) {
     disabledReasons.push("Дневной лимит генераций исчерпан.");
   }
-  const canvasGenerations = visibleGenerations.map(
-    ({ generation, variantNumber }) => {
+  const canvasGenerations = canvasGenerationInstances.map(
+    ({ generation, variantNumber, nodeId, duplicated }) => {
       const cancelIsCurrent =
         cancelGeneration.isPending &&
         cancelGeneration.variables === generation.id;
@@ -401,62 +433,38 @@ function ReadyDesignWorkspace({
             : null;
 
       return {
-        id: generation.id,
-        ariaLabel: `Вариант ${variantNumber}, статус ${generation.status}`,
-        height:
-          selectedCanvasItem === generation.id &&
-          generation.status === "SUCCEEDED"
-            ? 850
-            : 610,
+        id: nodeId,
+        ariaLabel: `Вариант ${variantNumber}${
+          duplicated ? ", копия" : ""
+        }, статус ${generation.status}`,
+        height: 610,
         node: (
           <GenerationCanvasCard
             generation={generation}
-            variantNumber={variantNumber}
-            selected={selectedCanvasItem === generation.id}
+            variantNumber={`${variantNumber}${duplicated ? " · копия" : ""}`}
+            selected={selectedCanvasItem === nodeId}
             editorRef={refinementPromptRef}
             tool={tool}
             color={color}
             strokeWidth={strokeWidth}
             onHistoryStateChange={setHistoryState}
             onEditorError={setCanvasActionError}
-            refinementComposer={
-              <GenerationRefinementComposer
-                generationId={generation.id}
-                userScope={project.id}
-                initialReferenceFileIds={generation.references.map(
-                  (reference) => reference.fileId,
-                )}
-                pending={
-                  createRefinement.isPending &&
-                  createRefinement.variables?.generationId === generation.id
-                }
-                error={
-                  createRefinement.isError &&
-                  createRefinement.variables?.generationId === generation.id
-                    ? createRefinement.error.message
-                    : null
-                }
-                onSubmit={async (input) => {
-                  await createRefinement.mutateAsync({
-                    generationId: generation.id,
-                    ...input,
-                  });
-                }}
-              />
-            }
             cancelPending={cancelIsCurrent}
             retryPending={retryIsCurrent}
             actionError={actionError}
             onCancel={() => cancelGeneration.mutate(generation.id)}
             onRetry={() => retryGeneration.mutate(generation)}
             onRemove={() => {
-              setHiddenGenerationIds((current) => {
+              setHiddenCanvasItemIds((current) => {
                 const next = new Set(current);
-                next.add(generation.id);
+                next.add(nodeId);
                 return next;
               });
-              if (selectedCanvasItem === generation.id) {
+              if (selectedCanvasItem === nodeId) {
                 setSelectedCanvasItem("source");
+              }
+              if (refinementEditorNodeId === nodeId) {
+                setRefinementEditorNodeId(null);
               }
               if (openedResult?.generationId === generation.id) {
                 setOpenedResult(null);
@@ -474,6 +482,100 @@ function ReadyDesignWorkspace({
       };
     },
   );
+  const selectedCanvasGeneration = canvasGenerationInstances.find(
+    (item) => item.nodeId === selectedCanvasItem,
+  );
+  const selectedGeneration = selectedCanvasGeneration?.generation;
+  const refinementEditorOpen =
+    refinementEditorNodeId === selectedCanvasItem &&
+    selectedGeneration?.status === "SUCCEEDED";
+
+  function setRefinementEditor(
+    action: "select" | "toggle" | "close" | "submit-success",
+  ) {
+    if (!selectedCanvasGeneration) {
+      setRefinementEditorNodeId(null);
+      return;
+    }
+    const next = nextRefinementOverlayState(
+      { editorOpen: refinementEditorOpen },
+      action,
+    );
+    setRefinementEditorNodeId(
+      next.editorOpen ? selectedCanvasGeneration.nodeId : null,
+    );
+  }
+
+  function duplicateSelectedGeneration() {
+    if (!selectedCanvasGeneration) return;
+    const nodeId = `copy:${crypto.randomUUID()}`;
+    setDuplicatedGenerationInstances((current) => [
+      ...current,
+      {
+        nodeId,
+        generationId: selectedCanvasGeneration.generation.id,
+      },
+    ]);
+    setSelectedCanvasItem(nodeId);
+    setRefinementEditorNodeId(null);
+  }
+
+  function removeSelectedGeneration() {
+    if (!selectedCanvasGeneration) return;
+    setHiddenCanvasItemIds((current) => {
+      const next = new Set(current);
+      next.add(selectedCanvasGeneration.nodeId);
+      return next;
+    });
+    if (
+      openedResult?.generationId === selectedCanvasGeneration.generation.id
+    ) {
+      setOpenedResult(null);
+    }
+    setSelectedCanvasItem("source");
+    setRefinementEditorNodeId(null);
+  }
+
+  const selectedGenerationOverlay =
+    selectedCanvasGeneration &&
+    selectedGeneration?.status === "SUCCEEDED" &&
+    selectedGeneration.resultUserId ? (
+      <GenerationContextOverlay
+        editorOpen={refinementEditorOpen}
+        onToggleEditor={() => setRefinementEditor("toggle")}
+        onDuplicate={duplicateSelectedGeneration}
+        onRemove={removeSelectedGeneration}
+        composer={
+          <GenerationRefinementComposer
+            generationId={selectedGeneration.id}
+            userScope={project.id}
+            initialReferenceFileIds={selectedGeneration.references.map(
+              (reference) => reference.fileId,
+            )}
+            pending={
+              createRefinement.isPending &&
+              createRefinement.variables?.generationId ===
+                selectedGeneration.id
+            }
+            error={
+              createRefinement.isError &&
+              createRefinement.variables?.generationId ===
+                selectedGeneration.id
+                ? createRefinement.error.message
+                : null
+            }
+            onClose={() => setRefinementEditor("close")}
+            onSubmit={async (input) => {
+              await createRefinement.mutateAsync({
+                generationId: selectedGeneration.id,
+                ...input,
+              });
+              setRefinementEditor("submit-success");
+            }}
+          />
+        }
+      />
+    ) : null;
   const openedGeneration = openedResult
     ? indexedGenerations.find(
         ({ generation }) => generation.id === openedResult.generationId,
@@ -601,9 +703,18 @@ function ReadyDesignWorkspace({
             color={color}
             strokeWidth={strokeWidth}
             editorRef={visualPromptRef}
+            selectedGenerationOverlay={selectedGenerationOverlay}
+            selectedGenerationOverlaySize={
+              refinementEditorOpen
+                ? { width: 560, height: 560 }
+                : { width: 640, height: 64 }
+            }
             onHistoryStateChange={setHistoryState}
             onEditorError={setCanvasActionError}
-            onSelectItem={setSelectedCanvasItem}
+            onSelectItem={(itemId) => {
+              setSelectedCanvasItem(itemId);
+              setRefinementEditorNodeId(null);
+            }}
           />
           {generationsQuery.isError || canvasActionError ? (
             <div

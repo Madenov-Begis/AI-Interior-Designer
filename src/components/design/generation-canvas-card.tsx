@@ -9,7 +9,7 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
-import type { ReactNode, Ref } from "react";
+import type { Ref } from "react";
 import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
 import type { WorkspaceGeneration } from "@/components/design/workspace-types";
 import { buttonClassName } from "@/components/ui/button";
@@ -29,7 +29,6 @@ type GenerationCanvasCardProps = {
   tool: VisualPromptTool;
   color: string;
   strokeWidth: number;
-  refinementComposer?: ReactNode;
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
   onEditorError(message: string | null): void;
   onCancel(): void;
@@ -116,7 +115,6 @@ export function GenerationCanvasCard({
   tool,
   color,
   strokeWidth,
-  refinementComposer,
   onHistoryStateChange,
   onEditorError,
   onCancel,
@@ -448,9 +446,6 @@ export function GenerationCanvasCard({
         status={generation.status}
       />
       {content}
-      {selected && generation.status === "SUCCEEDED"
-        ? refinementComposer
-        : null}
     </div>
   );
 }

@@ -20,6 +20,10 @@ import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt/types";
+import {
+  positionFloatingOverlay,
+  screenRectForWorldItem,
+} from "@/features/canvas/overlay-position";
 
 type ViewportTransform = { x: number; y: number; scale: number };
 type ViewportSize = { width: number; height: number };
@@ -70,6 +74,8 @@ type CanvasViewportProps = {
   color: string;
   strokeWidth: number;
   editorRef: Ref<VisualPromptEditorHandle>;
+  selectedGenerationOverlay?: ReactNode;
+  selectedGenerationOverlaySize?: ViewportSize;
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
   onEditorError(message: string | null): void;
   onSelectItem(itemId: string): void;
@@ -153,6 +159,8 @@ export const CanvasViewport = forwardRef<
     color,
     strokeWidth,
     editorRef,
+    selectedGenerationOverlay,
+    selectedGenerationOverlaySize = { width: 640, height: 64 },
     onHistoryStateChange,
     onEditorError,
     onSelectItem,
@@ -217,6 +225,34 @@ export const CanvasViewport = forwardRef<
       }),
     [generations, rowHeight, wrappedColumnCount],
   );
+  const selectedGenerationIndex = generations.findIndex(
+    (generation) => generation.id === selectedItemId,
+  );
+  const selectedGenerationPosition =
+    selectedGenerationIndex >= 0
+      ? generationPositions[selectedGenerationIndex]
+      : undefined;
+  const selectedGenerationRect = selectedGenerationPosition
+    ? screenRectForWorldItem({
+        item: {
+          ...selectedGenerationPosition,
+          width: CARD_WIDTH,
+          height:
+            generations[selectedGenerationIndex]?.height ??
+            RESULT_CARD_HEIGHT,
+        },
+        transform,
+      })
+    : null;
+  const selectedGenerationOverlayPosition = selectedGenerationRect
+    ? positionFloatingOverlay({
+        anchor: selectedGenerationRect,
+        viewport: viewportSize,
+        overlay: selectedGenerationOverlaySize,
+        margin: 16,
+        gap: 12,
+      })
+    : null;
 
   const worldBounds = useMemo<WorldBounds>(() => {
     let maxX = SOURCE_X + CARD_WIDTH;
@@ -559,6 +595,22 @@ export const CanvasViewport = forwardRef<
           );
         })}
       </div>
+
+      {selectedGenerationOverlay &&
+      selectedGenerationOverlayPosition ? (
+        <div
+          className="canvas-generation-overlay"
+          data-placement={selectedGenerationOverlayPosition.placement}
+          style={{
+            left: selectedGenerationOverlayPosition.left,
+            top: selectedGenerationOverlayPosition.top,
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {selectedGenerationOverlay}
+        </div>
+      ) : null}
 
       <div
         className="canvas-zoom-controls"

@@ -80,6 +80,82 @@
     0 18px 44px rgb(0 0 0 / 36%);
 }
 
+.canvas-generation-overlay {
+  position: absolute;
+  z-index: 30;
+  max-width: calc(100% - 2rem);
+  pointer-events: auto;
+}
+
+.generation-context-overlay {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.generation-context-actions {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, #111314 96%, transparent);
+  box-shadow: 0 16px 42px rgb(0 0 0 / 42%);
+  backdrop-filter: blur(16px);
+}
+
+.generation-context-actions button {
+  display: inline-flex;
+  min-height: 3.5rem;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  padding-inline: 1.15rem;
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-weight: 850;
+  white-space: nowrap;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.generation-context-actions button:first-child {
+  border-left: 0;
+}
+
+.generation-context-actions button:hover {
+  background: var(--surface-elevated);
+}
+
+.generation-context-actions button[data-active] {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--accent);
+}
+
+.generation-context-actions button:last-child:hover {
+  color: var(--danger);
+}
+
+.generation-refinement-popover {
+  width: min(35rem, calc(100vw - 2rem));
+  max-height: min(35rem, calc(100dvh - 2rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, #111314 97%, transparent);
+  padding: 1.5rem;
+  box-shadow: 0 22px 54px rgb(0 0 0 / 48%);
+  backdrop-filter: blur(18px);
+}
+
 .workspace-toolbar {
   position: absolute;
   z-index: 20;
@@ -297,6 +373,39 @@ button, a { -webkit-tap-highlight-color: transparent; }
     right: auto;
     bottom: auto;
     left: max(0.75rem, env(safe-area-inset-left));
+  }
+}
+
+@media (max-width: 767px) {
+  .canvas-generation-overlay {
+    top: auto !important;
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    left: max(0.75rem, env(safe-area-inset-left)) !important;
+    max-width: none;
+  }
+
+  .generation-context-overlay {
+    width: 100%;
+  }
+
+  .generation-context-actions {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .generation-context-actions button {
+    min-width: max-content;
+    flex: 1 0 auto;
+    justify-content: center;
+    padding-inline: 0.9rem;
+  }
+
+  .generation-refinement-popover {
+    width: 100%;
+    max-height: calc(100dvh - 12rem - env(safe-area-inset-bottom));
+    border-radius: 1.25rem;
+    padding: 1.1rem;
   }
 }
 
