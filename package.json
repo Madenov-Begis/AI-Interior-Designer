@@ -12,7 +12,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
-    "test": "node --test --experimental-strip-types src/config/sharp-deployment.test.ts src/features/generations/jpeg-download.test.ts src/features/generations/refinement-draft.test.ts src/features/generations/refinement-policy.test.ts src/features/generations/reservation-policy.test.ts src/features/generations/schema.test.ts src/features/generations/tree.test.ts src/features/media/source-upload-client.test.ts src/lib/auth/route-policy.test.ts",
+    "test": "node --test --experimental-strip-types src/config/sharp-deployment.test.ts src/features/canvas/overlay-position.test.ts src/features/generations/jpeg-download.test.ts src/features/generations/refinement-draft.test.ts src/features/generations/refinement-policy.test.ts src/features/generations/reservation-policy.test.ts src/features/generations/schema.test.ts src/features/generations/tree.test.ts src/features/media/source-upload-client.test.ts src/lib/auth/route-policy.test.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
