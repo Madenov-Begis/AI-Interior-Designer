@@ -1,8 +1,10 @@
 "use client";
 
 import { ImagePlus, LoaderCircle, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
+import { generationWalletPresentation } from "@/features/generations/client-wallet";
 import {
   clearRefinementDraft,
   loadRefinementDraft,
@@ -12,9 +14,12 @@ import {
 type Props = {
   generationId: string;
   userScope: string;
+  balance: number | null | undefined;
+  generationCost: number | null | undefined;
   initialReferenceFileIds: string[];
   pending: boolean;
   error: string | null;
+  errorCode: string | null;
   onClose(): void;
   onSubmit(input: {
     prompt: string;
@@ -26,9 +31,12 @@ type Props = {
 export function GenerationRefinementComposer({
   generationId,
   userScope,
+  balance,
+  generationCost,
   initialReferenceFileIds,
   pending,
   error,
+  errorCode,
   onClose,
   onSubmit,
 }: Props) {
@@ -46,6 +54,16 @@ export function GenerationRefinementComposer({
     initialReferenceFileIds,
   );
   const [files, setFiles] = useState<File[]>([]);
+  const wallet =
+    typeof balance === "number" && typeof generationCost === "number"
+      ? { balance, generationCost }
+      : undefined;
+  const walletPresentation = generationWalletPresentation(
+    wallet,
+    "refinement",
+    errorCode,
+  );
+  const walletUnavailable = wallet === undefined;
 
   useEffect(() => {
     saveRefinementDraft(window.localStorage, userScope, generationId, {
@@ -66,7 +84,14 @@ export function GenerationRefinementComposer({
   }, [onClose]);
 
   async function submit() {
-    if (prompt.trim().length < 3 || pending) return;
+    if (
+      prompt.trim().length < 3 ||
+      pending ||
+      walletUnavailable ||
+      walletPresentation.balanceInsufficient
+    ) {
+      return;
+    }
     await onSubmit({ prompt, referenceFileIds, files });
     clearRefinementDraft(window.localStorage, userScope, generationId);
     setPrompt("");
@@ -196,7 +221,12 @@ export function GenerationRefinementComposer({
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={pending || prompt.trim().length < 3}
+          disabled={
+            pending ||
+            prompt.trim().length < 3 ||
+            walletUnavailable ||
+            walletPresentation.balanceInsufficient
+          }
           className={buttonClassName(
             "primary",
             "ml-auto rounded-xl disabled:opacity-45",
@@ -207,12 +237,37 @@ export function GenerationRefinementComposer({
           ) : (
             <Sparkles size={17} />
           )}
-          {pending ? "Создаём…" : "Создать доработку"}
+          {pending ? "Создаём…" : walletPresentation.buttonLabel}
         </button>
       </div>
+      {walletPresentation.balanceInsufficient &&
+      walletPresentation.disabledReason &&
+      walletPresentation.purchaseLink ? (
+        <p className="mt-3 text-sm text-muted-foreground" role="status">
+          {walletPresentation.disabledReason}{" "}
+          <Link
+            href={walletPresentation.purchaseLink.href}
+            className="font-semibold text-primary underline-offset-2 hover:underline"
+          >
+            {walletPresentation.purchaseLink.label}
+          </Link>
+        </p>
+      ) : null}
       {error ? (
         <p className="mt-3 text-sm text-red-300" role="alert">
           {error}
+          {errorCode === "INSUFFICIENT_CREDITS" &&
+          walletPresentation.purchaseLink ? (
+            <>
+              {" "}
+              <Link
+                href={walletPresentation.purchaseLink.href}
+                className="font-semibold underline underline-offset-2"
+              >
+                {walletPresentation.purchaseLink.label}
+              </Link>
+            </>
+          ) : null}
         </p>
       ) : null}
     </div>

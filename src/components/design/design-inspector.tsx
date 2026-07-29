@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, Coins, LoaderCircle, ShieldCheck, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { ReferenceManager } from "@/components/design/reference-manager";
 import { StylePicker } from "@/components/design/style-picker";
 import { Button } from "@/components/ui/button";
@@ -10,17 +11,10 @@ import {
   GENERATION_CREDIT_COST,
   GENERATION_REFUND_MESSAGE,
 } from "@/config/product";
-
-type Usage = {
-  used: number;
-  limit: number | null;
-  remaining: number | null;
-  plan: {
-    code: string;
-    name: string;
-    watermarkRequired: boolean;
-  };
-};
+import {
+  type GenerationWallet,
+  generationWalletPresentation,
+} from "@/features/generations/client-wallet";
 
 export type DesignInspectorProps = {
   projectId: string;
@@ -32,11 +26,12 @@ export type DesignInspectorProps = {
   onStyleChange(value: string | undefined): void;
   aspectRatio: string;
   onAspectRatioChange(value: string): void;
-  usage: Usage | null | undefined;
+  credits: GenerationWallet | null | undefined;
   dataLoading: boolean;
   dataError: string | null;
   generationPending: boolean;
   generationError: string | null;
+  generationErrorCode: string | null;
   disabledReasons: string[];
   onGenerate(): void;
 };
@@ -59,17 +54,24 @@ export function DesignInspector({
   onStyleChange,
   aspectRatio,
   onAspectRatioChange,
-  usage,
+  credits,
   dataLoading,
   dataError,
   generationPending,
   generationError,
+  generationErrorCode,
   disabledReasons,
   onGenerate,
 }: DesignInspectorProps) {
   const supportedAspectRatios = Object.keys(ASPECT_RATIO_LABELS);
   const promptIsInvalid =
     prompt.length > 0 && (prompt.trim().length < 3 || prompt.length > 4000);
+  const walletPresentation = generationWalletPresentation(
+    credits,
+    "root",
+    generationErrorCode,
+  );
+  const generationCost = credits?.generationCost ?? GENERATION_CREDIT_COST;
 
   return (
     <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
@@ -170,23 +172,22 @@ export function DesignInspector({
         <div className="flex items-center justify-between gap-4 text-xs">
           <div>
             <p className="font-semibold text-foreground">
-              {usage ? usage.plan.name : "Дневной лимит"}
-            </p>
-            <p className="mt-1 text-muted">
               {dataLoading
-                ? "Проверяем доступ…"
-                : usage?.limit === null
-                  ? `Использовано сегодня: ${usage.used}`
-                  : usage
-                    ? `Осталось ${usage.remaining} из ${usage.limit}`
-                    : "Лимит недоступен"}
+                ? "Проверяем баланс…"
+                : walletPresentation.balanceText}
             </p>
+            {walletPresentation.availableGenerationsText ? (
+              <p className="mt-1 text-muted">
+                {walletPresentation.availableGenerationsText}
+              </p>
+            ) : null}
           </div>
-          {usage?.plan.watermarkRequired && (
-            <span className="rounded-md border border-border px-2 py-1 text-muted-foreground">
-              С водяным знаком
-            </span>
-          )}
+          <Link
+            href="/app/credits"
+            className="shrink-0 rounded-md border border-primary/25 px-2 py-1 font-semibold text-primary transition-colors hover:bg-primary/10"
+          >
+            Кредиты
+          </Link>
         </div>
 
         {disabledReasons.length > 0 && (
@@ -199,7 +200,21 @@ export function DesignInspector({
               className="mt-0.5 shrink-0 text-primary"
               aria-hidden="true"
             />
-            <span>{disabledReasons.join(" ")}</span>
+            <span>
+              {disabledReasons.join(" ")}
+              {walletPresentation.balanceInsufficient &&
+              walletPresentation.purchaseLink ? (
+                <>
+                  {" "}
+                  <Link
+                    href={walletPresentation.purchaseLink.href}
+                    className="font-semibold text-primary underline-offset-2 hover:underline"
+                  >
+                    {walletPresentation.purchaseLink.label}
+                  </Link>
+                </>
+              ) : null}
+            </span>
           </div>
         )}
         {dataError && (
@@ -207,11 +222,23 @@ export function DesignInspector({
             {dataError}
           </p>
         )}
-        {generationError && (
+        {generationError ? (
           <p className="mt-3 text-xs leading-5 text-red-300" role="alert">
             {generationError}
+            {generationErrorCode === "INSUFFICIENT_CREDITS" &&
+            walletPresentation.purchaseLink ? (
+              <>
+                {" "}
+                <Link
+                  href={walletPresentation.purchaseLink.href}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  {walletPresentation.purchaseLink.label}
+                </Link>
+              </>
+            ) : null}
           </p>
-        )}
+        ) : null}
 
         <div className="mt-3 rounded-lg border border-primary/20 bg-primary/7 p-3">
           <div className="flex items-center justify-between gap-3">
@@ -220,7 +247,7 @@ export function DesignInspector({
               Стоимость генерации
             </span>
             <span className="font-mono text-xs font-bold text-primary">
-              {GENERATION_CREDIT_COST} кредита
+              {generationCost} кредита
             </span>
           </div>
           <p className="mt-2 flex gap-2 text-[11px] leading-5 text-muted-foreground">
@@ -242,7 +269,7 @@ export function DesignInspector({
           )}
           {generationPending
             ? "Запускаем…"
-            : `Создать дизайн · ${GENERATION_CREDIT_COST}`}
+            : walletPresentation.buttonLabel}
         </Button>
       </div>
     </div>

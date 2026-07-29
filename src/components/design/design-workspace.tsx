@@ -7,7 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Settings2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport } from "@/components/design/canvas-viewport";
 import { DesignInspector } from "@/components/design/design-inspector";
 import { EmptySourceWorkspace } from "@/components/design/empty-source-workspace";
@@ -19,8 +19,16 @@ import { SourceReplaceControl } from "@/components/design/source-replace-control
 import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
-import { buildGenerationLabels } from "@/features/generations/tree";
 import { nextRefinementOverlayState } from "@/features/canvas/refinement-overlay-state";
+import {
+  ApiResponseError,
+  type CreditsLifecycleEvent,
+  type GenerationWallet,
+  creditsInvalidationQueryKey,
+  generationWalletPresentation,
+  readApiData,
+} from "@/features/generations/client-wallet";
+import { buildGenerationLabels } from "@/features/generations/tree";
 import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
 
 type GenerationList = {
@@ -30,42 +38,12 @@ type GenerationList = {
 };
 
 type Style = { code: string; name: string; imageUrl: string };
-type Usage = {
-  used: number;
-  limit: number | null;
-  remaining: number | null;
-  timezone: string;
-  plan: {
-    code: string;
-    name: string;
-    watermarkRequired: boolean;
-  };
-};
 
 const DEFAULT_PROMPT =
   "Сделай современный ремонт. Используй предметы интерьера из референсов. Не меняй ракурс, пропорции и геометрию помещения.";
 
-async function readJson(response: Response) {
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error?.message ?? "Запрос не выполнен");
-  return payload.data;
-}
-
 function isActiveGeneration(status: WorkspaceGenerationStatus) {
   return status === "QUEUED" || status === "PROCESSING";
-}
-
-function isTerminalGeneration(status: WorkspaceGenerationStatus) {
-  return (
-    status === "SUCCEEDED" ||
-    status === "FAILED" ||
-    status === "REJECTED" ||
-    status === "CANCELLED"
-  );
-}
-
-function terminalCompletionSignature(generation: WorkspaceGeneration) {
-  return `${generation.id}:${generation.status}:${generation.completedAt ?? "terminal"}`;
 }
 
 type ReadyDesignWorkspaceProps = Omit<DesignWorkspaceProps, "project"> & {
@@ -100,7 +78,6 @@ function ReadyDesignWorkspace({
   const queryClient = useQueryClient();
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const refinementPromptRef = useRef<VisualPromptEditorHandle | null>(null);
-  const observedTerminalSignaturesRef = useRef(new Set<string>());
   const observedPointTerminalIdsRef = useRef(new Set<string>());
   const inspectorDialogRef = useRef<HTMLDialogElement>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement>(null);
@@ -138,33 +115,46 @@ function ReadyDesignWorkspace({
 
   const generationsQuery = useQuery({
     queryKey: ["generations", project.id],
-    queryFn: async () => readJson(await fetch(`/api/v1/generations?projectId=${project.id}&limit=20`)) as Promise<GenerationList>,
+    queryFn: async () =>
+      readApiData<GenerationList>(
+        await fetch(`/api/v1/generations?projectId=${project.id}&limit=20`),
+      ),
   });
   const configQuery = useQuery({
     queryKey: ["config"],
-    queryFn: async () => (await readJson(await fetch("/api/v1/config"))).interiorStyles as Style[],
+    queryFn: async () =>
+      (
+        await readApiData<{ interiorStyles: Style[] }>(
+          await fetch("/api/v1/config"),
+        )
+      ).interiorStyles,
   });
-  const usageQuery = useQuery({
-    queryKey: ["usage", "today"],
-    queryFn: async () => readJson(await fetch("/api/v1/usage/today")) as Promise<Usage | null>,
+  const creditsQuery = useQuery({
+    queryKey: ["credits"],
+    queryFn: async () =>
+      readApiData<GenerationWallet>(await fetch("/api/v1/credits")),
   });
 
-  useEffect(() => {
-    const terminalSignatures =
-      generationsQuery.data?.items
-        .filter((generation) => isTerminalGeneration(generation.status))
-        .map(terminalCompletionSignature) ?? [];
-    let hasNewTerminalCompletion = false;
-    terminalSignatures.forEach((signature) => {
-      if (observedTerminalSignaturesRef.current.has(signature)) return;
-      observedTerminalSignaturesRef.current.add(signature);
-      hasNewTerminalCompletion = true;
-    });
+  const invalidateCredits = useCallback(
+    (event: CreditsLifecycleEvent) => {
+      const queryKey = creditsInvalidationQueryKey(event);
+      if (!queryKey) return Promise.resolve();
+      return queryClient.invalidateQueries({ queryKey });
+    },
+    [queryClient],
+  );
 
-    if (hasNewTerminalCompletion) {
-      void queryClient.invalidateQueries({ queryKey: ["usage", "today"] });
-    }
-  }, [generationsQuery.data?.items, queryClient]);
+  const reconcileInsufficientCredits = useCallback(
+    (error: Error) => {
+      if (
+        error instanceof ApiResponseError &&
+        error.code === "INSUFFICIENT_CREDITS"
+      ) {
+        void invalidateCredits("insufficient-error");
+      }
+    },
+    [invalidateCredits],
+  );
 
   async function reserveCurrentGeneration() {
     if (prompt.trim().length < 3) {
@@ -176,7 +166,7 @@ function ReadyDesignWorkspace({
 
     await visualPromptRef.current.persist();
 
-    return readJson(
+    return readApiData<{ id: string }>(
       await fetch("/api/v1/generations", {
         method: "POST",
         headers: {
@@ -201,24 +191,26 @@ function ReadyDesignWorkspace({
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
-        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+        invalidateCredits("reservation"),
       ]);
     },
+    onError: reconcileInsufficientCredits,
   });
   const cancelGeneration = useMutation({
     mutationFn: async (generationId: string) =>
-      readJson(
+      readApiData<{ id: string }>(
         await fetch(`/api/v1/generations/${generationId}/cancel`, {
           method: "POST",
         }),
       ),
     onSuccess: async (data: { id: string }) => {
+      observedPointTerminalIdsRef.current.add(data.id);
       setTrackedGenerationIds((current) =>
-        current.includes(data.id) ? current : [...current, data.id],
+        current.filter((generationId) => generationId !== data.id),
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
-        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+        invalidateCredits("cancellation-refund"),
       ]);
     },
   });
@@ -233,7 +225,7 @@ function ReadyDesignWorkspace({
 
       await visualPromptRef.current.persist();
 
-      return readJson(
+      return readApiData<{ id: string }>(
         await fetch(`/api/v1/generations/${generation.id}/retry`, {
           method: "POST",
         }),
@@ -245,9 +237,10 @@ function ReadyDesignWorkspace({
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
-        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+        invalidateCredits("reservation"),
       ]);
     },
+    onError: reconcileInsufficientCredits,
   });
   const activeGenerationIds = useMemo(
     () =>
@@ -265,9 +258,9 @@ function ReadyDesignWorkspace({
     queries: activeGenerationIds.map((generationId) => ({
       queryKey: ["generation", generationId],
       queryFn: async () =>
-        readJson(
+        readApiData<WorkspaceGeneration>(
           await fetch(`/api/v1/generations/${generationId}`),
-        ) as Promise<WorkspaceGeneration>,
+        ),
       refetchInterval: (query: {
         state: { data?: WorkspaceGeneration };
       }) =>
@@ -288,14 +281,17 @@ function ReadyDesignWorkspace({
         continue;
       }
       observedPointTerminalIdsRef.current.add(generation.id);
+      setTrackedGenerationIds((current) =>
+        current.filter((generationId) => generationId !== generation.id),
+      );
       void Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["generations", project.id],
         }),
-        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+        invalidateCredits("terminal"),
       ]);
     }
-  }, [activeGenerationQueries, project.id, queryClient]);
+  }, [activeGenerationQueries, invalidateCredits, project.id, queryClient]);
   const createRefinement = useMutation({
     mutationFn: async (input: {
       generationId: string;
@@ -307,7 +303,9 @@ function ReadyDesignWorkspace({
       if (input.files.length) {
         const uploadBody = new FormData();
         input.files.forEach((file) => uploadBody.append("files", file));
-        const uploaded = await readJson(
+        const uploaded = await readApiData<{
+          references: Array<{ fileId: string }>;
+        }>(
           await fetch(
             `/api/v1/generations/${input.generationId}/refinement-references`,
             { method: "POST", body: uploadBody },
@@ -327,7 +325,7 @@ function ReadyDesignWorkspace({
         body.set("overlay", visualPrompt.overlay, "visual-prompt.png");
         body.set("canvasState", JSON.stringify(visualPrompt.state));
       }
-      return readJson(
+      return readApiData<{ id: string }>(
         await fetch(`/api/v1/generations/${input.generationId}/refinements`, {
           method: "POST",
           headers: { "idempotency-key": crypto.randomUUID() },
@@ -341,9 +339,10 @@ function ReadyDesignWorkspace({
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
-        queryClient.invalidateQueries({ queryKey: ["usage", "today"] }),
+        invalidateCredits("reservation"),
       ]);
     },
+    onError: reconcileInsufficientCredits,
   });
   const indexedGenerations = useMemo(
     () => {
@@ -393,27 +392,34 @@ function ReadyDesignWorkspace({
     indexedGenerations,
   ]);
   const generationError = createGeneration.error;
+  const generationErrorCode =
+    generationError instanceof ApiResponseError ? generationError.code : null;
+  const rootWalletPresentation = generationWalletPresentation(
+    creditsQuery.data,
+    "root",
+    generationErrorCode,
+  );
   const inspectorDataError =
-    usageQuery.error?.message ?? configQuery.error?.message ?? null;
+    creditsQuery.error?.message ?? configQuery.error?.message ?? null;
   const inspectorDataLoading =
-    usageQuery.isLoading || configQuery.isLoading;
+    creditsQuery.isLoading || configQuery.isLoading;
   const disabledReasons: string[] = [];
   if (createGeneration.isPending) {
     disabledReasons.push("Генерация уже запускается.");
   }
-  if (usageQuery.isLoading) {
+  if (creditsQuery.isLoading) {
     disabledReasons.push("Загружаем доступные параметры.");
   }
-  if (usageQuery.isError) {
-    disabledReasons.push("Не удалось проверить дневной лимит.");
+  if (creditsQuery.isError) {
+    disabledReasons.push("Не удалось проверить баланс кредитов.");
   }
   if (prompt.trim().length < 3) {
     disabledReasons.push("Опишите изменения минимум в трёх символах.");
   } else if (prompt.length > 4000) {
     disabledReasons.push("Сократите инструкцию до 4000 символов.");
   }
-  if (usageQuery.data?.remaining === 0) {
-    disabledReasons.push("Дневной лимит генераций исчерпан.");
+  if (rootWalletPresentation.disabledReason) {
+    disabledReasons.push(rootWalletPresentation.disabledReason);
   }
   const canvasGenerations = canvasGenerationInstances.map(
     ({ generation, variantNumber, nodeId, duplicated }) => {
@@ -549,6 +555,8 @@ function ReadyDesignWorkspace({
           <GenerationRefinementComposer
             generationId={selectedGeneration.id}
             userScope={project.id}
+            balance={creditsQuery.data?.balance}
+            generationCost={creditsQuery.data?.generationCost}
             initialReferenceFileIds={selectedGeneration.references.map(
               (reference) => reference.fileId,
             )}
@@ -562,6 +570,14 @@ function ReadyDesignWorkspace({
               createRefinement.variables?.generationId ===
                 selectedGeneration.id
                 ? createRefinement.error.message
+                : null
+            }
+            errorCode={
+              createRefinement.isError &&
+              createRefinement.variables?.generationId ===
+                selectedGeneration.id &&
+              createRefinement.error instanceof ApiResponseError
+                ? createRefinement.error.code
                 : null
             }
             onClose={() => setRefinementEditor("close")}
@@ -803,11 +819,12 @@ function ReadyDesignWorkspace({
             onStyleChange={setStyleCode}
             aspectRatio={aspectRatio}
             onAspectRatioChange={setAspectRatio}
-            usage={usageQuery.data}
+            credits={creditsQuery.data}
             dataLoading={inspectorDataLoading}
             dataError={inspectorDataError}
             generationPending={createGeneration.isPending}
             generationError={generationError?.message ?? null}
+            generationErrorCode={generationErrorCode}
             disabledReasons={disabledReasons}
             onGenerate={() => createGeneration.mutate()}
           />
