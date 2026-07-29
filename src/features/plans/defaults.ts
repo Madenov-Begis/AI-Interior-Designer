@@ -53,9 +53,10 @@ export async function ensureSystemDefaults() {
         description: "Локальный provider для разработки интерфейса без внешних credentials",
         supportedAspectRatios: ["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"],
         supportsVisualPrompt: true,
+        costPerGeneration: 0,
         active: !vertexEnabled,
       },
-      update: { active: !vertexEnabled },
+      update: { active: !vertexEnabled, costPerGeneration: 0 },
     });
     const vertexModel = await tx.aiModel.upsert({
       where: { code: VERTEX_MODEL_CODE },
@@ -69,6 +70,7 @@ export async function ensureSystemDefaults() {
         supportsVisualPrompt: true,
         priority: 100,
         timeoutSeconds: 180,
+        costPerGeneration: 0.1472,
         active: vertexEnabled,
       },
       update: {
@@ -77,6 +79,7 @@ export async function ensureSystemDefaults() {
         name: "Gemini 3 Pro Interior",
         description: "Премиальная фотореалистичная визуализация интерьера через Google Vertex AI",
         priority: 100,
+        costPerGeneration: 0.1472,
         active: vertexEnabled,
       },
     });

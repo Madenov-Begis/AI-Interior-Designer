@@ -69,6 +69,29 @@ enum UsageStatus {
   EXPIRED
 }
 
+enum CreditTransactionKind {
+  SIGNUP_GRANT
+  PURCHASE
+  GENERATION_DEBIT
+  TECHNICAL_REFUND
+  CANCELLATION_REFUND
+  ADMIN_ADJUSTMENT
+}
+
+enum PaymentProvider {
+  MOCK
+  PAYME
+  CLICK
+}
+
+enum PaymentOrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
 enum NotificationType {
   INFO
   WARNING
@@ -102,6 +125,8 @@ model Profile {
   generations   Generation[]
   usageEvents   UsageEvent[]
   auditLogs     AuditLog[]     @relation("AuditActor")
+  creditWallet  CreditWallet?
+  paymentOrders PaymentOrder[]
 
   @@index([status])
   @@index([planId])
@@ -295,17 +320,18 @@ model Generation {
   updatedAt           DateTime         @updatedAt
   deletedAt           DateTime?
 
-  user              Profile               @relation(fields: [userId], references: [id])
-  project           Project               @relation(fields: [projectId], references: [id])
-  parentGeneration  Generation?            @relation("GenerationRefinements", fields: [parentGenerationId], references: [id])
-  refinements       Generation[]           @relation("GenerationRefinements")
-  model             AiModel               @relation(fields: [modelId], references: [id])
-  sourceImage       MediaFile             @relation("GenerationSourceImage", fields: [sourceImageId], references: [id])
-  visualPromptImage MediaFile?            @relation("GenerationVisualPrompt", fields: [visualPromptImageId], references: [id])
-  resultOriginal    MediaFile?            @relation("GenerationOriginalResult", fields: [resultOriginalId], references: [id])
-  resultUser        MediaFile?            @relation("GenerationUserResult", fields: [resultUserId], references: [id])
-  references        GenerationReference[]
-  usageEvent        UsageEvent?
+  user               Profile               @relation(fields: [userId], references: [id])
+  project            Project               @relation(fields: [projectId], references: [id])
+  parentGeneration   Generation?           @relation("GenerationRefinements", fields: [parentGenerationId], references: [id])
+  refinements        Generation[]          @relation("GenerationRefinements")
+  model              AiModel               @relation(fields: [modelId], references: [id])
+  sourceImage        MediaFile             @relation("GenerationSourceImage", fields: [sourceImageId], references: [id])
+  visualPromptImage  MediaFile?            @relation("GenerationVisualPrompt", fields: [visualPromptImageId], references: [id])
+  resultOriginal     MediaFile?            @relation("GenerationOriginalResult", fields: [resultOriginalId], references: [id])
+  resultUser         MediaFile?            @relation("GenerationUserResult", fields: [resultUserId], references: [id])
+  references         GenerationReference[]
+  usageEvent         UsageEvent?
+  creditTransactions CreditTransaction[]
 
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
@@ -333,6 +359,7 @@ model UsageEvent {
   userId       String      @db.Uuid
   generationId String?     @unique @db.Uuid
   status       UsageStatus
+  creditAmount Int         @default(0)
   usageDate    DateTime    @db.Date
   reservedAt   DateTime    @default(now())
   consumedAt   DateTime?
@@ -345,6 +372,76 @@ model UsageEvent {
 
   @@index([userId, usageDate, status])
   @@index([status, expiresAt])
+}
+
+model CreditWallet {
+  userId    String   @id @db.Uuid
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         Profile             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions CreditTransaction[]
+}
+
+model CreditTransaction {
+  id             String                @id @default(uuid()) @db.Uuid
+  userId         String                @db.Uuid
+  kind           CreditTransactionKind
+  amount         Int
+  balanceAfter   Int
+  idempotencyKey String                @unique
+  orderId        String?               @db.Uuid
+  generationId   String?               @db.Uuid
+  reason         String?
+  createdAt      DateTime              @default(now())
+
+  wallet     CreditWallet  @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  order      PaymentOrder? @relation(fields: [orderId], references: [id])
+  generation Generation?   @relation(fields: [generationId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([orderId])
+  @@index([generationId])
+}
+
+model PaymentOrder {
+  id              String             @id @default(uuid()) @db.Uuid
+  userId          String             @db.Uuid
+  provider        PaymentProvider
+  providerOrderId String?
+  status          PaymentOrderStatus @default(PENDING)
+  packageCode     String
+  packageName     String
+  credits         Int
+  amountUzs       Int
+  expiresAt       DateTime
+  paidAt          DateTime?
+  creditedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user         Profile             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  transactions CreditTransaction[]
+  events       PaymentEvent[]
+
+  @@unique([provider, providerOrderId])
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+}
+
+model PaymentEvent {
+  id              String             @id @default(uuid()) @db.Uuid
+  orderId         String             @db.Uuid
+  provider        PaymentProvider
+  providerEventId String
+  outcome         PaymentOrderStatus
+  createdAt       DateTime           @default(now())
+
+  order PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerEventId])
+  @@index([orderId, createdAt])
 }
 
 model Notification {
