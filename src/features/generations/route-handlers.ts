@@ -47,6 +47,24 @@ function reservationErrorResponse(
   );
 }
 
+function unexpectedReservationErrorResponse(
+  requestId: string,
+  code: string,
+  message: string,
+) {
+  return jsonResponse(
+    {
+      error: {
+        code,
+        message,
+      },
+      meta: { requestId },
+    },
+    requestId,
+    { status: 500 },
+  );
+}
+
 function scheduleNewGeneration(
   result: ReservationResult,
   schedule: (generationId: string) => void,
@@ -84,7 +102,11 @@ export async function handleRootGenerationReservation(
         rootReservationHttpStatus(error.code),
       );
     }
-    throw error;
+    return unexpectedReservationErrorResponse(
+      requestId,
+      "GENERATION_CREATE_FAILED",
+      "Не удалось создать генерацию",
+    );
   }
 }
 
@@ -117,7 +139,11 @@ export async function handleRefinementGenerationReservation(
         refinementReservationHttpStatus(error.code),
       );
     }
-    throw error;
+    return unexpectedReservationErrorResponse(
+      requestId,
+      "REFINEMENT_CREATE_FAILED",
+      "Не удалось создать доработку",
+    );
   }
 }
 
@@ -151,6 +177,10 @@ export async function handleRetryGenerationReservation(
         retryReservationHttpStatus(error.code),
       );
     }
-    throw error;
+    return unexpectedReservationErrorResponse(
+      requestId,
+      "RETRY_FAILED",
+      "Не удалось повторить генерацию",
+    );
   }
 }

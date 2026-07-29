@@ -13,6 +13,7 @@ import {
   readApiData,
   reconcileTerminalCredits,
   refreshCreditsAfterLifecycle,
+  RetryAttemptRegistry,
 } from "./client-wallet.ts";
 
 test("API failures preserve the server error code and message", async () => {
@@ -60,6 +61,104 @@ test("one client retry attempt generates one idempotency key and reuses it for t
     "client-attempt-1234567890",
   );
   assert.equal(firstRequest.url, replayRequest.url);
+});
+
+test("ambiguous retry failures retain one production attempt key for the next submission", () => {
+  const attempts = new RetryAttemptRegistry();
+  let generatedKeys = 0;
+  const generation = { id: "generation-failed", status: "FAILED" };
+  const createKey = () => {
+    generatedKeys += 1;
+    return `client-attempt-${generatedKeys}-1234567890`;
+  };
+
+  const first = attempts.begin(generation, createKey);
+  assert.equal(
+    attempts.recordFailure(generation.id, new TypeError("fetch failed")),
+    "retained",
+  );
+  const replayAfterNetworkFailure = attempts.begin(generation, createKey);
+  assert.equal(replayAfterNetworkFailure.idempotencyKey, first.idempotencyKey);
+
+  assert.equal(
+    attempts.recordFailure(
+      generation.id,
+      new ApiResponseError(
+        "RETRY_FAILED",
+        "Не удалось повторить генерацию",
+        500,
+      ),
+    ),
+    "retained",
+  );
+  assert.equal(
+    attempts.recordFailure(
+      generation.id,
+      new ApiResponseError(
+        "UNKNOWN_CONFLICT",
+        "Промежуточный сервер не подтвердил результат",
+        409,
+      ),
+    ),
+    "retained",
+  );
+  const replayAfterServerFailure = attempts.begin(generation, createKey);
+
+  assert.equal(replayAfterServerFailure.idempotencyKey, first.idempotencyKey);
+  assert.equal(generatedKeys, 1);
+  assert.equal(attempts.size, 1);
+});
+
+test("authoritative retry outcomes clear the attempt before another user submission", () => {
+  const attempts = new RetryAttemptRegistry();
+  const generation = { id: "generation-failed", status: "FAILED" };
+  let generatedKeys = 0;
+  const createKey = () =>
+    `client-attempt-${++generatedKeys}-1234567890`;
+
+  for (const [status, code] of [
+    [402, "INSUFFICIENT_CREDITS"],
+    [404, "GENERATION_NOT_FOUND"],
+    [409, "GENERATION_NOT_RETRYABLE"],
+  ] as const) {
+    const submitted = attempts.begin(generation, createKey);
+    assert.equal(
+      attempts.recordFailure(
+        generation.id,
+        new ApiResponseError(code, "Известный ответ", status),
+      ),
+      "cleared",
+    );
+    const nextSubmission = attempts.begin(generation, createKey);
+    assert.notEqual(
+      nextSubmission.idempotencyKey,
+      submitted.idempotencyKey,
+    );
+    attempts.recordSuccess(generation.id);
+    assert.equal(attempts.size, 0);
+  }
+});
+
+test("retry attempt state stays bounded when many ambiguous generations fail", () => {
+  const attempts = new RetryAttemptRegistry(2);
+  let generatedKeys = 0;
+  const createKey = () =>
+    `client-attempt-${++generatedKeys}-1234567890`;
+
+  const first = attempts.begin(
+    { id: "generation-1", status: "FAILED" },
+    createKey,
+  );
+  attempts.begin({ id: "generation-2", status: "FAILED" }, createKey);
+  attempts.begin({ id: "generation-3", status: "FAILED" }, createKey);
+
+  assert.equal(attempts.size, 2);
+  const firstAfterEviction = attempts.begin(
+    { id: "generation-1", status: "FAILED" },
+    createKey,
+  );
+  assert.notEqual(firstAfterEviction.idempotencyKey, first.idempotencyKey);
+  assert.equal(attempts.size, 2);
 });
 
 test("root generation is disabled with a purchase reason below four credits", () => {

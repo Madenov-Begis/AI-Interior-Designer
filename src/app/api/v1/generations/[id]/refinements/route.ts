@@ -58,7 +58,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       visualPromptImageId = visualPrompt.id;
     }
 
-    return handleRefinementGenerationReservation(
+    return await handleRefinementGenerationReservation(
       {
         userId: user.id,
         parentGenerationId,

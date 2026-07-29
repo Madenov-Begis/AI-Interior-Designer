@@ -48,11 +48,13 @@ const TERMINAL_GENERATION_STATUSES = new Set([
 
 export class ApiResponseError extends Error {
   readonly code: string;
+  readonly status: number | null;
 
-  constructor(code: string, message: string) {
+  constructor(code: string, message: string, status: number | null = null) {
     super(message);
     this.name = "ApiResponseError";
     this.code = code;
+    this.status = status;
   }
 }
 
@@ -73,6 +75,82 @@ export function createRetryGenerationAttempt<
     generation,
     idempotencyKey: createIdempotencyKey(),
   };
+}
+
+const DEFAULT_MAX_RETAINED_RETRY_ATTEMPTS = 32;
+const AUTHORITATIVE_RETRY_FAILURE_CODES = new Set([
+  "UNAUTHORIZED",
+  "RATE_LIMITED",
+  "VALIDATION_ERROR",
+  "GENERATION_NOT_FOUND",
+  "GENERATION_NOT_RETRYABLE",
+  "USER_BLOCKED",
+  "PROFILE_NOT_FOUND",
+  "PROJECT_NOT_READY",
+  "MODEL_NOT_FOUND",
+  "MODEL_NOT_ALLOWED",
+  "GENERATION_ALREADY_RUNNING",
+  "GENERATION_LIMIT_EXCEEDED",
+  "INSUFFICIENT_CREDITS",
+]);
+
+export class RetryAttemptRegistry {
+  readonly #attempts = new Map<string, string>();
+  readonly #maxEntries: number;
+
+  constructor(maxEntries = DEFAULT_MAX_RETAINED_RETRY_ATTEMPTS) {
+    this.#maxEntries = Math.max(1, Math.trunc(maxEntries));
+  }
+
+  get size() {
+    return this.#attempts.size;
+  }
+
+  begin<TGeneration extends { id: string; status: string }>(
+    generation: TGeneration,
+    createIdempotencyKey: () => string = () => crypto.randomUUID(),
+  ): RetryGenerationAttempt<TGeneration> {
+    const retainedKey = this.#attempts.get(generation.id);
+    if (retainedKey) {
+      this.#attempts.delete(generation.id);
+      this.#attempts.set(generation.id, retainedKey);
+      return {
+        generation,
+        idempotencyKey: retainedKey,
+      };
+    }
+
+    while (this.#attempts.size >= this.#maxEntries) {
+      const oldestGenerationId = this.#attempts.keys().next().value;
+      if (oldestGenerationId === undefined) break;
+      this.#attempts.delete(oldestGenerationId);
+    }
+
+    const idempotencyKey = createIdempotencyKey();
+    this.#attempts.set(generation.id, idempotencyKey);
+    return {
+      generation,
+      idempotencyKey,
+    };
+  }
+
+  recordFailure(generationId: string, error: unknown) {
+    if (
+      error instanceof ApiResponseError &&
+      error.status !== null &&
+      error.status >= 400 &&
+      error.status < 500 &&
+      AUTHORITATIVE_RETRY_FAILURE_CODES.has(error.code)
+    ) {
+      this.#attempts.delete(generationId);
+      return "cleared" as const;
+    }
+    return "retained" as const;
+  }
+
+  recordSuccess(generationId: string) {
+    this.#attempts.delete(generationId);
+  }
 }
 
 export function buildRetryGenerationRequest(
@@ -98,6 +176,7 @@ export async function readApiData<T>(response: Response): Promise<T> {
     throw new ApiResponseError(
       payload.error?.code ?? "REQUEST_FAILED",
       payload.error?.message ?? "Запрос не выполнен",
+      response.status,
     );
   }
   return payload.data as T;

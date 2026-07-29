@@ -65,7 +65,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const styleCode = isInteriorStyleCode(generation.styleCode)
       ? generation.styleCode
       : undefined;
-    return handleRetryGenerationReservation(
+    return await handleRetryGenerationReservation(
       {
         userId: user.id,
         projectId: generation.projectId,

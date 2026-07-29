@@ -27,7 +27,6 @@ import {
 import {
   ApiResponseError,
   buildRetryGenerationRequest,
-  createRetryGenerationAttempt,
   type CreditsLifecycleEvent,
   type GenerationWallet,
   type RetryGenerationAttempt,
@@ -37,6 +36,7 @@ import {
   readApiData,
   reconcileTerminalCredits,
   refreshCreditsAfterLifecycle,
+  RetryAttemptRegistry,
 } from "@/features/generations/client-wallet";
 import { buildGenerationLabels } from "@/features/generations/tree";
 import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
@@ -118,6 +118,7 @@ function ReadyDesignWorkspace({
   const [canvasActionError, setCanvasActionError] = useState<string | null>(
     null,
   );
+  const [retryAttempts] = useState(() => new RetryAttemptRegistry());
   const [{ canUndo, canRedo }, setHistoryState] = useState({
     canUndo: false,
     canRedo: false,
@@ -260,7 +261,11 @@ function ReadyDesignWorkspace({
         await fetch(retryRequest.url, retryRequest.init),
       );
     },
-    onSuccess: async (data: { id: string }) => {
+    onSuccess: async (
+      data: { id: string },
+      attempt: RetryGenerationAttempt<WorkspaceGeneration>,
+    ) => {
+      retryAttempts.recordSuccess(attempt.generation.id);
       setTrackedGenerationIds((current) =>
         current.includes(data.id) ? current : [...current, data.id],
       );
@@ -269,7 +274,13 @@ function ReadyDesignWorkspace({
         invalidateCredits("reservation"),
       ]);
     },
-    onError: reconcileInsufficientCredits,
+    onError: (
+      error,
+      attempt: RetryGenerationAttempt<WorkspaceGeneration>,
+    ) => {
+      retryAttempts.recordFailure(attempt.generation.id, error);
+      reconcileInsufficientCredits(error);
+    },
   });
   const activeGenerationIds = useMemo(
     () =>
@@ -516,7 +527,7 @@ function ReadyDesignWorkspace({
             onCancel={() => cancelGeneration.mutate(generation.id)}
             onRetry={() =>
               retryGeneration.mutate(
-                createRetryGenerationAttempt(generation),
+                retryAttempts.begin(generation),
               )
             }
             onRemove={() => {

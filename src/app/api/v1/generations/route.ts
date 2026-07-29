@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const user = await requireCurrentUser();
     const input = createGenerationSchema.parse(await request.json());
     const idempotencyKey = idempotencyKeySchema.parse(request.headers.get("idempotency-key"));
-    return handleRootGenerationReservation(
+    return await handleRootGenerationReservation(
       { userId: user.id, ...input, idempotencyKey },
       requestId,
       {
