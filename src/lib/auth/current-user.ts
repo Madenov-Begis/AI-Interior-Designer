@@ -3,6 +3,7 @@ import "server-only";
 import { getDb } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureSystemDefaults } from "@/features/plans/defaults";
+import { ensureCreditWallet } from "@/features/credits/service";
 import {
   currentUserFromClaims,
   type CurrentUser,
@@ -39,11 +40,18 @@ export async function upsertProfileFromAuthUser(user: CurrentUser) {
   const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
 
   const { freePlan } = await ensureSystemDefaults();
-  const profile = await getDb().profile.upsert({
+  const db = getDb();
+  let profile = await db.profile.upsert({
     where: { id: user.id },
     create: { id: user.id, email: user.email, firstName, lastName, displayName, avatarUrl, lastLoginAt: new Date(), planId: freePlan.id },
     update: { email: user.email, firstName, lastName, displayName, avatarUrl, lastLoginAt: new Date(), deletedAt: null },
   });
-  if (!profile.planId) return getDb().profile.update({ where: { id: profile.id }, data: { planId: freePlan.id } });
+  if (!profile.planId) {
+    profile = await db.profile.update({
+      where: { id: profile.id },
+      data: { planId: freePlan.id },
+    });
+  }
+  await db.$transaction((tx) => ensureCreditWallet(tx, profile.id));
   return profile;
 }
