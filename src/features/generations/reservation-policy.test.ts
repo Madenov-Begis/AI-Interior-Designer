@@ -1,6 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { GENERATION_CREDIT_COST } from "../../config/product.ts";
 import * as reservationPolicy from "./reservation-policy.ts";
+
+test("requires four available credits for a generation", () => {
+  assert.equal(
+    reservationPolicy.hasGenerationCredits(4, GENERATION_CREDIT_COST),
+    true,
+  );
+  assert.equal(
+    reservationPolicy.hasGenerationCredits(3, GENERATION_CREDIT_COST),
+    false,
+  );
+});
+
+test("maps insufficient generation credits to payment required", () => {
+  assert.equal(
+    reservationPolicy.reservationHttpStatus("INSUFFICIENT_CREDITS", 409),
+    402,
+  );
+  assert.equal(
+    reservationPolicy.reservationHttpStatus("GENERATION_ALREADY_RUNNING", 409),
+    409,
+  );
+});
 
 test("selects the fake provider only for explicit local fake mode", () => {
   assert.equal(reservationPolicy.resolveRequiredProvider("fake"), "FAKE");

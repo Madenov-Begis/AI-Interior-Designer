@@ -19,6 +19,7 @@ const reservationStatus: Record<string, number> = {
   MODEL_NOT_ALLOWED: 403,
   GENERATION_ALREADY_RUNNING: 409,
   GENERATION_LIMIT_EXCEEDED: 429,
+  INSUFFICIENT_CREDITS: 402,
 };
 
 export async function POST(request: NextRequest) {

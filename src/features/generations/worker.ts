@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { STORAGE_BUCKETS } from "@/config/storage";
+import { failGenerationWithDatabase } from "@/features/generations/operations";
 import { getImageGenerationProvider } from "@/features/generations/provider";
 import { getDb } from "@/lib/db";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -27,15 +28,10 @@ async function addWatermark(image: Buffer) {
 }
 
 async function markFailed(generationId: string, code: string, message: string) {
-  await getDb().$transaction(async (tx) => {
-    await tx.generation.updateMany({
-      where: { id: generationId, status: { in: ["QUEUED", "PROCESSING"] } },
-      data: { status: "FAILED", errorCode: code, errorMessage: message.slice(0, 500), completedAt: new Date() },
-    });
-    await tx.usageEvent.updateMany({
-      where: { generationId, status: "RESERVED" },
-      data: { status: "REFUNDED", refundedAt: new Date(), reason: code },
-    });
+  await failGenerationWithDatabase(getDb(), {
+    generationId,
+    code,
+    message,
   });
 }
 

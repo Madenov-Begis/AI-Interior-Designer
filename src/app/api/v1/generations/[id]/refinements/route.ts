@@ -33,6 +33,7 @@ const reservationStatus: Record<string, number> = {
   VISUAL_PROMPT_NOT_FOUND: 400,
   GENERATION_ALREADY_RUNNING: 409,
   GENERATION_LIMIT_EXCEEDED: 429,
+  INSUFFICIENT_CREDITS: 402,
 };
 
 export async function POST(request: NextRequest, context: RouteContext) {

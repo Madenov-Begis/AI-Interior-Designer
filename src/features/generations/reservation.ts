@@ -1,19 +1,20 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import type { AspectRatio } from "@/generated/prisma/enums";
 import { getInteriorStyle, type InteriorStyleCode } from "@/features/generations/interior-styles";
+import {
+  createGenerationReservation,
+  GenerationReservationError,
+  reserveIdempotently,
+} from "@/features/generations/operations";
 import { buildFinalPrompt } from "@/features/generations/prompt";
 import { buildRefinementSnapshot } from "@/features/generations/refinement-policy";
 import { resolveRequiredProvider } from "@/features/generations/reservation-policy";
 import { resolveEffectivePlan } from "@/features/plans/resolve-plan";
 import { getDb } from "@/lib/db";
 
-export class GenerationReservationError extends Error {
-  constructor(readonly code: string, message: string) {
-    super(message);
-    this.name = "GenerationReservationError";
-  }
-}
+export { GenerationReservationError } from "@/features/generations/operations";
 
 export function usageDateInTimezone(timezone = "Asia/Tashkent", now = new Date()) {
   const day = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
@@ -29,18 +30,14 @@ export async function reserveRootGeneration(input: {
   idempotencyKey: string;
 }) {
   const db = getDb();
-  return db.$transaction(async (tx) => {
-    const existing = await tx.generation.findUnique({
-      where: { userId_idempotencyKey: { userId: input.userId, idempotencyKey: input.idempotencyKey } },
-    });
-    if (existing) return { generation: existing, isExisting: true };
-
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.userId}, 0))`;
-    const duplicate = await tx.generation.findUnique({
-      where: { userId_idempotencyKey: { userId: input.userId, idempotencyKey: input.idempotencyKey } },
-    });
-    if (duplicate) return { generation: duplicate, isExisting: true };
-
+  return db.$transaction((tx) =>
+    reserveIdempotently(
+      tx,
+      {
+        userId: input.userId,
+        idempotencyKey: input.idempotencyKey,
+      },
+      async () => {
     const profile = await tx.profile.findUnique({
       where: { id: input.userId },
       include: { plan: true, subscriptions: { where: { status: "ACTIVE", OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: "desc" }, take: 1, include: { plan: true } } },
@@ -51,7 +48,6 @@ export async function reserveRootGeneration(input: {
       profile.plan,
       () => tx.plan.findUniqueOrThrow({ where: { code: "FREE" } }),
     );
-    const dailyLimit = profile.dailyLimitOverride ?? plan.dailyGenerationLimit;
     const maxParallel = profile.maxParallelOverride ?? plan.maxParallelGenerations;
 
     const project = await tx.project.findFirst({
@@ -75,11 +71,6 @@ export async function reserveRootGeneration(input: {
     if (parallel >= maxParallel) throw new GenerationReservationError("GENERATION_ALREADY_RUNNING", "Дождитесь завершения текущей генерации");
 
     const usageDate = usageDateInTimezone(profile.timezone);
-    if (dailyLimit !== null) {
-      const used = await tx.usageEvent.count({ where: { userId: input.userId, usageDate, status: { in: ["RESERVED", "CONSUMED"] } } });
-      if (used >= dailyLimit) throw new GenerationReservationError("GENERATION_LIMIT_EXCEEDED", "Дневной лимит исчерпан");
-    }
-
     const style = getInteriorStyle(input.styleCode);
     const finalPrompt = buildFinalPrompt({
       prompt: input.prompt,
@@ -87,7 +78,11 @@ export async function reserveRootGeneration(input: {
       referenceCount: project.references.length,
       stylePrompt: style?.promptModifier,
     });
-    const generation = await tx.generation.create({
+    const generationId = randomUUID();
+    const generation = await createGenerationReservation(tx, {
+      generationId,
+      userId: input.userId,
+      estimatedCost: model.costPerGeneration,
       data: {
         userId: input.userId,
         projectId: project.id,
@@ -101,12 +96,17 @@ export async function reserveRootGeneration(input: {
         sourceImageId: project.sourceImage.id,
         visualPromptImageId: project.visualPromptUsed ? project.visualPrompt?.id ?? null : null,
         references: { create: project.references.map((reference) => ({ fileId: reference.fileId, position: reference.position })) },
-        usageEvent: { create: { userId: input.userId, status: "RESERVED", usageDate, expiresAt: new Date(Date.now() + 15 * 60 * 1000) } },
+      },
+      usageEvent: {
+        usageDate,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       },
     });
     await tx.project.update({ where: { id: project.id }, data: { prompt: input.prompt, modelId: model.id, aspectRatio: input.aspectRatio } });
-    return { generation, isExisting: false };
-  });
+        return generation;
+      },
+    ),
+  );
 }
 
 export async function reserveRefinement(input: {
@@ -119,29 +119,14 @@ export async function reserveRefinement(input: {
 }) {
   const db = getDb();
 
-  return db.$transaction(async (tx) => {
-    const existing = await tx.generation.findUnique({
-      where: {
-        userId_idempotencyKey: {
-          userId: input.userId,
-          idempotencyKey: input.idempotencyKey,
-        },
+  return db.$transaction((tx) =>
+    reserveIdempotently(
+      tx,
+      {
+        userId: input.userId,
+        idempotencyKey: input.idempotencyKey,
       },
-    });
-    if (existing) return { generation: existing, isExisting: true };
-
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.userId}, 0))`;
-
-    const duplicate = await tx.generation.findUnique({
-      where: {
-        userId_idempotencyKey: {
-          userId: input.userId,
-          idempotencyKey: input.idempotencyKey,
-        },
-      },
-    });
-    if (duplicate) return { generation: duplicate, isExisting: true };
-
+      async () => {
     const profile = await tx.profile.findUnique({
       where: { id: input.userId },
       include: {
@@ -184,6 +169,7 @@ export async function reserveRefinement(input: {
         resultOriginalId: true,
         status: true,
         project: { select: { deletedAt: true } },
+        model: { select: { costPerGeneration: true } },
       },
     });
     if (!parent || parent.project.deletedAt) {
@@ -261,37 +247,25 @@ export async function reserveRefinement(input: {
       );
     }
 
-    const dailyLimit = profile.dailyLimitOverride ?? plan.dailyGenerationLimit;
     const usageDate = usageDateInTimezone(profile.timezone);
-    if (dailyLimit !== null) {
-      const used = await tx.usageEvent.count({
-        where: {
-          userId: input.userId,
-          usageDate,
-          status: { in: ["RESERVED", "CONSUMED"] },
-        },
-      });
-      if (used >= dailyLimit) {
-        throw new GenerationReservationError(
-          "GENERATION_LIMIT_EXCEEDED",
-          "Дневной лимит исчерпан",
-        );
-      }
-    }
 
     const finalPrompt = buildFinalPrompt({
       prompt: input.prompt,
       visualPromptUsed: Boolean(input.visualPromptImageId),
       referenceCount: input.referenceFileIds.length,
     });
-    const generation = await tx.generation.create({
+    const generationId = randomUUID();
+    return createGenerationReservation(tx, {
+      generationId,
+      userId: input.userId,
+      estimatedCost: parent.model.costPerGeneration,
       data: {
         userId: input.userId,
         idempotencyKey: input.idempotencyKey,
         prompt: input.prompt,
         finalPrompt,
         visualPromptUsed: Boolean(input.visualPromptImageId),
-        visualPromptImageId: input.visualPromptImageId,
+        visualPromptImageId: input.visualPromptImageId ?? null,
         ...snapshot,
         references: {
           create: input.referenceFileIds.map((fileId, position) => ({
@@ -299,16 +273,13 @@ export async function reserveRefinement(input: {
             position,
           })),
         },
-        usageEvent: {
-          create: {
-            userId: input.userId,
-            status: "RESERVED",
-            usageDate,
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-          },
-        },
+      },
+      usageEvent: {
+        usageDate,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       },
     });
-    return { generation, isExisting: false };
-  });
+      },
+    ),
+  );
 }

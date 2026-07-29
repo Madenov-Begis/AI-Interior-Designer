@@ -2,6 +2,7 @@ import "server-only";
 
 import { getRequiredPlan } from "@/features/plans/defaults";
 import { resolveEffectivePlan } from "@/features/plans/resolve-plan";
+import { cancelOwnedGenerationWithDatabase } from "@/features/generations/operations";
 import { usageDateInTimezone } from "@/features/generations/reservation";
 import { getDb } from "@/lib/db";
 
@@ -88,12 +89,7 @@ export async function listOwnedGenerations(userId: string, input: { limit: numbe
 }
 
 export async function cancelOwnedGeneration(userId: string, id: string) {
-  return getDb().$transaction(async (tx) => {
-    const cancelled = await tx.generation.updateMany({ where: { id, userId, status: "QUEUED", deletedAt: null }, data: { status: "CANCELLED", completedAt: new Date() } });
-    if (cancelled.count === 0) return false;
-    await tx.usageEvent.updateMany({ where: { generationId: id, status: "RESERVED" }, data: { status: "REFUNDED", refundedAt: new Date(), reason: "USER_CANCELLED" } });
-    return true;
-  });
+  return cancelOwnedGenerationWithDatabase(getDb(), userId, id);
 }
 
 export async function softDeleteOwnedGeneration(userId: string, id: string) {
