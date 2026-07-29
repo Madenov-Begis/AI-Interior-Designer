@@ -5,6 +5,7 @@ import {
   requireCurrentUser,
   UnauthorizedError,
 } from "@/lib/auth/current-user";
+import { getCreditWallet } from "@/features/credits/service";
 
 export default async function DashboardLayout({
   children,
@@ -18,6 +19,8 @@ export default async function DashboardLayout({
     if (error instanceof UnauthorizedError) redirect("/login");
     throw error;
   }
+
+  const wallet = await getCreditWallet(user.id, 0);
 
   const name =
     (typeof user.user_metadata.full_name === "string" &&
@@ -35,6 +38,7 @@ export default async function DashboardLayout({
             ? user.user_metadata.avatar_url
             : null,
       }}
+      creditBalance={wallet.balance}
     >
       {children}
     </AppShell>

@@ -1,6 +1,8 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { updateProfileSchema } from "@/features/profile/schema";
+import { GENERATION_CREDIT_COST } from "@/config/product";
+import { getCreditWallet } from "@/features/credits/service";
 import { getTodayUsage } from "@/features/generations/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
@@ -13,8 +15,25 @@ export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
     const user = await requireCurrentUser();
-    const [profile, usage] = await Promise.all([getDb().profile.findUniqueOrThrow({ where: { id: user.id }, select: profileSelect }), getTodayUsage(user.id)]);
-    return apiSuccess({ profile, usage }, requestId);
+    const [profile, usage, wallet] = await Promise.all([
+      getDb().profile.findUniqueOrThrow({
+        where: { id: user.id },
+        select: profileSelect,
+      }),
+      getTodayUsage(user.id),
+      getCreditWallet(user.id, 0),
+    ]);
+    return apiSuccess(
+      {
+        profile,
+        usage,
+        wallet: {
+          balance: wallet.balance,
+          generationCost: GENERATION_CREDIT_COST,
+        },
+      },
+      requestId,
+    );
   } catch (error) {
     if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
     return apiError("PROFILE_READ_FAILED", "Не удалось получить профиль", requestId, 500);

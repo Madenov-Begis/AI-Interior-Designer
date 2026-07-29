@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Coins } from "lucide-react";
-import { GENERATION_CREDIT_COST } from "@/config/product";
+import { presentCreditBalance } from "@/features/credits/presentation";
 import { cn } from "@/lib/cn";
 
 export function CreditBalance({
@@ -10,6 +10,8 @@ export function CreditBalance({
   balance?: number | null;
   className?: string;
 }) {
+  const presentation = presentCreditBalance(balance);
+
   return (
     <Link
       href="/app/credits"
@@ -18,14 +20,10 @@ export function CreditBalance({
         "inline-flex h-10 items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 font-mono text-xs font-semibold text-primary outline-none transition-colors hover:bg-primary/12 focus-visible:ring-2 focus-visible:ring-ring/50",
         className,
       )}
-      aria-label={
-        balance == null
-          ? `Открыть кредиты. Генерация стоит ${GENERATION_CREDIT_COST} кредита`
-          : `Баланс ${balance} кредитов`
-      }
+      aria-label={presentation.ariaLabel}
     >
       <Coins className="size-4" aria-hidden="true" />
-      <span>{balance == null ? `${GENERATION_CREDIT_COST} / генерация` : `${balance} кредитов`}</span>
+      <span>{presentation.text}</span>
     </Link>
   );
 }

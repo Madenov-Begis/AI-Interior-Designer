@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Coins, KeyRound, LogOut, UserRound } from "lucide-react";
+import { CheckCircle2, KeyRound, LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  type CreditWalletPayload,
+  presentWalletSummary,
+} from "@/features/credits/presentation";
 
 type ProfilePayload = {
   profile: {
@@ -35,6 +39,7 @@ type ProfilePayload = {
       watermarkRequired: boolean;
     };
   };
+  wallet: CreditWalletPayload;
 };
 
 async function apiData(response: Response) {
@@ -86,10 +91,8 @@ export function ProfilePanel() {
     );
   }
 
-  const { usage } = profile.data;
-  const percent = usage.limit
-    ? Math.min(100, (usage.used / usage.limit) * 100)
-    : 0;
+  const { usage, wallet } = profile.data;
+  const walletSummary = presentWalletSummary(wallet);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -171,56 +174,42 @@ export function ProfilePanel() {
         <Card className="border-primary/30 bg-primary/[0.055]">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
-              <CardTitle>{usage.plan.name}</CardTitle>
-              <Badge variant="outline">Текущий план</Badge>
+              <CardTitle>{walletSummary.balanceText}</CardTitle>
+              <Badge variant="outline">Кредиты Renoa</Badge>
             </div>
             <CardDescription>
-              Использовано сегодня: {usage.used} из {usage.limit ?? "∞"}
+              Для всех проектов и итераций.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {usage.limit !== null ? (
-              <div className="h-2 overflow-hidden rounded-full bg-secondary">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-            ) : null}
-            <div className="mt-5 grid gap-3 text-sm">
+            <div className="grid gap-3 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Осталось сегодня</span>
-                <span className="font-mono font-semibold">
-                  {usage.remaining ?? "∞"}
+                <span className="text-muted-foreground">
+                  {walletSummary.availableGenerationsText}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Результаты</span>
-                <span className="font-medium">
-                  {usage.plan.watermarkRequired
-                    ? "С водяным знаком"
-                    : "Без водяного знака"}
+                <span className="text-muted-foreground">
+                  {walletSummary.generationCostText}
                 </span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <Coins className="size-5 text-primary" aria-hidden="true" />
-              <div>
-                <p className="text-sm font-semibold">Кредиты Renoa</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Для всех проектов и итераций
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">
+                  {walletSummary.expirationText}
+                </span>
+              </div>
+              <div className="border-t border-primary/15 pt-3">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {usage.plan.name} · {usage.plan.watermarkRequired
+                    ? "Результаты с водяным знаком"
+                    : "Результаты без водяного знака"}
                 </p>
               </div>
             </div>
             <Link
               href="/app/credits"
               prefetch={false}
-              className={buttonClassName("outline", "mt-4 w-full")}
+              className={buttonClassName("outline", "mt-5 w-full")}
             >
               Открыть кредиты
             </Link>
