@@ -6,8 +6,40 @@ export function hasGenerationCredits(balance: number, cost: number) {
   return canDebit(balance, cost);
 }
 
-export function reservationHttpStatus(code: string, fallback: number) {
-  return code === "INSUFFICIENT_CREDITS" ? 402 : fallback;
+const ROOT_RESERVATION_STATUS: Record<string, number> = {
+  USER_BLOCKED: 403,
+  PROFILE_NOT_FOUND: 404,
+  PROJECT_NOT_READY: 400,
+  MODEL_NOT_FOUND: 404,
+  MODEL_NOT_ALLOWED: 403,
+  GENERATION_ALREADY_RUNNING: 409,
+  GENERATION_LIMIT_EXCEEDED: 429,
+  INSUFFICIENT_CREDITS: 402,
+};
+
+const REFINEMENT_RESERVATION_STATUS: Record<string, number> = {
+  GENERATION_NOT_FOUND: 404,
+  GENERATION_NOT_REFINABLE: 409,
+  REFERENCE_NOT_FOUND: 400,
+  REFERENCE_LIMIT_EXCEEDED: 400,
+  VISUAL_PROMPT_NOT_FOUND: 400,
+  GENERATION_ALREADY_RUNNING: 409,
+  GENERATION_LIMIT_EXCEEDED: 429,
+  INSUFFICIENT_CREDITS: 402,
+};
+
+export function rootReservationHttpStatus(code: string) {
+  return ROOT_RESERVATION_STATUS[code] ?? 400;
+}
+
+export function refinementReservationHttpStatus(code: string) {
+  return REFINEMENT_RESERVATION_STATUS[code] ?? 400;
+}
+
+export function retryReservationHttpStatus(code: string) {
+  if (code === "INSUFFICIENT_CREDITS") return 402;
+  if (code === "GENERATION_LIMIT_EXCEEDED") return 429;
+  return 409;
 }
 
 export function resolveRequiredProvider(

@@ -14,13 +14,23 @@ test("requires four available credits for a generation", () => {
   );
 });
 
-test("maps insufficient generation credits to payment required", () => {
+test("maps insufficient credits to payment required in every generation route", () => {
   assert.equal(
-    reservationPolicy.reservationHttpStatus("INSUFFICIENT_CREDITS", 409),
+    reservationPolicy.rootReservationHttpStatus("INSUFFICIENT_CREDITS"),
     402,
   );
   assert.equal(
-    reservationPolicy.reservationHttpStatus("GENERATION_ALREADY_RUNNING", 409),
+    reservationPolicy.refinementReservationHttpStatus("INSUFFICIENT_CREDITS"),
+    402,
+  );
+  assert.equal(
+    reservationPolicy.retryReservationHttpStatus("INSUFFICIENT_CREDITS"),
+    402,
+  );
+  assert.equal(
+    reservationPolicy.retryReservationHttpStatus(
+      "GENERATION_ALREADY_RUNNING",
+    ),
     409,
   );
 });

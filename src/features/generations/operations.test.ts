@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   cancelOwnedGenerationWithDatabase,
-  createGenerationReservation,
   failGenerationWithDatabase,
   GenerationReservationError,
-  reserveIdempotently,
+  reserveRefinementWithDependencies,
+  reserveRootGenerationWithDependencies,
 } from "./operations.ts";
 
 type GenerationRow = {
@@ -104,6 +104,28 @@ function createGenerationHarness(input?: {
         });
         return generation;
       },
+      async findFirst(query: { where: { id: string; userId: string } }) {
+        if (
+          query.where.id !== "generation-parent" ||
+          query.where.userId !== "user-1"
+        ) {
+          return null;
+        }
+        return {
+          id: "generation-parent",
+          projectId: "project-1",
+          modelId: "model-1",
+          styleCode: "modern",
+          aspectRatio: "RATIO_16_9",
+          resultOriginalId: "result-original-1",
+          status: "SUCCEEDED",
+          project: { deletedAt: null },
+          model: { costPerGeneration: "0.147200" },
+        };
+      },
+      async count() {
+        return 0;
+      },
       async updateMany(query: {
         where: {
           id: string;
@@ -131,6 +153,65 @@ function createGenerationHarness(input?: {
           ...query.data,
         });
         return { count: 1 };
+      },
+    },
+    profile: {
+      async findUnique() {
+        return {
+          id: "user-1",
+          status: "ACTIVE",
+          timezone: "Asia/Tashkent",
+          dailyLimitOverride: 0,
+          maxParallelOverride: null,
+          plan: {
+            id: "plan-1",
+            dailyGenerationLimit: 0,
+            maxParallelGenerations: 2,
+            maxReferenceImages: 10,
+          },
+          subscriptions: [],
+        };
+      },
+    },
+    plan: {
+      async findUniqueOrThrow() {
+        return {
+          id: "plan-1",
+          dailyGenerationLimit: 0,
+          maxParallelGenerations: 2,
+          maxReferenceImages: 10,
+        };
+      },
+    },
+    project: {
+      async findFirst() {
+        return {
+          id: "project-1",
+          visualPromptUsed: false,
+          sourceImage: { id: "source-1" },
+          visualPrompt: null,
+          references: [],
+        };
+      },
+      async update() {
+        return { id: "project-1" };
+      },
+    },
+    aiModel: {
+      async findFirst() {
+        return {
+          id: "model-1",
+          supportedAspectRatios: ["RATIO_16_9"],
+          costPerGeneration: "0.147200",
+        };
+      },
+    },
+    mediaFile: {
+      async findMany() {
+        return [];
+      },
+      async findFirst() {
+        return null;
       },
     },
     usageEvent: {
@@ -216,47 +297,32 @@ function createGenerationHarness(input?: {
   return { db, state };
 }
 
-function reservationData(input: {
-  generationId: string;
-  idempotencyKey: string;
-  parentGenerationId?: string;
-}) {
+function reservationDependencies(
+  db: ReturnType<typeof createGenerationHarness>["db"],
+  generationId: string,
+) {
   return {
-    generationId: input.generationId,
-    userId: "user-1",
-    estimatedCost: "0.147200",
-    data: {
-      userId: "user-1",
-      idempotencyKey: input.idempotencyKey,
-      status: "QUEUED",
-      deletedAt: null,
-      ...(input.parentGenerationId
-        ? { parentGenerationId: input.parentGenerationId }
-        : {}),
-    },
-    usageEvent: {
-      usageDate: new Date("2026-07-29T00:00:00.000Z"),
-      expiresAt: new Date("2026-07-29T00:15:00.000Z"),
-    },
+    db,
+    aiProvider: "fake",
+    buildFinalPrompt: () => "final prompt",
+    randomUUID: () => generationId,
+    now: () => new Date("2026-07-29T00:00:00.000Z"),
   };
 }
 
-test("root reservation stores cost snapshots and debits four credits", async () => {
+test("root reservation ignores exhausted daily quota, snapshots cost, and debits four credits", async () => {
   const { db, state } = createGenerationHarness();
 
-  await db.$transaction((tx) =>
-    reserveIdempotently(
-      tx,
-      { userId: "user-1", idempotencyKey: "root-key" },
-      () =>
-        createGenerationReservation(
-          tx,
-          reservationData({
-            generationId: "generation-root",
-            idempotencyKey: "root-key",
-          }),
-        ),
-    ),
+  await reserveRootGenerationWithDependencies(
+    reservationDependencies(db, "generation-root"),
+    {
+      userId: "user-1",
+      projectId: "project-1",
+      prompt: "redesign",
+      aspectRatio: "RATIO_16_9",
+      styleCode: "modern",
+      idempotencyKey: "root-key",
+    },
   );
 
   assert.equal(state.wallets.get("user-1"), 6);
@@ -289,19 +355,15 @@ test("insufficient root credits roll back generation and usage snapshots", async
 
   await assert.rejects(
     () =>
-      db.$transaction((tx) =>
-        reserveIdempotently(
-          tx,
-          { userId: "user-1", idempotencyKey: "root-key" },
-          () =>
-            createGenerationReservation(
-              tx,
-              reservationData({
-                generationId: "generation-root",
-                idempotencyKey: "root-key",
-              }),
-            ),
-        ),
+      reserveRootGenerationWithDependencies(
+        reservationDependencies(db, "generation-root"),
+        {
+          userId: "user-1",
+          projectId: "project-1",
+          prompt: "redesign",
+          aspectRatio: "RATIO_16_9",
+          idempotencyKey: "root-key",
+        },
       ),
     (error) =>
       error instanceof GenerationReservationError &&
@@ -314,23 +376,18 @@ test("insufficient root credits roll back generation and usage snapshots", async
   assert.equal(state.journals.length, 0);
 });
 
-test("refinement reservation debits four credits", async () => {
+test("refinement ignores exhausted daily quota and debits four credits", async () => {
   const { db, state } = createGenerationHarness();
 
-  await db.$transaction((tx) =>
-    reserveIdempotently(
-      tx,
-      { userId: "user-1", idempotencyKey: "refinement-key" },
-      () =>
-        createGenerationReservation(
-          tx,
-          reservationData({
-            generationId: "generation-refinement",
-            idempotencyKey: "refinement-key",
-            parentGenerationId: "generation-parent",
-          }),
-        ),
-    ),
+  await reserveRefinementWithDependencies(
+    reservationDependencies(db, "generation-refinement"),
+    {
+      userId: "user-1",
+      parentGenerationId: "generation-parent",
+      prompt: "refine",
+      referenceFileIds: [],
+      idempotencyKey: "refinement-key",
+    },
   );
 
   assert.equal(state.wallets.get("user-1"), 6);
@@ -347,19 +404,15 @@ test("refinement reservation debits four credits", async () => {
 test("idempotent reservation repeat returns the original without a second debit", async () => {
   const { db, state } = createGenerationHarness();
   const reserve = () =>
-    db.$transaction((tx) =>
-      reserveIdempotently(
-        tx,
-        { userId: "user-1", idempotencyKey: "root-key" },
-        () =>
-          createGenerationReservation(
-            tx,
-            reservationData({
-              generationId: "generation-root",
-              idempotencyKey: "root-key",
-            }),
-          ),
-      ),
+    reserveRootGenerationWithDependencies(
+      reservationDependencies(db, "generation-root"),
+      {
+        userId: "user-1",
+        projectId: "project-1",
+        prompt: "redesign",
+        aspectRatio: "RATIO_16_9",
+        idempotencyKey: "root-key",
+      },
     );
 
   const first = await reserve();

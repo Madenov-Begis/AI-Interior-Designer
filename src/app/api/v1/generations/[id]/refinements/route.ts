@@ -4,6 +4,7 @@ import {
   GenerationReservationError,
   reserveRefinement,
 } from "@/features/generations/reservation";
+import { refinementReservationHttpStatus } from "@/features/generations/reservation-policy";
 import {
   createRefinementSchema,
   idempotencyKeySchema,
@@ -24,17 +25,6 @@ import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
-
-const reservationStatus: Record<string, number> = {
-  GENERATION_NOT_FOUND: 404,
-  GENERATION_NOT_REFINABLE: 409,
-  REFERENCE_NOT_FOUND: 400,
-  REFERENCE_LIMIT_EXCEEDED: 400,
-  VISUAL_PROMPT_NOT_FOUND: 400,
-  GENERATION_ALREADY_RUNNING: 409,
-  GENERATION_LIMIT_EXCEEDED: 429,
-  INSUFFICIENT_CREDITS: 402,
-};
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
@@ -111,7 +101,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         error.code,
         error.message,
         requestId,
-        reservationStatus[error.code] ?? 400,
+        refinementReservationHttpStatus(error.code),
       );
     }
     if (error instanceof VisualPromptValidationError) {
