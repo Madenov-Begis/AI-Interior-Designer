@@ -1,7 +1,7 @@
 # Renoa UZS Credit Wallet and Mock Payments
 
 Date: 2026-07-29  
-Status: approved in conversation, pending written-spec review  
+Status: approved in conversation and written-spec review  
 Currency: UZS  
 Generation price: 4 credits
 
