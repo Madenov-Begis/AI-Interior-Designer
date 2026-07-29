@@ -62,7 +62,7 @@ export function CreditsGrid() {
             </CardHeader>
             <CardContent className="mt-auto">
               <p className="font-mono text-xl font-semibold">
-                {item.price.toLocaleString("ru-RU")} ₽
+                {item.priceUzs.toLocaleString("ru-RU")} soʻm
               </p>
               <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                 <Check className="size-4 text-success" aria-hidden="true" />

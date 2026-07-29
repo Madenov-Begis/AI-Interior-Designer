@@ -5,10 +5,36 @@ import {
   CREDIT_PACKAGES,
   GENERATION_CREDIT_COST,
   GENERATION_REFUND_MESSAGE,
+  getCreditPackage,
 } from "./product.ts";
 
-test("shows the customer the real generation price and refund policy", () => {
-  assert.equal(GENERATION_CREDIT_COST, 4);
+test("shows customers the generation allowance in each approved UZS package", () => {
+  assert.deepEqual(
+    CREDIT_PACKAGES.map(({ code, credits, priceUzs }) => ({
+      code,
+      priceUzs,
+      generations: credits / GENERATION_CREDIT_COST,
+    })),
+    [
+      { code: "mini", priceUzs: 25_000, generations: 5 },
+      { code: "standard", priceUzs: 69_000, generations: 15 },
+      { code: "pro", priceUzs: 169_000, generations: 40 },
+    ],
+  );
+});
+
+test("returns a purchasable package by its public code", () => {
+  assert.deepEqual(getCreditPackage("standard"), {
+    code: "standard",
+    name: "Стандарт",
+    credits: 60,
+    priceUzs: 69_000,
+    popular: true,
+  });
+  assert.equal(getCreditPackage("unknown"), null);
+});
+
+test("shows the customer the refund policy", () => {
   assert.match(GENERATION_REFUND_MESSAGE, /техническ/i);
   assert.match(GENERATION_REFUND_MESSAGE, /не списываются|возвращ/i);
 });
@@ -16,7 +42,7 @@ test("shows the customer the real generation price and refund policy", () => {
 test("keeps credit packages ordered from the smallest to the largest", () => {
   assert.deepEqual(
     CREDIT_PACKAGES.map((item) => item.credits),
-    [50, 140, 400, 1200, 5000],
+    [20, 60, 160],
   );
 });
 

@@ -1,15 +1,22 @@
+export const SIGNUP_CREDIT_GRANT = 10;
 export const GENERATION_CREDIT_COST = 4;
+export const VERTEX_GENERATION_COST_USD = 0.1472;
+export const GENERATION_BUDGET_UZS = 2_100;
 
 export const GENERATION_REFUND_MESSAGE =
   "При технической ошибке кредиты не списываются и автоматически возвращаются на баланс.";
 
 export const CREDIT_PACKAGES = [
-  { code: "start", name: "Старт", credits: 50, price: 390, popular: false },
-  { code: "creator", name: "Креатор", credits: 140, price: 990, popular: false },
-  { code: "studio", name: "Студия", credits: 400, price: 2490, popular: true },
-  { code: "business", name: "Бизнес", credits: 1200, price: 6490, popular: false },
-  { code: "corporate", name: "Корпоративный", credits: 5000, price: 19990, popular: false },
+  { code: "mini", name: "Мини", credits: 20, priceUzs: 25_000, popular: false },
+  { code: "standard", name: "Стандарт", credits: 60, priceUzs: 69_000, popular: true },
+  { code: "pro", name: "Про", credits: 160, priceUzs: 169_000, popular: false },
 ] as const;
+
+export type CreditPackageCode = (typeof CREDIT_PACKAGES)[number]["code"];
+
+export function getCreditPackage(code: string) {
+  return CREDIT_PACKAGES.find((item) => item.code === code) ?? null;
+}
 
 export const APP_NAV_ITEMS = [
   { href: "/app", label: "Создать", icon: "sparkles" },
