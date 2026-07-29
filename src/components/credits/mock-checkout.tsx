@@ -15,9 +15,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   type CheckoutStatus,
+  checkoutControlsDisabled,
   checkoutPresentation,
   formatUzs,
 } from "@/features/credits/presentation";
+import {
+  CheckoutReconciliationError,
+  reconcileCheckoutOutcome,
+} from "@/features/payments/checkout-reconciliation";
 
 type PaymentOrder = {
   id: string;
@@ -34,9 +39,6 @@ type PaymentOrder = {
 
 type PaymentOrderPayload = {
   order: PaymentOrder;
-};
-
-type OutcomePayload = PaymentOrderPayload & {
   balance: number | null;
 };
 
@@ -50,6 +52,15 @@ async function apiData<T>(response: Response): Promise<T> {
   return payload.data as T;
 }
 
+const paymentOrderQueryKey = (orderId: string) =>
+  ["payment-order", orderId] as const;
+
+async function loadOwnedPaymentOrder(orderId: string) {
+  return apiData<PaymentOrderPayload>(
+    await fetch(`/api/v1/payment-orders/${orderId}`),
+  );
+}
+
 const checkoutStatusLabels: Record<CheckoutStatus, string> = {
   PENDING: "Ожидает решения",
   PAID: "Оплачено",
@@ -60,27 +71,30 @@ const checkoutStatusLabels: Record<CheckoutStatus, string> = {
 
 export function MockCheckout({ orderId }: { orderId: string }) {
   const queryClient = useQueryClient();
+  const queryKey = paymentOrderQueryKey(orderId);
   const orderQuery = useQuery({
-    queryKey: ["payment-order", orderId],
-    queryFn: async () =>
-      apiData<PaymentOrderPayload>(
-        await fetch(`/api/v1/payment-orders/${orderId}`),
-      ),
+    queryKey,
+    queryFn: () => loadOwnedPaymentOrder(orderId),
   });
   const outcome = useMutation({
     mutationFn: async (selectedOutcome: MockOutcome) =>
-      apiData<OutcomePayload>(
-        await fetch(`/api/v1/payment-orders/${orderId}/mock-outcome`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ outcome: selectedOutcome }),
-        }),
-      ),
+      reconcileCheckoutOutcome({
+        submitOutcome: async () =>
+          apiData(
+            await fetch(`/api/v1/payment-orders/${orderId}/mock-outcome`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ outcome: selectedOutcome }),
+            }),
+          ),
+        readOwnedOrder: () =>
+          queryClient.fetchQuery({
+            queryKey,
+            queryFn: () => loadOwnedPaymentOrder(orderId),
+            staleTime: 0,
+          }),
+      }),
     onSuccess: async (result) => {
-      queryClient.setQueryData<PaymentOrderPayload>(
-        ["payment-order", orderId],
-        { order: result.order },
-      );
       if (result.order.status === "PAID") {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["credits"] }),
@@ -93,7 +107,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
   if (orderQuery.isLoading) {
     return <Skeleton className="mx-auto min-h-[430px] max-w-xl rounded-xl" />;
   }
-  if (orderQuery.error || !orderQuery.data) {
+  if (!orderQuery.data) {
     return (
       <Card className="mx-auto max-w-xl border-destructive/30">
         <CardContent className="p-5 text-sm text-destructive" role="alert">
@@ -106,9 +120,15 @@ export function MockCheckout({ orderId }: { orderId: string }) {
   const order = orderQuery.data.order;
   const result = checkoutPresentation(
     order.status,
-    outcome.data?.balance ?? null,
+    orderQuery.data.balance,
   );
-  const controlsDisabled = result.controlsDisabled || outcome.isPending;
+  const reconciliationUnresolved =
+    outcome.error instanceof CheckoutReconciliationError;
+  const controlsDisabled = checkoutControlsDisabled(order.status, {
+    requestPending: outcome.isPending,
+    reconciliationUnresolved,
+  });
+  const outcomeError = outcome.error ?? outcome.data?.submissionError;
 
   return (
     <Card className="mx-auto max-w-xl overflow-hidden">
@@ -186,9 +206,9 @@ export function MockCheckout({ orderId }: { orderId: string }) {
               Обрабатываем тестовый результат…
             </p>
           ) : null}
-          {outcome.error ? (
+          {outcomeError ? (
             <p className="text-sm text-destructive" role="alert">
-              {outcome.error.message}
+              {outcomeError.message}
             </p>
           ) : null}
           {result.message ? (

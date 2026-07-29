@@ -104,6 +104,20 @@ export function checkoutPresentation(
   };
 }
 
+export function checkoutControlsDisabled(
+  status: CheckoutStatus,
+  state: {
+    requestPending: boolean;
+    reconciliationUnresolved: boolean;
+  },
+) {
+  return (
+    status !== "PENDING" ||
+    state.requestPending ||
+    state.reconciliationUnresolved
+  );
+}
+
 export function presentWalletSummary(wallet: CreditWalletPayload) {
   const availableGenerations = fullGenerationCount(
     wallet.balance,

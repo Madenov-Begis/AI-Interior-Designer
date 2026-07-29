@@ -26,6 +26,12 @@ type MockOutcomeDependencies = {
   ): Promise<{ order: PaymentOrder; balance: number | null }>;
 };
 
+type GetPaymentOrderDependencies = {
+  requireCurrentUser(): Promise<RouteUser>;
+  getOwnedPaymentOrder(userId: string, orderId: string): Promise<PaymentOrder>;
+  getCreditBalance(userId: string): Promise<number>;
+};
+
 function jsonResponse(
   body: unknown,
   requestId: string,
@@ -75,6 +81,34 @@ export async function handlePaymentOrderPost(
       },
       requestId,
       { status: 201 },
+    );
+  } catch (error) {
+    return paymentErrorResponse(error, requestId);
+  }
+}
+
+export async function handlePaymentOrderGet(
+  context: { params: Promise<{ id: string }> },
+  requestId: string,
+  dependencies: GetPaymentOrderDependencies,
+) {
+  try {
+    const user = await dependencies.requireCurrentUser();
+    const id = paymentOrderIdSchema.parse((await context.params).id);
+    const order = await dependencies.getOwnedPaymentOrder(user.id, id);
+    const balance =
+      order.status === "PAID"
+        ? await dependencies.getCreditBalance(user.id)
+        : null;
+    return jsonResponse(
+      {
+        data: {
+          order: paymentOrderSummary(order),
+          balance,
+        },
+        meta: { requestId },
+      },
+      requestId,
     );
   } catch (error) {
     return paymentErrorResponse(error, requestId);
