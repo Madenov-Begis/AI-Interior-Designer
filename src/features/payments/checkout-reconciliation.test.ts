@@ -76,3 +76,30 @@ test("controls remain disabled when the authoritative reconciliation cannot comp
     true,
   );
 });
+
+test("POST error followed by authoritative PENDING remains unresolved with controls disabled", async () => {
+  let reconciliationError: unknown;
+  try {
+    await reconcileCheckoutOutcome({
+      submitOutcome: async () => {
+        throw new TypeError("response aborted");
+      },
+      readOwnedOrder: async () => ({
+        order: { id: "order-1", status: "PENDING" },
+        balance: null,
+      }),
+    });
+  } catch (error) {
+    reconciliationError = error;
+  }
+
+  assert.ok(reconciliationError instanceof CheckoutReconciliationError);
+  assert.equal(
+    checkoutControlsDisabled("PENDING", {
+      requestPending: false,
+      reconciliationUnresolved:
+        reconciliationError instanceof CheckoutReconciliationError,
+    }),
+    true,
+  );
+});

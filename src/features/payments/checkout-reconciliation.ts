@@ -47,9 +47,12 @@ export async function reconcileCheckoutOutcome<Order extends CheckoutOrder>({
     throw new CheckoutReconciliationError({ cause: error });
   }
 
+  if (submissionError && authoritative.order.status === "PENDING") {
+    throw new CheckoutReconciliationError({ cause: submissionError });
+  }
+
   return {
     ...authoritative,
-    submissionError:
-      authoritative.order.status === "PENDING" ? submissionError : null,
+    submissionError: null,
   };
 }
