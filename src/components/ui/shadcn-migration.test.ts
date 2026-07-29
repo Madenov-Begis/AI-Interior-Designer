@@ -19,3 +19,9 @@ test("sheet uses the official Radix-backed implementation", async () => {
   assert.doesNotMatch(sheet, /<dialog/);
   assert.match(sheet, /SheetContent/);
 });
+
+test("button keeps the existing non-submit default", async () => {
+  const button = await ui("button");
+
+  assert.match(button, /type = "button"/);
+});

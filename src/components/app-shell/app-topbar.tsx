@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, ScanLine } from "lucide-react";
+import { Menu, ScanLine, X } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { APP_NAME } from "@/config/brand";
@@ -9,10 +9,11 @@ import { APP_NAV_ITEMS } from "@/config/product";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
-  SheetBody,
   SheetClose,
+  SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { CreditBalance } from "@/components/app-shell/credit-balance";
@@ -50,17 +51,18 @@ export function AppTopbar({
       .join("") || "R";
 
   return (
-    <>
+    <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
       <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:px-5">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Открыть меню"
-        >
-          <Menu className="size-5" />
-        </Button>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            aria-label="Открыть меню"
+          >
+            <Menu className="size-5" />
+          </Button>
+        </SheetTrigger>
 
         <Link
           href="/app"
@@ -118,21 +120,34 @@ export function AppTopbar({
         </details>
       </header>
 
-      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetHeader>
+      <SheetContent
+        side="left"
+        showCloseButton={false}
+        className="w-[min(21rem,88vw)] max-w-none gap-0 bg-card p-0 text-card-foreground sm:max-w-none"
+      >
+        <SheetHeader className="flex-row items-center gap-3 border-b p-4">
           <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
             <ScanLine className="size-[18px]" aria-hidden="true" />
           </span>
           <SheetTitle>{APP_NAME}</SheetTitle>
-          <SheetClose onClose={() => setMenuOpen(false)} />
+          <SheetClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto"
+              aria-label="Закрыть меню"
+            >
+              <X className="size-4" />
+            </Button>
+          </SheetClose>
         </SheetHeader>
-        <SheetBody className="p-0">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="border-b p-3 sm:hidden">
             <CreditBalance balance={creditBalance} className="w-full justify-center" />
           </div>
           <AppSidebar onNavigate={() => setMenuOpen(false)} />
-        </SheetBody>
-      </Sheet>
-    </>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
