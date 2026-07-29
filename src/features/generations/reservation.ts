@@ -1,11 +1,11 @@
 import "server-only";
 
 import type { AspectRatio } from "@/generated/prisma/enums";
-import { ensureSystemDefaults } from "@/features/plans/defaults";
 import { getInteriorStyle, type InteriorStyleCode } from "@/features/generations/interior-styles";
 import { buildFinalPrompt } from "@/features/generations/prompt";
 import { buildRefinementSnapshot } from "@/features/generations/refinement-policy";
 import { resolveRequiredProvider } from "@/features/generations/reservation-policy";
+import { resolveEffectivePlan } from "@/features/plans/resolve-plan";
 import { getDb } from "@/lib/db";
 
 export class GenerationReservationError extends Error {
@@ -28,7 +28,6 @@ export async function reserveRootGeneration(input: {
   styleCode?: InteriorStyleCode;
   idempotencyKey: string;
 }) {
-  const defaults = await ensureSystemDefaults();
   const db = getDb();
   return db.$transaction(async (tx) => {
     const existing = await tx.generation.findUnique({
@@ -47,7 +46,11 @@ export async function reserveRootGeneration(input: {
       include: { plan: true, subscriptions: { where: { status: "ACTIVE", OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: "desc" }, take: 1, include: { plan: true } } },
     });
     if (!profile || profile.status !== "ACTIVE") throw new GenerationReservationError(profile?.status === "BLOCKED" ? "USER_BLOCKED" : "PROFILE_NOT_FOUND", "Профиль недоступен");
-    const plan = profile.subscriptions[0]?.plan ?? profile.plan ?? defaults.freePlan;
+    const plan = await resolveEffectivePlan(
+      profile.subscriptions[0]?.plan,
+      profile.plan,
+      () => tx.plan.findUniqueOrThrow({ where: { code: "FREE" } }),
+    );
     const dailyLimit = profile.dailyLimitOverride ?? plan.dailyGenerationLimit;
     const maxParallel = profile.maxParallelOverride ?? plan.maxParallelGenerations;
 
@@ -114,7 +117,6 @@ export async function reserveRefinement(input: {
   visualPromptImageId?: string;
   idempotencyKey: string;
 }) {
-  const defaults = await ensureSystemDefaults();
   const db = getDb();
 
   return db.$transaction(async (tx) => {
@@ -162,7 +164,11 @@ export async function reserveRefinement(input: {
       );
     }
 
-    const plan = profile.subscriptions[0]?.plan ?? profile.plan ?? defaults.freePlan;
+    const plan = await resolveEffectivePlan(
+      profile.subscriptions[0]?.plan,
+      profile.plan,
+      () => tx.plan.findUniqueOrThrow({ where: { code: "FREE" } }),
+    );
     const parent = await tx.generation.findFirst({
       where: {
         id: input.parentGenerationId,

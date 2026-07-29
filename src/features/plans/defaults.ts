@@ -5,6 +5,10 @@ import { getDb } from "@/lib/db";
 export const DEFAULT_MODEL_CODE = "fake-interior-v1";
 export const VERTEX_MODEL_CODE = "gemini-interior-v1";
 
+export function getRequiredPlan(code: "FREE" | "VIP" = "FREE") {
+  return getDb().plan.findUniqueOrThrow({ where: { code } });
+}
+
 export async function ensureSystemDefaults() {
   return getDb().$transaction(async (tx) => {
     const freePlan = await tx.plan.upsert({

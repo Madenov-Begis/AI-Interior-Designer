@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { Menu, ScanLine } from "lucide-react";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { APP_NAME } from "@/config/brand";
+import { APP_NAV_ITEMS } from "@/config/product";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -26,11 +28,19 @@ export function AppTopbar({
   user,
   creditBalance,
 }: {
-  title: string;
+  title?: string;
   user: AppUserSummary;
   creditBalance?: number | null;
 }) {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const currentTitle =
+    title ??
+    APP_NAV_ITEMS.find(
+      (item) =>
+        pathname === item.href || pathname.startsWith(`${item.href}/`),
+    )?.label ??
+    APP_NAME;
   const initials =
     user.name
       .split(/\s+/)
@@ -54,6 +64,7 @@ export function AppTopbar({
 
         <Link
           href="/app"
+          prefetch={false}
           className="hidden items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex"
           aria-label={`${APP_NAME} — создать интерьер`}
         >
@@ -67,7 +78,7 @@ export function AppTopbar({
 
         <span className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground">
-          {title}
+          {currentTitle}
         </p>
 
         <CreditBalance balance={creditBalance} className="hidden sm:inline-flex" />
@@ -91,12 +102,14 @@ export function AppTopbar({
             <div className="my-1 h-px bg-border" />
             <Link
               href="/app/profile"
+              prefetch={false}
               className="flex h-10 items-center rounded-lg px-3 text-sm text-muted-foreground hover:bg-accent-surface hover:text-foreground"
             >
               Профиль
             </Link>
             <Link
               href="/app/credits"
+              prefetch={false}
               className="flex h-10 items-center rounded-lg px-3 text-sm text-muted-foreground hover:bg-accent-surface hover:text-foreground"
             >
               Кредиты

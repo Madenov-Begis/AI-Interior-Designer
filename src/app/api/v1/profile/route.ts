@@ -4,7 +4,7 @@ import { updateProfileSchema } from "@/features/profile/schema";
 import { getTodayUsage } from "@/features/generations/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError, upsertProfileFromAuthUser } from "@/lib/auth/current-user";
+import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
 
 const profileSelect = { id: true, email: true, firstName: true, lastName: true, displayName: true, avatarUrl: true, role: true, status: true, timezone: true, createdAt: true } as const;
@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
     const user = await requireCurrentUser();
-    await upsertProfileFromAuthUser(user);
     const [profile, usage] = await Promise.all([getDb().profile.findUniqueOrThrow({ where: { id: user.id }, select: profileSelect }), getTodayUsage(user.id)]);
     return apiSuccess({ profile, usage }, requestId);
   } catch (error) {

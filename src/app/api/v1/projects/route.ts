@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError, upsertProfileFromAuthUser } from "@/lib/auth/current-user";
+import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { createProject, listProjects } from "@/features/projects/service";
 import { createProjectSchema, listProjectsSchema } from "@/features/projects/schemas";
 
@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
     const user = await requireCurrentUser();
-    await upsertProfileFromAuthUser(user);
     const input = createProjectSchema.parse(await request.json());
     return apiSuccess(await createProject(user.id, input.name), requestId, { status: 201 });
   } catch (error) {

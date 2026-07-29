@@ -13,6 +13,7 @@ export function CreditBalance({
   return (
     <Link
       href="/app/credits"
+      prefetch={false}
       className={cn(
         "inline-flex h-10 items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 font-mono text-xs font-semibold text-primary outline-none transition-colors hover:bg-primary/12 focus-visible:ring-2 focus-visible:ring-ring/50",
         className,

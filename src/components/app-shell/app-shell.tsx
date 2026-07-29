@@ -11,7 +11,7 @@ export function AppShell({
   creditBalance,
   children,
 }: {
-  title: string;
+  title?: string;
   user: AppUserSummary;
   creditBalance?: number | null;
   children: ReactNode;

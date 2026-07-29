@@ -12,7 +12,6 @@ import Link from "next/link";
 import {
   useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useState } from "react";
@@ -29,6 +28,7 @@ type HistoryItem = {
   prompt: string;
   aspectRatio: string;
   resultUserId: string | null;
+  resultUrl: string | null;
   queuedAt: string;
   completedAt: string | null;
   durationMs: number | null;
@@ -61,27 +61,6 @@ async function apiData(response: Response) {
     throw new Error(payload.error?.message ?? "Запрос не выполнен");
   }
   return payload.data;
-}
-
-function HistoryImage({ fileId, alt }: { fileId: string; alt: string }) {
-  const query = useQuery({
-    queryKey: ["history-image", fileId],
-    queryFn: async () =>
-      (await apiData(
-        await fetch(`/api/v1/media/${fileId}/signed-url`),
-      )) as Promise<{ url: string }>,
-  });
-
-  if (!query.data?.url) {
-    return <Skeleton className="aspect-[4/3] rounded-none" />;
-  }
-  return (
-    <div className="aspect-[4/3] overflow-hidden bg-black">
-      {/* Private signed URL is short lived and cannot use a stable Next Image loader. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={query.data.url} alt={alt} className="size-full object-cover" />
-    </div>
-  );
 }
 
 export function HistoryGrid() {
@@ -184,11 +163,16 @@ export function HistoryGrid() {
               className="group overflow-hidden transition-colors hover:border-muted-foreground/35"
             >
               <div className="relative">
-                {item.resultUserId ? (
-                  <HistoryImage
-                    fileId={item.resultUserId}
-                    alt={item.project.name}
-                  />
+                {item.resultUrl ? (
+                  <div className="aspect-[4/3] overflow-hidden bg-black">
+                    {/* Private signed URL is short lived and cannot use a stable Next Image loader. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.resultUrl}
+                      alt={item.project.name}
+                      className="size-full object-cover"
+                    />
+                  </div>
                 ) : (
                   <div className="grid aspect-[4/3] place-items-center bg-secondary">
                     <ImageIcon className="size-7 text-muted-foreground" aria-hidden="true" />

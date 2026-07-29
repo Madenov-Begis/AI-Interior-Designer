@@ -1,10 +1,11 @@
 "use client";
 
 import { CheckCircle2, Coins, KeyRound, LogOut, UserRound } from "lucide-react";
+import Link from "next/link";
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -216,15 +217,13 @@ export function ProfilePanel() {
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="mt-4 w-full"
-              onClick={() => {
-                window.location.href = "/app/credits";
-              }}
+            <Link
+              href="/app/credits"
+              prefetch={false}
+              className={buttonClassName("outline", "mt-4 w-full")}
             >
               Открыть кредиты
-            </Button>
+            </Link>
           </CardContent>
         </Card>
 

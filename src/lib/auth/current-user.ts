@@ -1,9 +1,12 @@
 import "server-only";
 
-import type { User } from "@supabase/supabase-js";
 import { getDb } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureSystemDefaults } from "@/features/plans/defaults";
+import {
+  currentUserFromClaims,
+  type CurrentUser,
+} from "@/lib/auth/claims";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Требуется авторизация") {
@@ -12,19 +15,21 @@ export class UnauthorizedError extends Error {
   }
 }
 
-export async function requireCurrentUser(): Promise<User> {
+export async function requireCurrentUser(): Promise<CurrentUser> {
   const supabase = await createSupabaseServerClient();
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-  if (claimsError || !claimsData?.claims?.sub) throw new UnauthorizedError();
+  const user = currentUserFromClaims(claimsData?.claims);
+  if (claimsError || !user) throw new UnauthorizedError();
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user || data.user.id !== claimsData.claims.sub) throw new UnauthorizedError();
-  const profile = await getDb().profile.findUnique({ where: { id: data.user.id }, select: { status: true } });
+  const profile = await getDb().profile.findUnique({
+    where: { id: user.id },
+    select: { status: true },
+  });
   if (profile && profile.status !== "ACTIVE") throw new UnauthorizedError("Аккаунт заблокирован");
-  return data.user;
+  return user;
 }
 
-export async function upsertProfileFromAuthUser(user: User) {
+export async function upsertProfileFromAuthUser(user: CurrentUser) {
   if (!user.email) throw new Error("Google account did not provide an email");
 
   const metadata = user.user_metadata ?? {};

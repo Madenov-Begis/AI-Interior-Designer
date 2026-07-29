@@ -1,13 +1,17 @@
 import "server-only";
 
-import { ensureSystemDefaults } from "@/features/plans/defaults";
+import { getRequiredPlan } from "@/features/plans/defaults";
+import { resolveEffectivePlan } from "@/features/plans/resolve-plan";
 import { usageDateInTimezone } from "@/features/generations/reservation";
 import { getDb } from "@/lib/db";
 
 export async function listAvailableModels(userId: string) {
-  const defaults = await ensureSystemDefaults();
   const profile = await getDb().profile.findUnique({ where: { id: userId }, include: { plan: true, subscriptions: { where: { status: "ACTIVE", OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: "desc" }, take: 1, include: { plan: true } } } });
-  const plan = profile?.subscriptions[0]?.plan ?? profile?.plan ?? defaults.freePlan;
+  const plan = await resolveEffectivePlan(
+    profile?.subscriptions[0]?.plan,
+    profile?.plan,
+    () => getRequiredPlan("FREE"),
+  );
   return getDb().aiModel.findMany({
     where: { active: true, plans: { some: { planId: plan.id } } },
     orderBy: { priority: "desc" },
@@ -16,10 +20,13 @@ export async function listAvailableModels(userId: string) {
 }
 
 export async function getTodayUsage(userId: string) {
-  const defaults = await ensureSystemDefaults();
   const profile = await getDb().profile.findUnique({ where: { id: userId }, include: { plan: true, subscriptions: { where: { status: "ACTIVE", OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] }, orderBy: { startsAt: "desc" }, take: 1, include: { plan: true } } } });
   if (!profile) return null;
-  const plan = profile.subscriptions[0]?.plan ?? profile.plan ?? defaults.freePlan;
+  const plan = await resolveEffectivePlan(
+    profile.subscriptions[0]?.plan,
+    profile.plan,
+    () => getRequiredPlan("FREE"),
+  );
   const limit = profile.dailyLimitOverride ?? plan.dailyGenerationLimit;
   const usageDate = usageDateInTimezone(profile.timezone);
   const used = await getDb().usageEvent.count({ where: { userId, usageDate, status: { in: ["RESERVED", "CONSUMED"] } } });
@@ -58,7 +65,14 @@ export async function listOwnedGenerations(userId: string, input: { limit: numbe
         id: true, projectId: true, parentGenerationId: true, status: true, prompt: true, aspectRatio: true, visualPromptUsed: true,
         resultUserId: true, errorCode: true, errorMessage: true, createdAt: true, queuedAt: true, completedAt: true, durationMs: true,
         project: { select: { name: true, sourcePreviewId: true } },
-        resultUser: { select: { width: true, height: true } },
+        resultUser: {
+          select: {
+            bucket: true,
+            path: true,
+            width: true,
+            height: true,
+          },
+        },
         references: { orderBy: { position: "asc" }, select: { fileId: true, position: true } },
         _count: { select: { references: true } },
       },
