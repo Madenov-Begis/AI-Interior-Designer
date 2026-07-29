@@ -15,6 +15,11 @@ export type GenerationActionErrorPresentation = {
   purchaseLink: typeof PURCHASE_LINK | null;
 };
 
+export type GenerationMutationFailure = {
+  generationId: string;
+  error: unknown;
+};
+
 export type CreditsLifecycleEvent =
   | "reservation"
   | "terminal"
@@ -154,4 +159,40 @@ export function generationActionErrorPresentation(
         ? PURCHASE_LINK
         : null,
   };
+}
+
+export function generationCanvasActionErrorPresentation(input: {
+  generationId: string;
+  status: string;
+  cancellationFailure?: GenerationMutationFailure | null;
+  retryFailure?: GenerationMutationFailure | null;
+}) {
+  const cancellationError =
+    input.cancellationFailure?.generationId === input.generationId
+      ? input.cancellationFailure.error
+      : null;
+  const retryError =
+    input.retryFailure?.generationId === input.generationId
+      ? input.retryFailure.error
+      : null;
+  const retryIsVisible =
+    input.status === "FAILED" || input.status === "REJECTED";
+  const actionError = retryIsVisible
+    ? retryError ?? cancellationError
+    : cancellationError ?? retryError;
+
+  return actionError
+    ? generationActionErrorPresentation(actionError, "retry")
+    : null;
+}
+
+export function pruneTrackedGenerationIds(
+  trackedGenerationIds: string[],
+  terminalGenerationIds: ReadonlyArray<string>,
+) {
+  const terminalIds = new Set(terminalGenerationIds);
+  if (!trackedGenerationIds.some((id) => terminalIds.has(id))) {
+    return trackedGenerationIds;
+  }
+  return trackedGenerationIds.filter((id) => !terminalIds.has(id));
 }

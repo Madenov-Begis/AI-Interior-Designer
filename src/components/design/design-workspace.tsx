@@ -24,8 +24,9 @@ import {
   ApiResponseError,
   type CreditsLifecycleEvent,
   type GenerationWallet,
-  generationActionErrorPresentation,
+  generationCanvasActionErrorPresentation,
   generationWalletPresentation,
+  pruneTrackedGenerationIds,
   readApiData,
   reconcileTerminalCredits,
   refreshCreditsAfterLifecycle,
@@ -290,27 +291,42 @@ function ReadyDesignWorkspace({
   });
 
   useEffect(() => {
+    const terminalGenerations: WorkspaceGeneration[] = [];
     for (const query of activeGenerationQueries) {
       const generation = query.data;
-      if (
-        !generation ||
-        isActiveGeneration(generation.status)
-      ) {
-        continue;
+      if (generation && !isActiveGeneration(generation.status)) {
+        terminalGenerations.push(generation);
       }
-      const reconciliation = reconcileTerminalCredits(
-        observedTerminalIdsRef.current,
-        [generation],
-      );
-      observedTerminalIdsRef.current = reconciliation.observedTerminalIds;
-      if (!reconciliation.queryKey) continue;
-      void Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["generations", project.id],
-        }),
-        invalidateCredits("terminal"),
-      ]);
     }
+    if (terminalGenerations.length === 0) return;
+
+    const reconciliation = reconcileTerminalCredits(
+      observedTerminalIdsRef.current,
+      terminalGenerations,
+    );
+    observedTerminalIdsRef.current = reconciliation.observedTerminalIds;
+    const reconciliationTask = reconciliation.queryKey
+      ? Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ["generations", project.id],
+          }),
+          invalidateCredits("terminal"),
+        ])
+      : Promise.resolve();
+    let superseded = false;
+    void reconciliationTask.then(() => {
+      if (!superseded) {
+        setTrackedGenerationIds((current) =>
+          pruneTrackedGenerationIds(
+            current,
+            terminalGenerations.map((generation) => generation.id),
+          ),
+        );
+      }
+    });
+    return () => {
+      superseded = true;
+    };
   }, [activeGenerationQueries, invalidateCredits, project.id, queryClient]);
   const createRefinement = useMutation({
     mutationFn: async (input: {
@@ -449,17 +465,24 @@ function ReadyDesignWorkspace({
       const retryIsCurrent =
         retryGeneration.isPending &&
         retryGeneration.variables?.id === generation.id;
-      const actionFailure =
-        cancelGeneration.isError &&
-        cancelGeneration.variables === generation.id
-          ? cancelGeneration.error
-          : retryGeneration.isError &&
-              retryGeneration.variables?.id === generation.id
-            ? retryGeneration.error
-            : null;
-      const actionError = actionFailure
-        ? generationActionErrorPresentation(actionFailure, "retry")
-        : null;
+      const actionError = generationCanvasActionErrorPresentation({
+        generationId: generation.id,
+        status: generation.status,
+        cancellationFailure:
+          cancelGeneration.isError && cancelGeneration.variables
+            ? {
+                generationId: cancelGeneration.variables,
+                error: cancelGeneration.error,
+              }
+            : null,
+        retryFailure:
+          retryGeneration.isError && retryGeneration.variables
+            ? {
+                generationId: retryGeneration.variables.id,
+                error: retryGeneration.error,
+              }
+            : null,
+      });
 
       return {
         id: nodeId,

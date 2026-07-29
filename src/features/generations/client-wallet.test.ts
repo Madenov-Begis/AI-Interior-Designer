@@ -4,8 +4,10 @@ import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import {
   ApiResponseError,
   creditsInvalidationQueryKey,
+  generationCanvasActionErrorPresentation,
   generationActionErrorPresentation,
   generationWalletPresentation,
+  pruneTrackedGenerationIds,
   readApiData,
   reconcileTerminalCredits,
   refreshCreditsAfterLifecycle,
@@ -245,5 +247,61 @@ test("ordinary retry and variation errors do not offer a purchase destination", 
       message: "Не удалось создать ещё один вариант",
       purchaseLink: null,
     },
+  );
+});
+
+test("a retry 402 wins over an older cancellation error on a failed generation", () => {
+  const presentation = generationCanvasActionErrorPresentation({
+    generationId: "generation-1",
+    status: "FAILED",
+    cancellationFailure: {
+      generationId: "generation-1",
+      error: new Error("Генерацию уже нельзя отменить"),
+    },
+    retryFailure: {
+      generationId: "generation-1",
+      error: new ApiResponseError(
+        "INSUFFICIENT_CREDITS",
+        "Для генерации нужно 4 кредита",
+      ),
+    },
+  });
+
+  assert.deepEqual(presentation, {
+    message: "Для генерации нужно 4 кредита",
+    purchaseLink: {
+      href: "/app/credits",
+      label: "Пополнить баланс",
+    },
+  });
+});
+
+test("a queued generation keeps its matching cancellation error", () => {
+  const presentation = generationCanvasActionErrorPresentation({
+    generationId: "generation-1",
+    status: "QUEUED",
+    cancellationFailure: {
+      generationId: "generation-1",
+      error: new Error("Генерацию уже нельзя отменить"),
+    },
+    retryFailure: {
+      generationId: "generation-1",
+      error: new Error("Старая ошибка повтора"),
+    },
+  });
+
+  assert.deepEqual(presentation, {
+    message: "Генерацию уже нельзя отменить",
+    purchaseLink: null,
+  });
+});
+
+test("terminal tracking cleanup removes completed observers and retains active ones", () => {
+  assert.deepEqual(
+    pruneTrackedGenerationIds(
+      ["generation-active", "generation-terminal", "generation-new"],
+      ["generation-terminal"],
+    ),
+    ["generation-active", "generation-new"],
   );
 });
