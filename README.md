@@ -24,8 +24,23 @@ pnpm dev
 
 - `AI_PROVIDER=fake` — локальный mock генерации; ключи Google Cloud не требуются.
 - `AI_PROVIDER=vertex` — production-режим, для которого нужны `GOOGLE_CLOUD_*` переменные.
+- `PAYMENT_PROVIDER=disabled` — production-режим оплаты до подключения Payme/Click.
+- `PAYMENT_PROVIDER=mock` — только локальная разработка и только вместе с `AI_PROVIDER=fake`.
 - `TRIGGER_SECRET_KEY` и `SENTRY_DSN` пока необязательны: ошибки и жизненный цикл генерации сохраняются через Prisma.
 - Все секреты хранятся только в `.env.local`; файл исключён из Git.
+
+Mock-оплата позволяет локально завершать тестовые заказы без обращения к
+платёжной системе. Она запрещена при `NODE_ENV=production` и при
+`AI_PROVIDER=vertex`: приложение завершит валидацию окружения с ошибкой
+`MOCK_PAYMENTS_NOT_SAFE`. В production элементы покупки остаются отключёнными,
+пока не появятся реальный адаптер Payme/Click и договор с платёжным провайдером.
+
+Безопасные переключатели для операторов:
+
+```dotenv
+PAYMENT_PROVIDER=disabled  # production until Payme/Click is connected
+PAYMENT_PROVIDER=mock      # local development only; requires AI_PROVIDER=fake
+```
 
 После первой авторизации администратора можно назначить через Prisma Studio: открыть `Profile`, выставить `role = ADMIN` и оставить `status = ACTIVE`. Затем становится доступна страница `/admin` и защищённые API `/api/v1/admin/*`.
 
@@ -45,11 +60,15 @@ pnpm db:studio
 ## Проверки
 
 ```bash
+pnpm prisma:validate
+pnpm test
 pnpm typecheck
 pnpm lint
 pnpm build
 ```
 
-Тестовые файлы намеренно пока не добавлены. Проверки текущего этапа: строгая типизация, ESLint, Prisma validation и production build.
+Полная проверка включает unit/service тесты, строгую типизацию, ESLint, Prisma
+validation и production build. Проверка миграций требует доступного PostgreSQL:
+сначала выполните `pnpm db:migrate:deploy`, затем `pnpm db:status`.
 
 Полное исходное ТЗ хранится в [`docs/requirements/technical-specification.md`](docs/requirements/technical-specification.md). Архитектурный дизайн и поэтапные планы находятся в `docs/superpowers/`.
