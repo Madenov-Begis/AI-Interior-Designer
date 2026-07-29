@@ -66,10 +66,53 @@ function createGenerationHarness(input?: {
     journals: [],
   };
 
-  const tx = {
-    async $executeRaw() {
-      return 1;
-    },
+  type LockWaiter = {
+    transactionId: symbol;
+    resolve: () => void;
+  };
+  const userLocks = new Map<
+    string,
+    {
+      owner?: symbol;
+      queue: LockWaiter[];
+      waiterObservers: Array<() => void>;
+    }
+  >();
+
+  function getUserLock(userId: string) {
+    let lock = userLocks.get(userId);
+    if (!lock) {
+      lock = { queue: [], waiterObservers: [] };
+      userLocks.set(userId, lock);
+    }
+    return lock;
+  }
+
+  async function acquireUserLock(transactionId: symbol, userId: string) {
+    const lock = getUserLock(userId);
+    if (!lock.owner || lock.owner === transactionId) {
+      lock.owner = transactionId;
+      return;
+    }
+    const waiting = Promise.withResolvers<void>();
+    lock.queue.push({
+      transactionId,
+      resolve: waiting.resolve,
+    });
+    for (const observe of lock.waiterObservers.splice(0)) observe();
+    await waiting.promise;
+  }
+
+  function releaseUserLocks(transactionId: symbol) {
+    for (const lock of userLocks.values()) {
+      if (lock.owner !== transactionId) continue;
+      const next = lock.queue.shift();
+      lock.owner = next?.transactionId;
+      next?.resolve();
+    }
+  }
+
+  const txMethods = {
     generation: {
       async findUnique(query: {
         where: {
@@ -279,22 +322,69 @@ function createGenerationHarness(input?: {
     },
   };
 
+  function createTransaction(transactionId: symbol) {
+    return {
+      ...txMethods,
+      async $executeRaw(_query: TemplateStringsArray, userId: string) {
+        await acquireUserLock(transactionId, userId);
+        return 1;
+      },
+    };
+  }
+
   const db = {
-    async $transaction<T>(operation: (transaction: typeof tx) => Promise<T>) {
+    async $transaction<T>(
+      operation: (
+        transaction: ReturnType<typeof createTransaction>,
+      ) => Promise<T>,
+    ) {
       const snapshot = structuredClone(state);
+      const transactionId = Symbol("transaction");
       try {
-        return await operation(tx);
+        return await operation(createTransaction(transactionId));
       } catch (error) {
         replaceMap(state.wallets, snapshot.wallets);
         replaceMap(state.generations, snapshot.generations);
         replaceMap(state.usageEvents, snapshot.usageEvents);
         state.journals.splice(0, state.journals.length, ...snapshot.journals);
         throw error;
+      } finally {
+        releaseUserLocks(transactionId);
       }
     },
   };
 
-  return { db, state };
+  async function beginUserLock(userId: string) {
+    const transactionId = Symbol("external-transaction");
+    const pendingGenerations: GenerationRow[] = [];
+    await acquireUserLock(transactionId, userId);
+    return {
+      insertGeneration(generation: GenerationRow) {
+        pendingGenerations.push(generation);
+      },
+      async commit() {
+        for (const generation of pendingGenerations) {
+          state.generations.set(generation.id, generation);
+        }
+        releaseUserLocks(transactionId);
+      },
+    };
+  }
+
+  function waitForLockWaiter(userId: string) {
+    const lock = getUserLock(userId);
+    if (lock.queue.length > 0) return Promise.resolve();
+    const waiting = Promise.withResolvers<void>();
+    lock.waiterObservers.push(waiting.resolve);
+    return waiting.promise;
+  }
+
+  return {
+    db,
+    state,
+    beginUserLock,
+    waitForLockWaiter,
+  };
 }
 
 function reservationDependencies(
@@ -423,6 +513,44 @@ test("idempotent reservation repeat returns the original without a second debit"
   assert.equal(repeated.generation.id, "generation-root");
   assert.equal(state.wallets.get("user-1"), 6);
   assert.equal(state.journals.length, 1);
+});
+
+test("root reservation rechecks idempotency after waiting for the user lock", async () => {
+  const {
+    db,
+    state,
+    beginUserLock,
+    waitForLockWaiter,
+  } = createGenerationHarness();
+  const holder = await beginUserLock("user-1");
+  const reservation = reserveRootGenerationWithDependencies(
+    reservationDependencies(db, "generation-loser"),
+    {
+      userId: "user-1",
+      projectId: "project-1",
+      prompt: "redesign",
+      aspectRatio: "RATIO_16_9",
+      idempotencyKey: "root-key",
+    },
+  );
+
+  await waitForLockWaiter("user-1");
+  holder.insertGeneration({
+    id: "generation-winner",
+    userId: "user-1",
+    idempotencyKey: "root-key",
+    status: "QUEUED",
+    deletedAt: null,
+  });
+  await holder.commit();
+  const result = await reservation;
+
+  assert.equal(result.isExisting, true);
+  assert.equal(result.generation.id, "generation-winner");
+  assert.equal(state.generations.size, 1);
+  assert.equal(state.wallets.get("user-1"), 10);
+  assert.equal(state.usageEvents.size, 0);
+  assert.equal(state.journals.length, 0);
 });
 
 test("worker failure refunds the stored amount exactly once", async () => {
