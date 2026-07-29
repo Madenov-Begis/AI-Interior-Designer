@@ -1,24 +1,245 @@
 "use client";
 
+import { CheckCircle2, Coins, KeyRound, LogOut, UserRound } from "lucide-react";
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { buttonClassName } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type ProfilePayload = { profile: { email: string; displayName: string | null; role: string; status: string; timezone: string; createdAt: string }; usage: { used: number; limit: number | null; remaining: number | null; plan: { code: string; name: string; watermarkRequired: boolean } } };
+type ProfilePayload = {
+  profile: {
+    email: string;
+    displayName: string | null;
+    role: string;
+    status: string;
+    timezone: string;
+    createdAt: string;
+  };
+  usage: {
+    used: number;
+    limit: number | null;
+    remaining: number | null;
+    plan: {
+      code: string;
+      name: string;
+      watermarkRequired: boolean;
+    };
+  };
+};
 
-async function apiData(response: Response) { const payload = await response.json(); if (!response.ok) throw new Error(payload.error?.message ?? "Запрос не выполнен"); return payload.data; }
+async function apiData(response: Response) {
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "Запрос не выполнен");
+  }
+  return payload.data;
+}
 
 export function ProfilePanel() {
   const queryClient = useQueryClient();
-  const profile = useQuery({ queryKey: ["profile"], queryFn: async () => apiData(await fetch("/api/v1/profile")) as Promise<ProfilePayload> });
+  const profile = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () =>
+      (await apiData(await fetch("/api/v1/profile"))) as ProfilePayload,
+  });
   const nameInputRef = useRef<HTMLInputElement>(null);
   const update = useMutation({
-    mutationFn: async () => apiData(await fetch("/api/v1/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ displayName: nameInputRef.current?.value.trim(), timezone: "Asia/Tashkent" }) })),
+    mutationFn: async () =>
+      apiData(
+        await fetch("/api/v1/profile", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            displayName: nameInputRef.current?.value.trim(),
+            timezone: "Asia/Tashkent",
+          }),
+        }),
+      ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
   });
-  if (profile.isLoading) return <p className="text-muted">Загружаем профиль…</p>;
-  if (profile.error || !profile.data) return <p className="text-red-300">{profile.error?.message ?? "Профиль недоступен"}</p>;
+
+  if (profile.isLoading) {
+    return (
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Skeleton className="h-80" />
+        <Skeleton className="h-80" />
+      </div>
+    );
+  }
+  if (profile.error || !profile.data) {
+    return (
+      <Card className="border-destructive/30">
+        <CardContent className="p-5 text-sm text-destructive">
+          {profile.error?.message ?? "Профиль недоступен"}
+        </CardContent>
+      </Card>
+    );
+  }
+
   const { usage } = profile.data;
-  const percent = usage.limit ? Math.min(100, usage.used / usage.limit * 100) : 0;
-  return <div className="grid gap-5 lg:grid-cols-[1fr_360px]"><section className="rounded-2xl border border-border bg-background p-5 sm:p-6"><p className="text-xs font-black tracking-[0.18em] text-accent uppercase">Аккаунт</p><h2 className="mt-2 text-2xl font-black italic">Личные данные</h2><label className="mt-6 grid gap-2 text-sm font-bold">Имя<input ref={nameInputRef} defaultValue={profile.data.profile.displayName ?? ""} maxLength={120} className="rounded-xl border border-border bg-surface px-4 py-3 font-normal outline-none focus:border-accent" /></label><label className="mt-4 grid gap-2 text-sm font-bold">Email<input value={profile.data.profile.email} disabled className="rounded-xl border border-border bg-surface-elevated px-4 py-3 font-normal text-muted" /></label>{update.error && <p className="mt-4 text-sm text-red-300">{update.error.message}</p>}<button type="button" onClick={() => update.mutate()} disabled={update.isPending} className={buttonClassName("primary", "mt-6 rounded-xl disabled:opacity-40")}>{update.isPending ? "Сохраняем…" : "Сохранить"}</button></section><aside className="rounded-2xl border border-border bg-background p-5 sm:p-6"><p className="text-xs font-black tracking-[0.18em] text-accent uppercase">Тариф</p><h2 className="mt-2 text-2xl font-black italic">{usage.plan.name}</h2><p className="mt-3 text-sm text-muted">Использовано сегодня: {usage.used} из {usage.limit ?? "∞"}</p>{usage.limit !== null && <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-elevated"><div className="h-full rounded-full bg-accent" style={{ width: `${percent}%` }} /></div>}<div className="mt-6 space-y-3 border-t border-border pt-5 text-sm text-muted"><p>{usage.plan.watermarkRequired ? "Результаты с водяным знаком" : "Без водяного знака"}</p><p>Часовой пояс: Asia/Tashkent</p><p>Осталось сегодня: {usage.remaining ?? "без ограничений"}</p></div></aside></div>;
+  const percent = usage.limit
+    ? Math.min(100, (usage.used / usage.limit) * 100)
+    : 0;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-4">
+        <Card>
+          <CardHeader className="flex-row items-start gap-4">
+            <div className="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
+              <UserRound className="size-5" aria-hidden="true" />
+            </div>
+            <div>
+              <CardTitle>Личные данные</CardTitle>
+              <CardDescription className="mt-1">
+                Имя видно только внутри вашего аккаунта.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-xs font-semibold">
+                Имя
+                <Input
+                  ref={nameInputRef}
+                  defaultValue={profile.data.profile.displayName ?? ""}
+                  maxLength={120}
+                />
+              </label>
+              <label className="grid gap-2 text-xs font-semibold">
+                Email
+                <Input
+                  value={profile.data.profile.email}
+                  disabled
+                  className="text-muted-foreground"
+                />
+              </label>
+            </div>
+            {update.error ? (
+              <p className="mt-4 text-sm text-destructive" role="alert">
+                {update.error.message}
+              </p>
+            ) : null}
+            <Button
+              onClick={() => update.mutate()}
+              disabled={update.isPending}
+              className="mt-5"
+            >
+              {update.isPending ? "Сохраняем…" : "Сохранить изменения"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="size-4 text-primary" aria-hidden="true" />
+              Способ входа
+            </CardTitle>
+            <CardDescription>
+              Авторизация защищает проекты, историю и результаты.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary/55 p-3">
+              <span className="grid size-9 place-items-center rounded-full bg-background text-sm font-bold">
+                G
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Google подключён</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {profile.data.profile.email}
+                </p>
+              </div>
+              <CheckCircle2 className="size-5 text-success" aria-label="Подключено" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid content-start gap-4">
+        <Card className="border-primary/30 bg-primary/[0.055]">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle>{usage.plan.name}</CardTitle>
+              <Badge variant="outline">Текущий план</Badge>
+            </div>
+            <CardDescription>
+              Использовано сегодня: {usage.used} из {usage.limit ?? "∞"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {usage.limit !== null ? (
+              <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            ) : null}
+            <div className="mt-5 grid gap-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Осталось сегодня</span>
+                <span className="font-mono font-semibold">
+                  {usage.remaining ?? "∞"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Результаты</span>
+                <span className="font-medium">
+                  {usage.plan.watermarkRequired
+                    ? "С водяным знаком"
+                    : "Без водяного знака"}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <Coins className="size-5 text-primary" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-semibold">Кредиты Renoa</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Для всех проектов и итераций
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={() => {
+                window.location.href = "/app/credits";
+              }}
+            >
+              Открыть кредиты
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Button
+          variant="ghost"
+          className="justify-start text-muted-foreground hover:text-destructive"
+          onClick={async () => {
+            await fetch("/api/v1/auth/logout", { method: "POST" });
+            window.location.href = "/";
+          }}
+        >
+          <LogOut className="size-4" />
+          Выйти из аккаунта
+        </Button>
+      </div>
+    </div>
+  );
 }

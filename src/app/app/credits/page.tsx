@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell/app-shell";
-import { ProfilePanel } from "@/components/profile/profile-panel";
+import { CreditsGrid } from "@/components/credits/credits-grid";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
-export default async function ProfilePage() {
+
+export default async function CreditsPage() {
   let user;
   try {
     user = await requireCurrentUser();
@@ -20,7 +21,7 @@ export default async function ProfilePage() {
 
   return (
     <AppShell
-      title="Профиль"
+      title="Кредиты"
       user={{
         name,
         email: user.email ?? "",
@@ -30,19 +31,19 @@ export default async function ProfilePage() {
             : null,
       }}
     >
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <header className="mb-7">
           <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Аккаунт
+            Баланс Renoa
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
-            Профиль
+            Кредиты
           </h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Личные данные, доступ и использование Renoa.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Один баланс для всех проектов и любых веток интерьера.
           </p>
         </header>
-        <ProfilePanel />
+        <CreditsGrid />
       </div>
     </AppShell>
   );

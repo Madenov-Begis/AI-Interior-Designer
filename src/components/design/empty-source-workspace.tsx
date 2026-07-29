@@ -32,19 +32,20 @@ export function EmptySourceWorkspace({
             initialProjectName={projectName}
           />
         </section>
-        <aside className="hidden border-l border-border bg-surface p-6 min-[1200px]:block">
-          <p className="text-xs font-black tracking-[0.18em] text-accent uppercase">
-            AI-настройки
+        <aside className="hidden border-l border-border bg-card p-6 min-[1200px]:block">
+          <p className="font-mono text-[10px] font-semibold tracking-[0.18em] text-primary uppercase">
+            Новый интерьер
           </p>
-          <h2 className="mt-3 text-2xl font-black italic">
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight">
             Начните с фотографии
           </h2>
-          <p className="mt-4 text-sm leading-6 text-muted">
-            После загрузки здесь появятся референсы, инструкция, стиль
-            и кнопка генерации.
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
+            Загрузите комнату прямо на холст. Затем здесь появятся только
+            стиль, формат и описание изменений.
           </p>
-          <div className="mt-6 rounded-xl border border-border bg-background p-4 text-sm text-muted">
-            Сначала загрузите фотографию помещения.
+          <div className="mt-6 rounded-lg border border-primary/20 bg-primary/7 p-4 text-xs leading-5 text-muted-foreground">
+            Одна генерация стоит 4 кредита. При технической ошибке кредиты
+            автоматически возвращаются.
           </div>
         </aside>
       </div>

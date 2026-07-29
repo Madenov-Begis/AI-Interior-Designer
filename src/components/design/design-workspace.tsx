@@ -681,13 +681,13 @@ function ReadyDesignWorkspace({
             ref={inspectorTriggerRef}
             type="button"
             onClick={openInspector}
-            className="absolute top-3 right-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-sm font-black shadow-xl transition-colors hover:bg-surface-elevated min-[1200px]:hidden"
-            aria-label="Открыть AI-настройки"
+            className="absolute top-3 right-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold shadow-xl transition-colors hover:bg-secondary min-[1200px]:hidden"
+            aria-label="Открыть настройки интерьера"
             aria-haspopup="dialog"
             aria-expanded={inspectorOpen}
           >
             <Settings2 size={18} aria-hidden="true" />
-            <span className="hidden sm:inline">AI-настройки</span>
+            <span className="hidden sm:inline">Новый интерьер</span>
           </button>
           <CanvasViewport
             source={{
@@ -770,7 +770,7 @@ function ReadyDesignWorkspace({
               }
             });
           }}
-          className={`fixed inset-0 z-50 m-0 h-full max-h-dvh w-full max-w-none flex-col overflow-hidden overscroll-contain border-0 bg-surface p-0 pb-[env(safe-area-inset-bottom)] text-foreground shadow-2xl backdrop:bg-black/65 ${
+          className={`fixed inset-0 z-50 m-0 h-full max-h-dvh w-full max-w-none flex-col overflow-hidden overscroll-contain border-0 bg-card p-0 pb-[env(safe-area-inset-bottom)] text-foreground shadow-2xl backdrop:bg-black/70 ${
             inspectorOpen ? "flex" : "hidden"
           } md:inset-y-0 md:right-0 md:left-auto md:max-h-none md:w-[380px] md:border-l md:border-border md:pb-0 min-[1200px]:static min-[1200px]:flex min-[1200px]:min-h-0 min-[1200px]:w-[380px] min-[1200px]:shadow-none`}
         >
@@ -780,15 +780,15 @@ function ReadyDesignWorkspace({
                 id="design-inspector-title"
                 className="text-xs font-black uppercase tracking-[0.18em] text-accent"
               >
-                AI-настройки
+                Новый интерьер
               </h2>
-              <p className="mt-1 text-xs text-muted">Параметры нового дизайна</p>
+              <p className="mt-1 text-xs text-muted-foreground">Стиль, формат и ваши изменения</p>
             </div>
             <button
               type="button"
               onClick={closeInspector}
               className="grid size-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-foreground min-[1200px]:hidden"
-              aria-label="Закрыть AI-настройки"
+              aria-label="Закрыть настройки интерьера"
             >
               <X size={19} aria-hidden="true" />
             </button>

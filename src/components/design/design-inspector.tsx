@@ -1,10 +1,15 @@
 "use client";
 
-import { AlertCircle, LoaderCircle, Sparkles } from "lucide-react";
+import { AlertCircle, Coins, LoaderCircle, ShieldCheck, Sparkles } from "lucide-react";
 import { ReferenceManager } from "@/components/design/reference-manager";
 import { StylePicker } from "@/components/design/style-picker";
-import { buttonClassName } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import type { WorkspaceReference } from "@/components/design/workspace-types";
+import {
+  GENERATION_CREDIT_COST,
+  GENERATION_REFUND_MESSAGE,
+} from "@/config/product";
 
 type Usage = {
   used: number;
@@ -68,12 +73,12 @@ export function DesignInspector({
 
   return (
     <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
-      <div className="min-h-0 min-w-0 max-w-full flex-1 space-y-6 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-5">
+      <div className="min-h-0 min-w-0 max-w-full flex-1 space-y-5 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4">
         <section aria-labelledby="inspector-references-title">
           <div className="flex items-center justify-between gap-3">
             <h2
               id="inspector-references-title"
-              className="text-sm font-black text-foreground"
+              className="text-xs font-semibold text-foreground"
             >
               Референсы
             </h2>
@@ -90,7 +95,7 @@ export function DesignInspector({
             <label
               id="inspector-prompt-title"
               htmlFor="generation-prompt"
-              className="text-sm font-black text-foreground"
+              className="text-xs font-semibold text-foreground"
             >
               Что изменить?
             </label>
@@ -102,7 +107,7 @@ export function DesignInspector({
               {prompt.length} / 4000
             </span>
           </div>
-          <textarea
+          <Textarea
             id="generation-prompt"
             value={prompt}
             onChange={(event) => onPromptChange(event.target.value)}
@@ -114,7 +119,7 @@ export function DesignInspector({
               promptIsInvalid ? "generation-prompt-error" : undefined
             }
             placeholder="Например: замените диван, добавьте тёплое освещение и сохраните расположение окон"
-            className="mt-3 w-full resize-y rounded-xl border border-border bg-background px-3.5 py-3 text-sm leading-6 outline-none transition-colors placeholder:text-muted/70 focus:border-accent"
+            className="mt-2 min-h-32 resize-none bg-background"
           />
           {promptIsInvalid && (
             <p
@@ -132,18 +137,18 @@ export function DesignInspector({
           onChange={onStyleChange}
         />
 
-        <fieldset className="rounded-xl border border-border bg-background px-4 py-4">
-          <legend className="px-1 text-sm font-black text-foreground">
+        <fieldset>
+          <legend className="text-xs font-semibold text-foreground">
             Формат
           </legend>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 grid grid-cols-5 gap-1.5">
             {supportedAspectRatios.map((ratio) => (
               <label
                 key={ratio}
-                className={`workspace-focus-proxy inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-xs font-black transition-colors ${
+                className={`workspace-focus-proxy inline-flex min-h-10 min-w-0 cursor-pointer items-center justify-center rounded-lg border px-2 py-2 font-mono text-[11px] font-semibold transition-colors ${
                   aspectRatio === ratio
-                    ? "border-accent bg-accent text-accent-foreground"
-                    : "border-border bg-surface text-foreground hover:border-muted"
+                    ? "border-primary bg-primary/12 text-primary"
+                    : "border-border bg-secondary/55 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
                 }`}
               >
                 <input
@@ -161,10 +166,10 @@ export function DesignInspector({
         </fieldset>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-surface px-5 py-4">
+      <div className="shrink-0 border-t border-border bg-card px-4 py-4">
         <div className="flex items-center justify-between gap-4 text-xs">
           <div>
-            <p className="font-black text-foreground">
+            <p className="font-semibold text-foreground">
               {usage ? usage.plan.name : "Дневной лимит"}
             </p>
             <p className="mt-1 text-muted">
@@ -178,7 +183,7 @@ export function DesignInspector({
             </p>
           </div>
           {usage?.plan.watermarkRequired && (
-            <span className="rounded-full border border-border px-2 py-1 text-muted">
+            <span className="rounded-md border border-border px-2 py-1 text-muted-foreground">
               С водяным знаком
             </span>
           )}
@@ -186,12 +191,12 @@ export function DesignInspector({
 
         {disabledReasons.length > 0 && (
           <div
-            className="mt-3 flex gap-2 rounded-lg bg-surface-elevated p-3 text-xs leading-5 text-muted"
+            className="mt-3 flex gap-2 rounded-lg bg-secondary p-3 text-xs leading-5 text-muted-foreground"
             role="status"
           >
             <AlertCircle
               size={16}
-              className="mt-0.5 shrink-0 text-accent"
+              className="mt-0.5 shrink-0 text-primary"
               aria-hidden="true"
             />
             <span>{disabledReasons.join(" ")}</span>
@@ -208,22 +213,37 @@ export function DesignInspector({
           </p>
         )}
 
-        <button
-          type="button"
+        <div className="mt-3 rounded-lg border border-primary/20 bg-primary/7 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2 text-xs font-semibold">
+              <Coins className="size-4 text-primary" aria-hidden="true" />
+              Стоимость генерации
+            </span>
+            <span className="font-mono text-xs font-bold text-primary">
+              {GENERATION_CREDIT_COST} кредита
+            </span>
+          </div>
+          <p className="mt-2 flex gap-2 text-[11px] leading-5 text-muted-foreground">
+            <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden="true" />
+            {GENERATION_REFUND_MESSAGE}
+          </p>
+        </div>
+
+        <Button
           onClick={onGenerate}
           disabled={disabledReasons.length > 0}
-          className={buttonClassName(
-            "primary",
-            "mt-4 w-full rounded-xl disabled:cursor-not-allowed disabled:opacity-45",
-          )}
+          className="mt-3 w-full"
+          size="lg"
         >
           {generationPending ? (
             <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
           ) : (
             <Sparkles size={18} aria-hidden="true" />
           )}
-          {generationPending ? "Запускаем…" : "Создать дизайн"}
-        </button>
+          {generationPending
+            ? "Запускаем…"
+            : `Создать дизайн · ${GENERATION_CREDIT_COST}`}
+        </Button>
       </div>
     </div>
   );

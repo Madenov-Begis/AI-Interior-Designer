@@ -1,7 +1,18 @@
 "use client";
 
+import {
+  Coins,
+  History,
+  Plus,
+  Redo2,
+  ScanLine,
+  Undo2,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import { type KeyboardEvent, useRef, useState } from "react";
+import { APP_NAME } from "@/config/brand";
+import { Button } from "@/components/ui/button";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -80,11 +91,28 @@ export function WorkspaceHeader({
   }[saveState];
 
   return (
-    <header className="flex min-h-16 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 sm:px-5">
-      <Link href="/app" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-bold text-muted transition-colors hover:bg-surface-elevated hover:text-foreground">
-        <span aria-hidden="true">＋</span><span className="hidden sm:inline">Новый дизайн</span>
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-3 sm:px-4">
+      <Link
+        href="/app"
+        className="mr-1 hidden items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex"
+        aria-label={`${APP_NAME} — новый интерьер`}
+      >
+        <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
+          <ScanLine className="size-[18px]" aria-hidden="true" />
+        </span>
+        <span className="hidden text-sm font-black uppercase tracking-[0.12em] lg:inline">
+          {APP_NAME}
+        </span>
       </Link>
-      <div className="min-w-0 flex-1">
+      <span className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+      <Link
+        href="/app"
+        className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent-surface hover:text-foreground"
+        aria-label="Создать новый интерьер"
+      >
+        <Plus className="size-[18px]" aria-hidden="true" />
+      </Link>
+      <div className="min-w-0 flex-1 px-1">
         <label className="sr-only" htmlFor="workspace-project-name">Название проекта</label>
         <input
           id="workspace-project-name"
@@ -96,16 +124,28 @@ export function WorkspaceHeader({
           }}
           onBlur={() => void saveName()}
           onKeyDown={handleNameKeyDown}
-          className="w-full max-w-md rounded-lg bg-transparent px-2 py-2 text-sm font-black outline-none transition-colors hover:bg-surface-elevated focus:bg-surface-elevated sm:text-base"
+          className="w-full max-w-md rounded-lg bg-transparent px-2 py-1.5 text-sm font-semibold outline-none transition-colors hover:bg-accent-surface focus:bg-accent-surface"
         />
-        <p className={`h-4 px-2 text-[11px] ${saveState === "error" ? "text-red-300" : "text-muted"}`} aria-live="polite">{saveMessage}</p>
+        <p className={`h-3 px-2 font-mono text-[9px] ${saveState === "error" ? "text-red-300" : "text-muted-foreground"}`} aria-live="polite">{saveMessage}</p>
       </div>
-      <div className="hidden items-center gap-1 md:flex">
-        <button type="button" onClick={onUndo} disabled={!canUndo} className="min-h-11 rounded-lg px-3 text-sm font-bold text-muted transition-colors hover:bg-surface-elevated hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35">Отменить</button>
-        <button type="button" onClick={onRedo} disabled={!canRedo} className="min-h-11 rounded-lg px-3 text-sm font-bold text-muted transition-colors hover:bg-surface-elevated hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35">Повторить</button>
+      <div className="hidden items-center gap-1 lg:flex">
+        <Button variant="ghost" size="icon" onClick={onUndo} disabled={!canUndo} aria-label="Отменить">
+          <Undo2 className="size-4" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={onRedo} disabled={!canRedo} aria-label="Повторить">
+          <Redo2 className="size-4" />
+        </Button>
       </div>
-      <Link href="/app/history" className="hidden min-h-11 items-center rounded-lg px-3 text-sm font-bold text-muted transition-colors hover:bg-surface-elevated hover:text-foreground sm:inline-flex">История</Link>
-      <Link href="/app/profile" className="inline-flex min-h-11 items-center rounded-full bg-surface-elevated px-3 text-sm font-bold transition-colors hover:bg-border" aria-label="Открыть профиль">Профиль</Link>
+      <Link href="/app/history" className="hidden size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent-surface hover:text-foreground md:flex" aria-label="История">
+        <History className="size-[18px]" />
+      </Link>
+      <Link href="/app/credits" className="hidden h-10 items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 font-mono text-xs font-semibold text-primary transition-colors hover:bg-primary/12 sm:flex">
+        <Coins className="size-4" />
+        4 / генерация
+      </Link>
+      <Link href="/app/profile" className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-secondary text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground" aria-label="Открыть профиль">
+        <UserRound className="size-[18px]" />
+      </Link>
     </header>
   );
 }

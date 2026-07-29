@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { APP_NAME } from "@/config/brand";
 import { QueryProvider } from "@/shared/query-provider";
 
 const geistSans = Geist({
@@ -14,14 +15,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Interior Designer — дизайн интерьера с помощью AI",
+  title: `${APP_NAME} — дизайн интерьера с помощью AI`,
   description:
     "Создавайте фотореалистичный дизайн помещения, сохраняя ракурс, геометрию и архитектурные элементы.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="ru" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
       <body><QueryProvider>{children}</QueryProvider></body>
     </html>
   );

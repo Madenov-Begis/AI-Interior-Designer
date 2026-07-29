@@ -1,29 +1,87 @@
 "use client";
 
+import {
+  ArrowRight,
+  Download,
+  GitBranch,
+  ImageIcon,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useState } from "react";
-import { buttonClassName } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonClassName } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type HistoryItem = {
-  id: string; projectId: string; status: string; prompt: string; aspectRatio: string; resultUserId: string | null;
-  queuedAt: string; completedAt: string | null; durationMs: number | null; project: { name: string }; _count: { references: number };
+  id: string;
+  projectId: string;
+  parentGenerationId: string | null;
+  status: string;
+  prompt: string;
+  aspectRatio: string;
+  resultUserId: string | null;
+  queuedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  project: { name: string };
+  _count: { references: number };
+};
+
+const FILTERS = [
+  ["", "Все"],
+  ["SUCCEEDED", "Готовые"],
+  ["PROCESSING", "В работе"],
+  ["FAILED", "Ошибки"],
+] as const;
+
+const STATUS_COPY: Record<
+  string,
+  { label: string; variant: "secondary" | "success" | "warning" | "outline" }
+> = {
+  SUCCEEDED: { label: "Готово", variant: "success" },
+  PROCESSING: { label: "Создаём", variant: "warning" },
+  QUEUED: { label: "В очереди", variant: "warning" },
+  FAILED: { label: "Ошибка", variant: "outline" },
+  REJECTED: { label: "Отклонено", variant: "outline" },
+  CANCELLED: { label: "Отменено", variant: "secondary" },
 };
 
 async function apiData(response: Response) {
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error?.message ?? "Запрос не выполнен");
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "Запрос не выполнен");
+  }
   return payload.data;
 }
 
 function HistoryImage({ fileId, alt }: { fileId: string; alt: string }) {
-  const query = useQuery({ queryKey: ["history-image", fileId], queryFn: async () => apiData(await fetch(`/api/v1/media/${fileId}/signed-url`)) as Promise<{ url: string }> });
-  if (!query.data?.url) return <div className="grid aspect-[4/3] place-items-center bg-surface-elevated text-sm text-muted">Загружаем результат…</div>;
-  return <div className="aspect-[4/3] overflow-hidden bg-black">
-    {/* Private signed URL is short lived and cannot use a stable Next Image loader. */}
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={query.data.url} alt={alt} className="size-full object-cover" />
-  </div>;
+  const query = useQuery({
+    queryKey: ["history-image", fileId],
+    queryFn: async () =>
+      (await apiData(
+        await fetch(`/api/v1/media/${fileId}/signed-url`),
+      )) as Promise<{ url: string }>,
+  });
+
+  if (!query.data?.url) {
+    return <Skeleton className="aspect-[4/3] rounded-none" />;
+  }
+  return (
+    <div className="aspect-[4/3] overflow-hidden bg-black">
+      {/* Private signed URL is short lived and cannot use a stable Next Image loader. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={query.data.url} alt={alt} className="size-full object-cover" />
+    </div>
+  );
 }
 
 export function HistoryGrid() {
@@ -36,38 +94,182 @@ export function HistoryGrid() {
       const params = new URLSearchParams({ limit: "20" });
       if (pageParam) params.set("cursor", pageParam);
       if (status) params.set("status", status);
-      return apiData(await fetch(`/api/v1/generations?${params}`)) as Promise<{ items: HistoryItem[]; nextCursor: string | null }>;
+      return (await apiData(
+        await fetch(`/api/v1/generations?${params}`),
+      )) as Promise<{ items: HistoryItem[]; nextCursor: string | null }>;
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const remove = useMutation({
-    mutationFn: async (id: string) => apiData(await fetch(`/api/v1/generations/${id}`, { method: "DELETE" })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["history"] }),
+    mutationFn: async (id: string) =>
+      apiData(
+        await fetch(`/api/v1/generations/${id}`, { method: "DELETE" }),
+      ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["history"] }),
   });
   const items = history.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2">
-        {[['', 'Все'], ['SUCCEEDED', 'Готовые'], ['PROCESSING', 'В работе'], ['FAILED', 'Ошибки']].map(([value, label]) => <button key={value} type="button" onClick={() => setStatus(value)} className={`rounded-full px-4 py-2 text-sm font-bold ${status === value ? "bg-accent text-accent-foreground" : "bg-surface-elevated text-muted"}`}>{label}</button>)}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Фильтр истории">
+          {FILTERS.map(([value, label]) => (
+            <Button
+              key={value}
+              variant={status === value ? "default" : "secondary"}
+              size="sm"
+              onClick={() => setStatus(value)}
+              role="tab"
+              aria-selected={status === value}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        <Link href="/app" className={buttonClassName("default", undefined, "sm")}>
+          <Plus className="size-4" />
+          Новый интерьер
+        </Link>
       </div>
-      {history.isLoading && <p className="mt-8 text-muted">Загружаем историю…</p>}
-      {history.error && <p className="mt-8 text-red-300">{history.error.message}</p>}
-      {!history.isLoading && items.length === 0 && <div className="mt-8 rounded-2xl border border-dashed border-border p-12 text-center"><h2 className="text-xl font-bold">История пока пуста</h2><Link href="/app" className={buttonClassName("primary", "mt-5 rounded-xl")}>Создать дизайн</Link></div>}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {items.map((item) => (
-          <article key={item.id} className="overflow-hidden rounded-2xl border border-border bg-background">
-            {item.resultUserId ? <HistoryImage fileId={item.resultUserId} alt={item.project.name} /> : <div className="grid aspect-[4/3] place-items-center bg-surface-elevated text-sm font-bold text-muted">{item.status}</div>}
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-3"><h2 className="font-black">{item.project.name}</h2><span className="rounded-full bg-surface-elevated px-2 py-1 text-[10px] font-bold">{item.status}</span></div>
-              <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{item.prompt}</p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted"><span>{item._count.references} реф.</span><span>·</span><span>{new Date(item.queuedAt).toLocaleDateString("ru-RU")}</span></div>
-              <div className="mt-4 grid grid-cols-2 gap-2"><Link href={`/app/${item.projectId}`} className={buttonClassName("secondary", "rounded-lg text-center")}>Открыть</Link>{item.status === "SUCCEEDED" ? <a href={`/api/v1/generations/${item.id}/download`} className={buttonClassName("secondary", "rounded-lg text-center")}>Скачать</a> : <button type="button" onClick={() => remove.mutate(item.id)} disabled={remove.isPending || ["QUEUED", "PROCESSING"].includes(item.status)} className={buttonClassName("secondary", "rounded-lg text-red-300 disabled:opacity-30")}>Удалить</button>}</div>
+
+      {history.isLoading ? (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, index) => (
+            <Skeleton key={index} className="aspect-[4/3] min-h-72" />
+          ))}
+        </div>
+      ) : null}
+
+      {history.error ? (
+        <Card className="mt-6 border-destructive/30">
+          <CardContent className="p-5 text-sm text-destructive">
+            {history.error.message}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!history.isLoading && items.length === 0 ? (
+        <Card className="mt-6 border-dashed">
+          <CardContent className="grid min-h-72 place-items-center p-8 text-center">
+            <div>
+              <span className="mx-auto grid size-12 place-items-center rounded-full bg-secondary text-muted-foreground">
+                <ImageIcon className="size-5" aria-hidden="true" />
+              </span>
+              <h2 className="mt-4 text-lg font-semibold">История пока пуста</h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                Загрузите комнату и создайте первый вариант — он появится здесь
+                вместе со всеми следующими итерациями.
+              </p>
+              <Link
+                href="/app"
+                className={buttonClassName("default", "mt-5")}
+              >
+                Создать интерьер
+              </Link>
             </div>
-          </article>
-        ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {items.map((item) => {
+          const statusCopy = STATUS_COPY[item.status] ?? {
+            label: item.status,
+            variant: "secondary" as const,
+          };
+          return (
+            <Card
+              key={item.id}
+              className="group overflow-hidden transition-colors hover:border-muted-foreground/35"
+            >
+              <div className="relative">
+                {item.resultUserId ? (
+                  <HistoryImage
+                    fileId={item.resultUserId}
+                    alt={item.project.name}
+                  />
+                ) : (
+                  <div className="grid aspect-[4/3] place-items-center bg-secondary">
+                    <ImageIcon className="size-7 text-muted-foreground" aria-hidden="true" />
+                  </div>
+                )}
+                <Badge
+                  variant={statusCopy.variant}
+                  className="absolute left-3 top-3 shadow-lg shadow-black/20"
+                >
+                  {statusCopy.label}
+                </Badge>
+              </div>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate font-semibold">{item.project.name}</h2>
+                    <p className="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                      <GitBranch className="size-3" aria-hidden="true" />
+                      {item.parentGenerationId ? "Итерация" : "Основной вариант"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                    {new Date(item.queuedAt).toLocaleDateString("ru-RU")}
+                  </span>
+                </div>
+                <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
+                  {item.prompt}
+                </p>
+                <div className="mt-3 flex gap-2 font-mono text-[10px] text-muted-foreground">
+                  <span>{item.aspectRatio.replace("RATIO_", "").replace("_", ":")}</span>
+                  <span>·</span>
+                  <span>{item._count.references} реф.</span>
+                </div>
+                <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                  <Link
+                    href={`/app/${item.projectId}`}
+                    className={buttonClassName("secondary", "flex-1", "sm")}
+                  >
+                    Открыть
+                    <ArrowRight className="size-4" />
+                  </Link>
+                  {item.status === "SUCCEEDED" ? (
+                    <a
+                      href={`/api/v1/generations/${item.id}/download`}
+                      className={buttonClassName("ghost", undefined, "icon")}
+                      aria-label="Скачать JPG"
+                    >
+                      <Download className="size-4" />
+                    </a>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => remove.mutate(item.id)}
+                      disabled={
+                        remove.isPending ||
+                        ["QUEUED", "PROCESSING"].includes(item.status)
+                      }
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label="Удалить генерацию"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-      {history.hasNextPage && <button type="button" onClick={() => history.fetchNextPage()} disabled={history.isFetchingNextPage} className={buttonClassName("secondary", "mt-6 w-full rounded-xl")}>{history.isFetchingNextPage ? "Загружаем…" : "Показать ещё"}</button>}
+
+      {history.hasNextPage ? (
+        <Button
+          variant="secondary"
+          onClick={() => history.fetchNextPage()}
+          disabled={history.isFetchingNextPage}
+          className="mt-6 w-full"
+        >
+          {history.isFetchingNextPage ? "Загружаем…" : "Показать ещё"}
+        </Button>
+      ) : null}
     </div>
   );
 }

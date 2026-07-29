@@ -11,13 +11,13 @@ export type StylePickerProps = {
 export function StylePicker({ styles, value, onChange }: StylePickerProps) {
   return (
     <fieldset>
-      <legend className="text-sm font-black text-foreground">Стиль</legend>
-      <p className="mt-1 text-xs leading-5 text-muted">
-        Выберите направление или оставьте интерьер без стилевого пресета.
+      <legend className="text-xs font-semibold text-foreground">Стиль</legend>
+      <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+        Один выбор — без сложных настроек.
       </p>
       <div className="mt-3 min-w-0 max-w-full overflow-hidden">
         <div
-          className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain px-2 py-2"
+          className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain py-2"
           role="radiogroup"
           aria-label="Стиль интерьера"
         >
@@ -26,10 +26,10 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
           return (
             <label
               key={style.code}
-              className={`workspace-focus-proxy relative w-[116px] shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 bg-background transition-colors ${
+              className={`workspace-focus-proxy relative w-[108px] shrink-0 cursor-pointer overflow-hidden rounded-lg border bg-background transition-colors ${
                 selected
-                  ? "border-accent"
-                  : "border-border hover:border-muted"
+                  ? "border-primary ring-1 ring-primary/35"
+                  : "border-border hover:border-muted-foreground/50"
               }`}
             >
               <input
@@ -58,12 +58,12 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
                   className="size-full object-cover"
                 />
               </span>
-              <span className="block truncate px-2 py-2 text-xs font-bold">
+              <span className="block truncate px-2 py-2 text-[11px] font-semibold">
                 {style.name}
               </span>
               {selected && (
                 <span
-                  className="absolute top-2 right-2 grid size-6 place-items-center rounded-full border border-accent-foreground/20 bg-accent text-accent-foreground"
+                  className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground"
                   aria-hidden="true"
                 >
                   <Check size={15} strokeWidth={3} />

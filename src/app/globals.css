@@ -1,19 +1,37 @@
 @import "tailwindcss";
 
 :root {
-  --background: #1b1b1c;
-  --surface: #232324;
-  --surface-elevated: #29292b;
-  --foreground: #f5f5f1;
-  --muted: #9c9ca1;
-  --border: #363638;
-  --accent: #afea4d;
-  --accent-hover: #baf65b;
-  --accent-foreground: #17200c;
-  --danger: #ff7474;
-  --radius-sm: 0.65rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
+  color-scheme: dark;
+  --background: #171719;
+  --foreground: #f4f4f1;
+  --card: #202022;
+  --card-foreground: #f4f4f1;
+  --popover: #232325;
+  --popover-foreground: #f4f4f1;
+  --primary: #b4f24b;
+  --primary-foreground: #142007;
+  --secondary: #2a2a2d;
+  --secondary-foreground: #f4f4f1;
+  --muted: #2a2a2d;
+  --muted-foreground: #9b9b9f;
+  --accent: #b4f24b;
+  --accent-foreground: #142007;
+  --accent-surface: #303033;
+  --destructive: #e65c62;
+  --border: #353538;
+  --input: #3a3a3d;
+  --ring: #b4f24b;
+  --success: #61d897;
+  --warning: #f2b84b;
+  --information: #70a8ff;
+  --surface: var(--card);
+  --surface-elevated: var(--secondary);
+  --accent-hover: #c0fb5c;
+  --danger: var(--destructive);
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) * 0.75);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
 }
 
 .visual-prompt-canvas,
@@ -259,24 +277,56 @@
 
 @theme inline {
   --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-elevated: var(--surface-elevated);
   --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  /* Keep legacy text-muted/text-accent utilities readable while the app is
+     migrated to shadcn's explicit *-foreground tokens. */
+  --color-muted: var(--muted-foreground);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-surface: var(--accent-surface);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-information: var(--information);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-danger: var(--danger);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
   --font-sans: "Geist", "Geist Fallback", Arial, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: "Geist", "Geist Fallback", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 30%, transparent);
+  color: var(--foreground);
 }
 a { color: inherit; text-decoration: none; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -285,51 +335,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
   outline: 3px solid color-mix(in srgb, var(--accent) 72%, white);
   outline-offset: 3px;
 }
-
-.page-grid {
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 64px 64px;
-}
-
-.hero-glow {
-  background:
-    radial-gradient(circle at 17% 20%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 28%),
-    radial-gradient(circle at 82% 66%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 25%);
-}
-
-.ticker { border-block: 1px solid var(--border); overflow: hidden; }
-.ticker__track {
-  display: flex;
-  width: max-content;
-  align-items: center;
-  gap: 2rem;
-  padding: 1.25rem 0;
-  font-size: clamp(1rem, 2vw, 1.35rem);
-  font-weight: 900;
-  font-style: italic;
-  white-space: nowrap;
-  animation: ticker 28s linear infinite;
-}
-.ticker__track b { color: var(--accent); }
-
-.room-preview {
-  background:
-    linear-gradient(155deg, transparent 44%, rgba(0, 0, 0, .4) 45%),
-    linear-gradient(24deg, #4e5049 0 32%, #343632 33% 64%, #5d5e57 65%);
-}
-.room-preview::before {
-  content: "";
-  position: absolute;
-  inset: 13% 15% 28% 48%;
-  border: 2px solid color-mix(in srgb, var(--accent) 82%, transparent);
-  border-radius: 48% 52% 45% 55%;
-  background: color-mix(in srgb, var(--accent) 11%, transparent);
-  transform: rotate(-7deg);
-}
-
-@keyframes ticker { to { transform: translateX(-48%); } }
 
 @media (max-width: 1199px) {
   .workspace-toolbar {
@@ -411,7 +416,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .ticker__track { animation: none; }
   .canvas-item,
   .workspace-toolbar__button,
   .canvas-workspace .transition-colors,
