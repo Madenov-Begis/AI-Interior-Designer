@@ -23,6 +23,13 @@ export function paymentHttpError(error: unknown): PaymentHttpError {
       status: 401,
     };
   }
+  if (error instanceof SyntaxError) {
+    return {
+      code: "VALIDATION_ERROR",
+      message: "Проверьте входные данные",
+      status: 400,
+    };
+  }
   if (error instanceof ZodError) {
     return {
       code: "VALIDATION_ERROR",
