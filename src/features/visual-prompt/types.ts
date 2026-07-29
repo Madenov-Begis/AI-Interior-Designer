@@ -9,7 +9,7 @@ export type VisualPromptCanvasState = {
   fabric: Record<string, unknown>;
 };
 
-export type VisualPromptTool = "select" | "pan" | "pen" | "marker" | "rectangle";
+export type VisualPromptTool = "select" | "pen" | "marker" | "rectangle";
 
 export type VisualPromptEditorHandle = {
   persist(): Promise<void>;

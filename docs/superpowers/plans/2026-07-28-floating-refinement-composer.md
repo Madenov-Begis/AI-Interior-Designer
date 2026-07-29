@@ -4,7 +4,7 @@
 
 **Goal:** Replace the refinement form embedded inside a generated card with an unscaled contextual toolbar and floating refinement panel anchored to the selected successful generation.
 
-**Architecture:** `CanvasViewport` remains the owner of pan/zoom geometry and renders one screen-space overlay for the selected generation. `DesignWorkspace` owns the selected canvas instance, duplicate instances, refinement mutation, and open/closed editor state. The existing composer keeps draft, reference, and submit behavior but becomes a focused popover.
+**Architecture:** `CanvasViewport` remains the owner of pan/zoom geometry and renders one screen-space overlay for the selected generation. `DesignWorkspace` owns the selected canvas instance, refinement mutation, and open/closed editor state. The existing composer keeps draft, reference, and submit behavior but becomes a focused popover.
 
 **Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Tailwind CSS, Lucide React, TanStack Query, Node test runner.
 
@@ -114,7 +114,7 @@ git commit -m "feat: add canvas overlay positioning"
 - Modify: `src/components/design/generation-canvas-card.tsx`
 
 **Interfaces:**
-- Produces: `GenerationContextOverlay` with `editorOpen`, `onToggleEditor`, `onDuplicate`, `onRemove`, and `composer`.
+- Produces: `GenerationContextOverlay` with `editorOpen`, `onToggleEditor`, `onRemove`, and `composer`.
 - Produces: `GenerationRefinementComposer` with `onClose()` and autofocus behavior.
 - Removes: `refinementComposer` from `GenerationCanvasCard`.
 
@@ -146,16 +146,13 @@ Expected: FAIL because the reducer is missing.
 
 - [ ] **Step 3: Implement contextual actions**
 
-`GenerationContextOverlay` renders:
+`GenerationContextOverlay` renders only the two customer actions:
 
 ```tsx
 <div className="generation-context-overlay">
   <div className="generation-context-actions" aria-label="Действия с вариантом">
     <button type="button" aria-expanded={editorOpen} onClick={onToggleEditor}>
       <SquarePen /> Доработать
-    </button>
-    <button type="button" onClick={onDuplicate}>
-      <Copy /> Дублировать
     </button>
     <button type="button" onClick={onRemove}>
       <Trash2 /> Удалить
@@ -215,7 +212,6 @@ git commit -m "feat: add contextual refinement controls"
 - `CanvasViewport` consumes `selectedGenerationOverlay?: ReactNode`.
 - `CanvasGenerationNode` continues to expose `id`, `height`, and `node`.
 - `DesignWorkspace` maintains `refinementEditorGenerationId: string | null`.
-- Duplicate canvas nodes use `copy:<uuid>` as node IDs and retain the original `generationId`.
 
 - [ ] **Step 1: Render one overlay in `CanvasViewport`**
 
@@ -246,7 +242,7 @@ type GenerationCanvasInstance = {
 };
 ```
 
-Base instances use `nodeId === generation.id`. “Дублировать” appends a `copy:<uuid>` instance pointing to the same generation. “Удалить” hides only the selected node ID. Both actions are local canvas operations and do not call a delete API.
+Base instances use `nodeId === generation.id`. “Удалить” hides only the selected node ID and does not call a delete API.
 
 - [ ] **Step 3: Build the selected overlay in `DesignWorkspace`**
 

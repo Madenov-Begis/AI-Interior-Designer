@@ -12,7 +12,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   type Ref,
   type ReactNode,
-  type WheelEvent as ReactWheelEvent,
 } from "react";
 import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
 import type {
@@ -64,6 +63,7 @@ export type CanvasGenerationNode = {
   ariaLabel?: string;
   height?: number;
   node: ReactNode;
+  interactive?: boolean;
 };
 
 type CanvasViewportProps = {
@@ -79,6 +79,7 @@ type CanvasViewportProps = {
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
   onEditorError(message: string | null): void;
   onSelectItem(itemId: string): void;
+  onActivateSource?(): void;
 };
 
 export function generationPosition(index: number) {
@@ -164,6 +165,7 @@ export const CanvasViewport = forwardRef<
     onHistoryStateChange,
     onEditorError,
     onSelectItem,
+    onActivateSource,
   },
   ref,
 ) {
@@ -250,7 +252,7 @@ export const CanvasViewport = forwardRef<
         viewport: viewportSize,
         overlay: selectedGenerationOverlaySize,
         margin: 16,
-        gap: 12,
+        gap: 8,
       })
     : null;
 
@@ -306,11 +308,11 @@ export const CanvasViewport = forwardRef<
     });
   }, [viewportInsets, viewportSize, worldBounds]);
 
-  const zoomAt = useCallback(
-    (nextScale: number, pointerX: number, pointerY: number) => {
+  const zoomBy = useCallback(
+    (factor: number, pointerX: number, pointerY: number) => {
       setTransform((current) => {
         const scale = clamp(
-          nextScale,
+          current.scale * factor,
           Math.min(MIN_SCALE, current.scale),
           MAX_SCALE,
         );
@@ -333,13 +335,9 @@ export const CanvasViewport = forwardRef<
 
   const zoomFromCenter = useCallback(
     (factor: number) => {
-      zoomAt(
-        transform.scale * factor,
-        viewportSize.width / 2,
-        viewportSize.height / 2,
-      );
+      zoomBy(factor, viewportSize.width / 2, viewportSize.height / 2);
     },
-    [transform.scale, viewportSize.height, viewportSize.width, zoomAt],
+    [viewportSize.height, viewportSize.width, zoomBy],
   );
 
   useImperativeHandle(
@@ -385,8 +383,47 @@ export const CanvasViewport = forwardRef<
     );
   }, [viewportInsets, viewportSize, worldBounds]);
 
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const rect = viewport.getBoundingClientRect();
+      const modeMultiplier =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? viewport.clientHeight
+            : 1;
+      const normalizedDelta = event.deltaY * modeMultiplier;
+      const factor = Math.exp(-normalizedDelta * 0.0015);
+
+      zoomBy(
+        factor,
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+      );
+    };
+
+    viewport.addEventListener("wheel", handleWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", handleWheel);
+  }, [zoomBy]);
+
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (tool !== "pan" || (event.pointerType === "mouse" && event.button !== 0)) {
+    if (
+      tool !== "select" ||
+      (event.pointerType === "mouse" && event.button !== 0)
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest("[data-canvas-item]")
+    ) {
       return;
     }
 
@@ -440,24 +477,6 @@ export const CanvasViewport = forwardRef<
     }
   }
 
-  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
-    event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const modeMultiplier =
-      event.deltaMode === WheelEvent.DOM_DELTA_LINE
-        ? 16
-        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-          ? viewportSize.height
-          : 1;
-    const normalizedDelta = event.deltaY * modeMultiplier;
-    const factor = Math.exp(-normalizedDelta * 0.0015);
-    zoomAt(
-      transform.scale * factor,
-      event.clientX - rect.left,
-      event.clientY - rect.top,
-    );
-  }
-
   function selectItem(itemId: string) {
     if (panMovedRef.current) {
       panMovedRef.current = false;
@@ -470,8 +489,8 @@ export const CanvasViewport = forwardRef<
     <div
       ref={viewportRef}
       className={`canvas-viewport ${
-        tool === "pan" ? "canvas-viewport--pan" : ""
-      } ${isPanning ? "canvas-viewport--panning" : ""}`}
+        isPanning ? "canvas-viewport--panning" : ""
+      }`}
       aria-label="Холст проекта"
       aria-describedby="canvas-viewport-instructions"
       role="region"
@@ -479,11 +498,11 @@ export const CanvasViewport = forwardRef<
       onPointerMove={handlePointerMove}
       onPointerUp={finishPan}
       onPointerCancel={finishPan}
-      onWheel={handleWheel}
     >
       <p id="canvas-viewport-instructions" className="sr-only">
-        Выберите инструмент перемещения, чтобы двигать холст. Используйте
-        кнопки масштаба, чтобы приблизить, отдалить или вписать всё содержимое.
+        Инструмент со стрелкой выбирает объекты и перемещает холст перетаскиванием
+        свободной области. Используйте кнопки масштаба, чтобы приблизить,
+        отдалить или вписать всё содержимое.
       </p>
       <div
         className="canvas-world"
@@ -497,16 +516,20 @@ export const CanvasViewport = forwardRef<
           aria-label={`Исходное изображение${
             selectedItemId === "source" ? ", выбрано" : ""
           }`}
+          data-canvas-item
           className={`canvas-item ${
             selectedItemId === "source" ? "canvas-item--selected" : ""
-          }`}
+          } ${tool === "select" ? "canvas-item--interactive" : ""}`}
           style={{
             left: SOURCE_X,
             top: SOURCE_Y,
             width: CARD_WIDTH,
           }}
           tabIndex={0}
-          onClick={() => selectItem("source")}
+          onClick={() => {
+            selectItem("source");
+            if (tool === "select") onActivateSource?.();
+          }}
           onKeyDown={(event) => {
             if (
               event.target === event.currentTarget &&
@@ -514,6 +537,7 @@ export const CanvasViewport = forwardRef<
             ) {
               event.preventDefault();
               selectItem("source");
+              if (tool === "select") onActivateSource?.();
             }
           }}
         >
@@ -567,9 +591,14 @@ export const CanvasViewport = forwardRef<
               aria-label={`${generation.ariaLabel ?? "Результат генерации"}${
                 selectedItemId === generation.id ? ", выбрано" : ""
               }`}
+              data-canvas-item
               className={`canvas-item ${
                 selectedItemId === generation.id
                   ? "canvas-item--selected"
+                  : ""
+              } ${
+                tool === "select" && generation.interactive
+                  ? "canvas-item--interactive"
                   : ""
               }`}
               style={{
@@ -579,12 +608,14 @@ export const CanvasViewport = forwardRef<
                 height: generation.height ?? RESULT_CARD_HEIGHT,
               }}
               tabIndex={0}
-              onClick={() => selectItem(generation.id)}
+              onClick={() => {
+                selectItem(generation.id);
+              }}
               onKeyDown={(event) => {
                 if (
                   event.target === event.currentTarget &&
                   (event.key === "Enter" || event.key === " ")
-                ) {
+                  ) {
                   event.preventDefault();
                   selectItem(generation.id);
                 }

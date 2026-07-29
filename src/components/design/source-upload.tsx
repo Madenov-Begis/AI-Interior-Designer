@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ImagePlus, LoaderCircle, UploadCloud } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
 import {
   isAcceptedSourceFile,
@@ -9,15 +10,12 @@ import {
   uploadProjectSource,
 } from "@/features/media/source-upload-client";
 
-type UploadState = "idle" | "uploading" | "success" | "error";
+type UploadState = "idle" | "uploading" | "error";
 
 type SourceUploadProps = {
   projectId: string;
   initialProjectName: string;
 };
-
-const SOURCE_REQUIREMENTS =
-  "JPG, PNG или WEBP · до 15 МБ · минимум 512 × 512 px";
 
 export function SourceUpload({
   projectId,
@@ -27,29 +25,15 @@ export function SourceUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
   const controllerRef = useRef<AbortController>(null);
-  const previewUrlRef = useRef<string>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [state, setState] = useState<UploadState>("idle");
-  const [message, setMessage] = useState(SOURCE_REQUIREMENTS);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     return () => {
       controllerRef.current?.abort();
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-      }
     };
   }, []);
-
-  function showPreview(nextFile: File) {
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
-    }
-    const nextPreviewUrl = URL.createObjectURL(nextFile);
-    previewUrlRef.current = nextPreviewUrl;
-    setPreviewUrl(nextPreviewUrl);
-  }
 
   async function startUpload(nextFile: File) {
     controllerRef.current?.abort();
@@ -59,7 +43,7 @@ export function SourceUpload({
     requestIdRef.current = requestId;
 
     setState("uploading");
-    setMessage("Загружаем и обрабатываем фотографию…");
+    setMessage("");
 
     try {
       await uploadProjectSource({
@@ -83,8 +67,6 @@ export function SourceUpload({
       }
 
       if (requestId !== requestIdRef.current) return;
-      setState("success");
-      setMessage("Фото готово. Открываем инструменты…");
       router.refresh();
     } catch (error) {
       if (
@@ -111,13 +93,12 @@ export function SourceUpload({
     }
 
     setFile(nextFile);
-    showPreview(nextFile);
     void startUpload(nextFile);
   }
 
   return (
     <div
-      className="relative size-full min-h-[420px] overflow-hidden bg-background"
+      className="page-grid relative size-full min-h-[420px] overflow-hidden bg-background"
       onDragOver={(event) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
@@ -127,36 +108,50 @@ export function SourceUpload({
         chooseFile(event.dataTransfer.files[0]);
       }}
     >
-      {previewUrl ? (
-        // The local blob URL exists only in the browser and is not optimized by Next Image.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={previewUrl}
-          alt="Предпросмотр загруженной комнаты"
-          className="absolute inset-0 size-full object-contain"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="page-grid absolute inset-0 grid size-full cursor-pointer place-items-center p-6 text-center transition-colors hover:bg-surface-elevated/30"
-        >
-          <span>
-            <span className="mx-auto grid size-16 place-items-center rounded-full bg-accent text-3xl font-light text-accent-foreground">
-              ＋
+      <div className="absolute inset-0 grid place-items-center p-6">
+        <div className="w-full max-w-[340px]">
+          <div className="mb-3 text-center">
+            <span className="mx-auto grid size-10 place-items-center rounded-full bg-secondary text-sm font-bold text-muted-foreground">
+              01
             </span>
-            <b className="mt-5 block text-xl sm:text-2xl">
-              Загрузите фотографию комнаты
+            <p className="mt-2 text-xs font-semibold">Фото комнаты</p>
+          </div>
+          <button
+            type="button"
+            disabled={state === "uploading"}
+            onClick={() => inputRef.current?.click()}
+            className="group flex aspect-[4/5] w-full cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-card p-7 text-center shadow-2xl shadow-black/25 transition-colors hover:border-primary hover:bg-[#28282a] disabled:cursor-wait disabled:border-primary/45 disabled:hover:bg-card"
+          >
+            <span className="grid size-14 place-items-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-disabled:bg-primary/10 group-disabled:text-primary">
+              {state === "uploading" ? (
+                <LoaderCircle
+                  className="size-6 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <ImagePlus className="size-6" aria-hidden="true" />
+              )}
+            </span>
+            <b className="mt-5 block text-lg">
+              {state === "uploading"
+                ? "Загружаем фото…"
+                : "Загрузите фото комнаты"}
             </b>
-            <span className="mt-2 block text-sm leading-6 text-muted">
-              Перетащите файл прямо на холст или нажмите, чтобы выбрать
+            <span className="mt-2 block text-sm leading-6 text-muted-foreground">
+              {state === "uploading"
+                ? "После загрузки сразу откроются холст и настройки"
+                : "Перетащите файл сюда или нажмите, чтобы выбрать"}
             </span>
-            <span className="mt-1 block text-xs text-muted">
-              {SOURCE_REQUIREMENTS}
+            <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+              <UploadCloud className="size-3.5" aria-hidden="true" />
+              JPG, PNG или WEBP · до 15 МБ
             </span>
-          </span>
-        </button>
-      )}
+          </button>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Фото появится прямо на холсте
+          </p>
+        </div>
+      </div>
 
       <input
         ref={inputRef}
@@ -169,21 +164,6 @@ export function SourceUpload({
           event.currentTarget.value = "";
         }}
       />
-
-      {state === "uploading" ? (
-        <div
-          className="absolute inset-0 grid place-items-center bg-black/45 p-6 text-center backdrop-blur-[2px]"
-          role="status"
-        >
-          <div className="rounded-2xl border border-white/10 bg-black/70 px-6 py-5 shadow-2xl">
-            <span className="mx-auto block size-8 animate-spin rounded-full border-2 border-white/25 border-t-accent" />
-            <b className="mt-4 block">Обрабатываем фото</b>
-            <span className="mt-1 block text-sm text-white/65">
-              Холст откроется автоматически
-            </span>
-          </div>
-        </div>
-      ) : null}
 
       {state === "error" ? (
         <div
@@ -212,14 +192,11 @@ export function SourceUpload({
         </div>
       ) : null}
 
-      {state === "success" ? (
-        <div
-          className="absolute right-4 bottom-4 rounded-xl border border-accent/25 bg-black/75 px-4 py-3 text-sm font-bold text-accent backdrop-blur"
-          role="status"
-        >
-          {message}
-        </div>
-      ) : null}
+      <p className="sr-only" aria-live="polite">
+        {state === "uploading"
+          ? "Фотография загружается. После загрузки откроется холст."
+          : ""}
+      </p>
     </div>
   );
 }

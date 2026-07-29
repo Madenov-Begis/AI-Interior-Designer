@@ -32,6 +32,12 @@ export type WorkspaceReference = {
 };
 
 export type DesignWorkspaceProps = {
+  user: {
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  };
+  creditBalance: number;
   project: {
     id: string;
     name: string;

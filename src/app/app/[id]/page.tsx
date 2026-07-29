@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { DesignWorkspace } from "@/components/design/design-workspace";
+import { getCreditWallet } from "@/features/credits/service";
 import { findOwnedProject } from "@/features/projects/service";
 import type { VisualPromptCanvasState } from "@/features/visual-prompt/types";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
@@ -23,6 +24,12 @@ export default async function ProjectPage({
   const { id } = await params;
   const project = await findOwnedProject(user.id, id);
   if (!project) notFound();
+  const wallet = await getCreditWallet(user.id, 0);
+  const userName =
+    (typeof user.user_metadata.full_name === "string" &&
+      user.user_metadata.full_name) ||
+    user.email?.split("@")[0] ||
+    "Пользователь";
 
   let sourceUrl: string | null = null;
   if (project.sourceImage && project.sourcePreview) {
@@ -69,6 +76,15 @@ export default async function ProjectPage({
   return (
     <main className="h-dvh overflow-hidden bg-background text-foreground">
       <DesignWorkspace
+        user={{
+          name: userName,
+          email: user.email ?? "",
+          avatarUrl:
+            typeof user.user_metadata.avatar_url === "string"
+              ? user.user_metadata.avatar_url
+              : null,
+        }}
+        creditBalance={wallet.balance}
         project={{
           id: project.id,
           name: project.name,

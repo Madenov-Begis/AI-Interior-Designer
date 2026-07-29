@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, SquarePen, Trash2 } from "lucide-react";
+import { SquarePen, Trash2 } from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -11,7 +11,6 @@ type Props = {
   editorOpen: boolean;
   composer: ReactNode;
   onToggleEditor(): void;
-  onDuplicate(): void;
   onRemove(): void;
 };
 
@@ -19,7 +18,6 @@ export function GenerationContextOverlay({
   editorOpen,
   composer,
   onToggleEditor,
-  onDuplicate,
   onRemove,
 }: Props) {
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -50,12 +48,8 @@ export function GenerationContextOverlay({
           data-active={editorOpen || undefined}
           onClick={onToggleEditor}
         >
-          <SquarePen size={18} aria-hidden="true" />
+          <SquarePen size={16} aria-hidden="true" />
           Доработать
-        </button>
-        <button type="button" onClick={onDuplicate}>
-          <Copy size={18} aria-hidden="true" />
-          Дублировать
         </button>
         <button
           type="button"
@@ -65,7 +59,7 @@ export function GenerationContextOverlay({
             }
           }}
         >
-          <Trash2 size={18} aria-hidden="true" />
+          <Trash2 size={16} aria-hidden="true" />
           Удалить
         </button>
       </div>

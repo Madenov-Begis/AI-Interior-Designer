@@ -1,20 +1,25 @@
 "use client";
 
-import { CheckCircle2, KeyRound, LogOut, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  Code2,
+  Copy,
+  FolderOpen,
+  ImageIcon,
+  LogOut,
+  Plus,
+  Sparkle,
+  UsersRound,
+} from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonClassName } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RenoaPanel } from "@/components/design-system/surfaces";
 import {
   type CreditWalletPayload,
   presentWalletSummary,
@@ -46,20 +51,52 @@ type ProfilePayload = {
   wallet: CreditWalletPayload;
 };
 
-async function apiData(response: Response) {
-  const payload = await response.json();
-  if (!response.ok) {
+type ProfileProject = {
+  id: string;
+  name: string;
+  previewUrl: string | null;
+  updatedAt: string;
+  generationCount: number;
+};
+
+async function apiData<T>(
+  response: Response | Promise<Response>,
+): Promise<T> {
+  const resolved = await response;
+  const payload = await resolved.json();
+  if (!resolved.ok) {
     throw new Error(payload.error?.message ?? "Запрос не выполнен");
   }
-  return payload.data;
+  return payload.data as T;
 }
 
+function ProfileLoading() {
+  return (
+    <div className="mx-auto max-w-[1080px] px-5 py-14">
+      <Skeleton className="mx-auto size-28 rounded-full" />
+      <Skeleton className="mx-auto mt-5 h-9 w-52" />
+      <div className="mt-12 grid gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
+        <Skeleton className="h-[520px] rounded-[24px]" />
+        <Skeleton className="h-[520px] rounded-[24px]" />
+      </div>
+    </div>
+  );
+}
 export function ProfilePanel() {
   const queryClient = useQueryClient();
   const profile = useQuery({
     queryKey: ["profile"],
-    queryFn: async () =>
-      (await apiData(await fetch("/api/v1/profile"))) as ProfilePayload,
+    queryFn: () =>
+      apiData<ProfilePayload>(
+        fetch("/api/v1/profile", { cache: "no-store" }),
+      ),
+  });
+  const projects = useQuery({
+    queryKey: ["projects", "profile"],
+    queryFn: () =>
+      apiData<{ items: ProfileProject[] }>(
+        fetch("/api/v1/projects?limit=4", { cache: "no-store" }),
+      ),
   });
   const credits = useQuery(
     creditQueryOptions(
@@ -69,9 +106,9 @@ export function ProfilePanel() {
   );
   const nameInputRef = useRef<HTMLInputElement>(null);
   const update = useMutation({
-    mutationFn: async () =>
+    mutationFn: () =>
       apiData(
-        await fetch("/api/v1/profile", {
+        fetch("/api/v1/profile", {
           method: "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -83,161 +120,235 @@ export function ProfilePanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
   });
 
-  if (profile.isLoading) {
-    return (
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <Skeleton className="h-80" />
-        <Skeleton className="h-80" />
-      </div>
-    );
-  }
+  if (profile.isLoading) return <ProfileLoading />;
   if (profile.error || !profile.data) {
     return (
-      <Card className="border-destructive/30">
-        <CardContent className="p-5 text-sm text-destructive">
+      <div className="mx-auto max-w-3xl p-8">
+        <RenoaPanel className="border-destructive/30 p-5 text-sm text-destructive">
           {profile.error?.message ?? "Профиль недоступен"}
-        </CardContent>
-      </Card>
+        </RenoaPanel>
+      </div>
     );
   }
 
   const { usage } = profile.data;
   const wallet = credits.data ?? profile.data.wallet;
   const walletSummary = presentWalletSummary(wallet);
+  const displayName =
+    profile.data.profile.displayName ||
+    profile.data.profile.email.split("@")[0] ||
+    "Пользователь";
+  const initials = displayName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="grid gap-4">
-        <Card>
-          <CardHeader className="flex-row items-start gap-4">
-            <div className="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
-              <UserRound className="size-5" aria-hidden="true" />
+    <div className="renoa-grid min-h-[calc(100dvh-72px)] px-5 py-12 sm:px-8">
+      <div className="mx-auto max-w-[1080px]">
+        <div className="text-center">
+          <div className="mx-auto grid size-28 place-items-center rounded-full border border-border bg-[#8f6f62] text-5xl font-medium text-white shadow-xl shadow-black/25">
+            {initials}
+          </div>
+          <h1 className="mt-5 text-3xl font-black tracking-[-0.035em]">
+            {displayName}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {profile.data.profile.email}
+          </p>
+        </div>
+
+        <div className="mt-12 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
+          <RenoaPanel className="p-6">
+            <h2 className="text-2xl font-black italic">Проекты</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/app"
+                className="flex min-h-36 items-center gap-4 rounded-[18px] border border-dashed border-border px-5 transition-colors hover:border-primary"
+              >
+                <Plus className="size-8 text-primary" />
+                <div>
+                  <p className="font-bold">Создать проект</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Фото сразу на холсте
+                  </p>
+                </div>
+                <ArrowRight className="ml-auto size-5 text-muted-foreground" />
+              </Link>
+
+              {(projects.data?.items ?? []).slice(0, 3).map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/app/${project.id}`}
+                  className="flex min-h-36 items-center gap-4 rounded-[18px] border border-border p-3 transition-colors hover:border-muted-foreground/45"
+                >
+                  <span className="grid h-24 w-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary">
+                    {project.previewUrl ? (
+                      // Signed project image cannot use a stable Next image loader.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={project.previewUrl}
+                        alt={project.name}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="size-5 text-muted-foreground" />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <b className="block truncate">{project.name}</b>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {new Date(project.updatedAt).toLocaleDateString("ru-RU")}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Изображений: {project.generationCount}
+                    </span>
+                  </span>
+                  <ArrowRight className="ml-auto size-5 shrink-0 text-muted-foreground" />
+                </Link>
+              ))}
             </div>
-            <div>
-              <CardTitle>Личные данные</CardTitle>
-              <CardDescription className="mt-1">
-                Имя видно только внутри вашего аккаунта.
-              </CardDescription>
+            <Link
+              href="/app/history"
+              className="mt-4 flex min-h-24 items-center gap-4 rounded-[18px] border border-border px-5 transition-colors hover:bg-secondary"
+            >
+              <FolderOpen className="size-7" />
+              <span>
+                <b className="block">
+                  Все проекты {projects.data?.items.length ?? 0}
+                </b>
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  Поиск, сортировка и управление
+                </span>
+              </span>
+              <ArrowRight className="ml-auto size-5 text-muted-foreground" />
+            </Link>
+          </RenoaPanel>
+
+          <div className="grid gap-5">
+            <div className="grid grid-cols-2 gap-4">
+              <RenoaPanel className="border-primary bg-primary p-6 text-primary-foreground">
+                <Sparkle className="size-5 fill-current" />
+                <p className="mt-5 text-4xl font-black italic">
+                  {wallet.balance}
+                </p>
+                <p className="mt-2 text-sm font-bold">Баланс кредитов</p>
+                <Link
+                  href="/app/credits"
+                  className={buttonClassName(
+                    "outline",
+                    "mt-5 border-0 bg-white text-[#19191b] hover:bg-white/90",
+                    "sm",
+                  )}
+                >
+                  <Plus className="size-4" />
+                  Пополнить
+                </Link>
+              </RenoaPanel>
+              <RenoaPanel className="p-6">
+                <Sparkle className="size-5 text-primary" />
+                <p className="mt-5 text-4xl font-black italic">{usage.used}</p>
+                <p className="mt-2 text-sm font-bold">Сгенерировано</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Всего изображений
+                </p>
+              </RenoaPanel>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-xs font-semibold">
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                [Clock3, "История баланса", "/app/credits"],
+                [Code2, "Кабинет API", "/app/profile"],
+                [UsersRound, "Кредиты за друзей", "/app/profile"],
+                [UsersRound, "Общий баланс", "/app/profile"],
+              ].map(([Icon, label, href]) => {
+                const ItemIcon = Icon as typeof Clock3;
+                return (
+                  <Link key={label as string} href={href as string}>
+                    <RenoaPanel className="grid min-h-32 place-items-center p-4 text-center transition-colors hover:bg-secondary">
+                      <span>
+                        <ItemIcon className="mx-auto size-5 text-muted-foreground" />
+                        <b className="mt-3 block text-sm">{label as string}</b>
+                      </span>
+                    </RenoaPanel>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <RenoaPanel className="p-6">
+              <h2 className="text-xl font-black italic">Данные аккаунта</h2>
+              <label className="mt-5 block text-xs font-bold text-muted-foreground">
                 Имя
                 <Input
                   ref={nameInputRef}
                   defaultValue={profile.data.profile.displayName ?? ""}
                   maxLength={120}
+                  className="mt-2"
                 />
               </label>
-              <label className="grid gap-2 text-xs font-semibold">
+              <label className="mt-4 block text-xs font-bold text-muted-foreground">
                 Email
                 <Input
                   value={profile.data.profile.email}
                   disabled
-                  className="text-muted-foreground"
+                  className="mt-2"
                 />
               </label>
-            </div>
-            {update.error ? (
-              <p className="mt-4 text-sm text-destructive" role="alert">
-                {update.error.message}
-              </p>
-            ) : null}
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-background/60 p-3">
+                <span className="grid size-10 place-items-center rounded-full bg-white font-bold text-[#4285f4]">
+                  G
+                </span>
+                <span className="min-w-0 flex-1">
+                  <b className="block text-sm">Google</b>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {profile.data.profile.email}
+                  </span>
+                </span>
+                <CheckCircle2 className="size-5 text-success" />
+              </div>
+              {update.error ? (
+                <p className="mt-3 text-sm text-destructive" role="alert">
+                  {update.error.message}
+                </p>
+              ) : null}
+              <div className="mt-5 flex gap-3">
+                <Button
+                  onClick={() => update.mutate()}
+                  disabled={update.isPending}
+                >
+                  {update.isPending ? "Сохраняем…" : "Сохранить"}
+                </Button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 px-3 text-sm text-muted-foreground hover:text-foreground"
+                  onClick={() =>
+                    navigator.clipboard.writeText(profile.data.profile.email)
+                  }
+                >
+                  <Copy className="size-4" />
+                  Копировать email
+                </button>
+              </div>
+            </RenoaPanel>
+
+            <p className="px-2 text-xs leading-5 text-muted-foreground">
+              {walletSummary.availableGenerationsText} · {usage.plan.name}
+            </p>
             <Button
-              onClick={() => update.mutate()}
-              disabled={update.isPending}
-              className="mt-5"
+              variant="ghost"
+              className="justify-center text-muted-foreground hover:text-destructive"
+              onClick={async () => {
+                await fetch("/api/v1/auth/logout", { method: "POST" });
+                window.location.href = "/";
+              }}
             >
-              {update.isPending ? "Сохраняем…" : "Сохранить изменения"}
+              <LogOut className="size-4" />
+              Выйти
             </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <KeyRound className="size-4 text-primary" aria-hidden="true" />
-              Способ входа
-            </CardTitle>
-            <CardDescription>
-              Авторизация защищает проекты, историю и результаты.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary/55 p-3">
-              <span className="grid size-9 place-items-center rounded-full bg-background text-sm font-bold">
-                G
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Google подключён</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {profile.data.profile.email}
-                </p>
-              </div>
-              <CheckCircle2 className="size-5 text-success" aria-label="Подключено" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid content-start gap-4">
-        <Card className="border-primary/30 bg-primary/[0.055]">
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle>{walletSummary.balanceText}</CardTitle>
-              <Badge variant="outline">Кредиты Renoa</Badge>
-            </div>
-            <CardDescription>
-              Для всех проектов и итераций.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {walletSummary.availableGenerationsText}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {walletSummary.generationCostText}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {walletSummary.expirationText}
-                </span>
-              </div>
-              <div className="border-t border-primary/15 pt-3">
-                <p className="text-xs font-semibold text-muted-foreground">
-                  {usage.plan.name} · {usage.plan.watermarkRequired
-                    ? "Результаты с водяным знаком"
-                    : "Результаты без водяного знака"}
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/app/credits"
-              prefetch={false}
-              className={buttonClassName("outline", "mt-5 w-full")}
-            >
-              Открыть кредиты
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Button
-          variant="ghost"
-          className="justify-start text-muted-foreground hover:text-destructive"
-          onClick={async () => {
-            await fetch("/api/v1/auth/logout", { method: "POST" });
-            window.location.href = "/";
-          }}
-        >
-          <LogOut className="size-4" />
-          Выйти из аккаунта
-        </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

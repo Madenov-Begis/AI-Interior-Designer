@@ -2,7 +2,6 @@
 
 import {
   Eraser,
-  Hand,
   Highlighter,
   MousePointer2,
   PenLine,
@@ -35,8 +34,11 @@ const TOOLS: Array<{
   label: string;
   icon: ComponentType<{ size?: number; strokeWidth?: number }>;
 }> = [
-  { id: "select", label: "Выбрать объект", icon: MousePointer2 },
-  { id: "pan", label: "Перемещать холст", icon: Hand },
+  {
+    id: "select",
+    label: "Выбирать объекты и перемещать холст",
+    icon: MousePointer2,
+  },
   { id: "pen", label: "Рисовать ручкой", icon: PenLine },
   { id: "marker", label: "Рисовать маркером", icon: Highlighter },
   { id: "rectangle", label: "Выделить прямоугольником", icon: Square },
@@ -63,13 +65,10 @@ function ToolbarButton({
       aria-label={label}
       title={label}
       aria-pressed={pressed}
+      data-active={pressed || undefined}
       disabled={disabled}
       onClick={onClick}
-      className={`workspace-toolbar__button ${
-        pressed
-          ? "bg-accent text-accent-foreground"
-          : "text-muted hover:bg-surface-elevated hover:text-foreground"
-      } disabled:pointer-events-none disabled:opacity-30`}
+      className="workspace-toolbar__button disabled:pointer-events-none disabled:opacity-30"
     >
       {children}
     </button>
@@ -104,7 +103,7 @@ export function WorkspaceToolbar({
             pressed={tool === id}
             onClick={() => {
               onToolChange(id);
-              if (id === "select" || id === "pan") setSettingsOpen(false);
+              if (id === "select") setSettingsOpen(false);
             }}
           >
             <Icon size={19} strokeWidth={2.1} />

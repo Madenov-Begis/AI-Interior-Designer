@@ -1,24 +1,16 @@
 "use client";
 
-import {
-  Coins,
-  History,
-  Plus,
-  Redo2,
-  ScanLine,
-  Undo2,
-  UserRound,
-} from "lucide-react";
-import Link from "next/link";
 import { type KeyboardEvent, useRef, useState } from "react";
-import { APP_NAME } from "@/config/brand";
-import { Button } from "@/components/ui/button";
+import { RenoaAppHeader } from "@/components/design-system/app-header";
+import type { RenoaUserSummary } from "@/components/design-system/account-menu";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 type WorkspaceHeaderProps = {
   projectId: string;
   initialName: string;
+  user: RenoaUserSummary;
+  creditBalance?: number | null;
   canUndo: boolean;
   canRedo: boolean;
   onUndo(): void;
@@ -28,17 +20,17 @@ type WorkspaceHeaderProps = {
 async function readError(response: Response) {
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(payload?.error?.message ?? "Не удалось сохранить название проекта");
+    throw new Error(
+      payload?.error?.message ?? "Не удалось сохранить название проекта",
+    );
   }
 }
 
 export function WorkspaceHeader({
   projectId,
   initialName,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
+  user,
+  creditBalance,
 }: WorkspaceHeaderProps) {
   const confirmedNameRef = useRef(initialName);
   const [name, setName] = useState(initialName);
@@ -91,61 +83,38 @@ export function WorkspaceHeader({
   }[saveState];
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card px-3 sm:px-4">
-      <Link
-        href="/app"
-        className="mr-1 hidden items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex"
-        aria-label={`${APP_NAME} — новый интерьер`}
-      >
-        <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-          <ScanLine className="size-[18px]" aria-hidden="true" />
-        </span>
-        <span className="hidden text-sm font-black uppercase tracking-[0.12em] lg:inline">
-          {APP_NAME}
-        </span>
-      </Link>
-      <span className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
-      <Link
-        href="/app"
-        className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent-surface hover:text-foreground"
-        aria-label="Создать новый интерьер"
-      >
-        <Plus className="size-[18px]" aria-hidden="true" />
-      </Link>
-      <div className="min-w-0 flex-1 px-1">
-        <label className="sr-only" htmlFor="workspace-project-name">Название проекта</label>
-        <input
-          id="workspace-project-name"
-          value={name}
-          maxLength={120}
-          onChange={(event) => {
-            setName(event.target.value);
-            setSaveState("idle");
-          }}
-          onBlur={() => void saveName()}
-          onKeyDown={handleNameKeyDown}
-          className="w-full max-w-md rounded-lg bg-transparent px-2 py-1.5 text-sm font-semibold outline-none transition-colors hover:bg-accent-surface focus:bg-accent-surface"
-        />
-        <p className={`h-3 px-2 font-mono text-[9px] ${saveState === "error" ? "text-red-300" : "text-muted-foreground"}`} aria-live="polite">{saveMessage}</p>
-      </div>
-      <div className="hidden items-center gap-1 lg:flex">
-        <Button variant="ghost" size="icon" onClick={onUndo} disabled={!canUndo} aria-label="Отменить">
-          <Undo2 className="size-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onRedo} disabled={!canRedo} aria-label="Повторить">
-          <Redo2 className="size-4" />
-        </Button>
-      </div>
-      <Link href="/app/history" className="hidden size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent-surface hover:text-foreground md:flex" aria-label="История">
-        <History className="size-[18px]" />
-      </Link>
-      <Link href="/app/credits" className="hidden h-10 items-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 font-mono text-xs font-semibold text-primary transition-colors hover:bg-primary/12 sm:flex">
-        <Coins className="size-4" />
-        4 / генерация
-      </Link>
-      <Link href="/app/profile" className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-secondary text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground" aria-label="Открыть профиль">
-        <UserRound className="size-[18px]" />
-      </Link>
-    </header>
+    <RenoaAppHeader
+      user={user}
+      creditBalance={creditBalance}
+      middle={
+        <div className="max-w-[260px]">
+          <label className="sr-only" htmlFor="workspace-project-name">
+            Название проекта
+          </label>
+          <input
+            id="workspace-project-name"
+            value={name}
+            maxLength={120}
+            onChange={(event) => {
+              setName(event.target.value);
+              setSaveState("idle");
+            }}
+            onBlur={() => void saveName()}
+            onKeyDown={handleNameKeyDown}
+            className="w-full truncate rounded-lg bg-transparent px-2 py-1 text-sm font-semibold outline-none transition-colors hover:bg-secondary focus:bg-secondary"
+          />
+          <p
+            className={`h-3 px-2 text-[9px] ${
+              saveState === "error"
+                ? "text-destructive"
+                : "text-muted-foreground"
+            }`}
+            aria-live="polite"
+          >
+            {saveMessage}
+          </p>
+        </div>
+      }
+    />
   );
 }

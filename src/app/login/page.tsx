@@ -1,4 +1,4 @@
-import { KeyRound, ScanLine, ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldCheck, Sparkle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -26,13 +26,11 @@ export default async function LoginPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
-      <Card className="w-full max-w-md shadow-2xl shadow-black/35">
+      <Card className="w-full max-w-md rounded-[24px] shadow-2xl shadow-black/35">
         <CardHeader className="p-6 sm:p-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <ScanLine className="size-5" aria-hidden="true" />
-            </span>
-            <span className="text-sm font-black uppercase tracking-[0.12em]">{APP_NAME}</span>
+            <Sparkle className="size-5 fill-primary text-primary" aria-hidden="true" />
+            <span className="text-lg font-black italic tracking-[-0.045em]">{APP_NAME}</span>
           </Link>
           <p className="mt-8 font-mono text-[10px] font-semibold tracking-[0.18em] text-primary uppercase">Личный кабинет</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">Войдите, чтобы начать интерьер</h1>

@@ -73,15 +73,20 @@ export function GenerationRefinementComposer({
   }, [generationId, prompt, userScope]);
 
   useEffect(() => {
-    promptRef.current?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+    const frame = requestAnimationFrame(() => promptRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape" || pending) return;
       event.preventDefault();
       onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [onClose, pending]);
 
   async function submit() {
     if (
@@ -100,13 +105,12 @@ export function GenerationRefinementComposer({
   }
 
   return (
-    <div
+    <section
       id="generation-refinement-popover"
       role="dialog"
       aria-labelledby={`refinement-title-${generationId}`}
       className="generation-refinement-popover"
       onPointerDown={(event) => event.stopPropagation()}
-      onClick={(event) => event.stopPropagation()}
       onDragOver={(event) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
@@ -125,7 +129,7 @@ export function GenerationRefinementComposer({
         <div>
           <h2
             id={`refinement-title-${generationId}`}
-            className="text-lg font-black text-foreground"
+            className="text-base font-black text-foreground"
           >
             Опишите изменения
           </h2>
@@ -136,10 +140,11 @@ export function GenerationRefinementComposer({
         <button
           type="button"
           onClick={onClose}
-          className="grid size-10 shrink-0 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          disabled={pending}
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           aria-label="Закрыть редактор доработки"
         >
-          <X size={19} aria-hidden="true" />
+          <X size={17} aria-hidden="true" />
         </button>
       </div>
       <label
@@ -153,10 +158,10 @@ export function GenerationRefinementComposer({
         id={`refinement-prompt-${generationId}`}
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
-        rows={4}
+        rows={3}
         maxLength={4000}
         placeholder="Например: сделай фасады темнее и добавь светильник из референса"
-        className="mt-4 w-full resize-none rounded-2xl border border-border bg-background px-4 py-3.5 text-sm leading-6 outline-none transition-colors focus:border-accent"
+        className="mt-3 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-5 outline-none transition-colors focus:border-accent"
       />
       <p className="-mt-7 mr-3 text-right text-xs text-muted" aria-live="polite">
         {prompt.length} / 4000
@@ -270,6 +275,6 @@ export function GenerationRefinementComposer({
           ) : null}
         </p>
       ) : null}
-    </div>
+    </section>
   );
 }

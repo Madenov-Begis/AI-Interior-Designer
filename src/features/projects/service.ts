@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
 import { getDb } from "@/lib/db";
 
 const projectSummarySelect = {
@@ -9,8 +10,32 @@ const projectSummarySelect = {
   aspectRatio: true,
   createdAt: true,
   updatedAt: true,
-  sourcePreview: { select: { id: true, width: true, height: true } },
-} as const;
+  sourcePreview: {
+    select: {
+      id: true,
+      width: true,
+      height: true,
+      bucket: true,
+      path: true,
+    },
+  },
+  generations: {
+    where: { status: "SUCCEEDED", resultUserId: { not: null } },
+    orderBy: [{ completedAt: "desc" }, { id: "desc" }],
+    take: 1,
+    select: {
+      resultUser: {
+        select: {
+          bucket: true,
+          path: true,
+          width: true,
+          height: true,
+        },
+      },
+    },
+  },
+  _count: { select: { generations: true } },
+} satisfies Prisma.ProjectSelect;
 
 export function createProject(userId: string, name: string) {
   return getDb().project.create({ data: { userId, name }, select: projectSummarySelect });

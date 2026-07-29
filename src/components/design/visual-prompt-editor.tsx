@@ -84,7 +84,6 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       ) => {
         const isDrawing = nextTool === "pen" || nextTool === "marker";
         const isSelecting = nextTool === "select";
-        const isPanning = nextTool === "pan";
 
         canvas.isDrawingMode = isDrawing;
         canvas.selection = isSelecting;
@@ -92,11 +91,15 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         canvas.defaultCursor =
           nextTool === "rectangle"
             ? "crosshair"
-            : isPanning
-              ? "grab"
+            : isSelecting
+              ? "pointer"
               : "default";
         canvas.forEachObject((object) =>
-          object.set({ selectable: isSelecting, evented: isSelecting }),
+          object.set({
+            selectable: isSelecting,
+            evented: isSelecting,
+            hoverCursor: isSelecting ? "pointer" : "default",
+          }),
         );
 
         if (isDrawing && canvas.freeDrawingBrush) {
@@ -105,7 +108,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             nextTool === "marker" ? `${nextColor}66` : nextColor;
         }
 
-        canvas.upperCanvasEl.style.pointerEvents = isPanning ? "none" : "auto";
+        canvas.upperCanvasEl.style.pointerEvents = "auto";
         canvas.wrapperEl.style.touchAction =
           isDrawing || nextTool === "rectangle" ? "none" : "auto";
         canvas.discardActiveObject();

@@ -1,7 +1,5 @@
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 
 const examples = [
   { title: "Гостиная", style: "Джапанди", image: "/images/interior-styles/japandi.webp" },
@@ -14,26 +12,29 @@ const examples = [
 
 export function ExamplesSection() {
   return (
-    <section className="border-b border-border">
-      <div className="mx-auto max-w-[1480px] px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
-        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+    <section id="examples" className="border-b border-border bg-card/35">
+      <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-28">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Примеры
             </p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
-              Комнаты и стили
+            <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.055em] sm:text-6xl">
+              Подходит для разных комнат
             </h2>
           </div>
           <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            Начните со знакомого направления, а затем уточняйте результат
-            обычным текстом и референсами.
+            Покажите Renoa помещение — и получите чистую, реалистичную
+            визуализацию в нужном направлении.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {examples.map((example) => (
-            <Card key={`${example.title}-${example.style}`} className="group overflow-hidden">
+            <article
+              key={`${example.title}-${example.style}`}
+              className="group overflow-hidden rounded-[22px] border border-border bg-card"
+            >
               <div className="relative aspect-[4/3] overflow-hidden">
                 <Image
                   src={example.image}
@@ -43,18 +44,16 @@ export function ExamplesSection() {
                   className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                 />
               </div>
-              <CardContent className="flex items-center justify-between gap-3 p-4">
+              <div className="flex items-center justify-between gap-3 p-4">
                 <div>
                   <h3 className="font-semibold">{example.title}</h3>
-                  <Badge variant="secondary" className="mt-2">
-                    {example.style}
-                  </Badge>
+                  <p className="mt-1 text-sm text-muted-foreground">{example.style}</p>
                 </div>
-                <span className="grid size-9 place-items-center rounded-lg bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <span className="grid size-10 place-items-center rounded-full border border-border bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                   <ArrowUpRight className="size-4" aria-hidden="true" />
                 </span>
-              </CardContent>
-            </Card>
+              </div>
+            </article>
           ))}
         </div>
       </div>
