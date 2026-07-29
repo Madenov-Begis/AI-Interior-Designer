@@ -60,6 +60,106 @@ type CreditState = {
   paymentOrders: Map<string, PaymentOrderRow>;
 };
 
+function cloneCreditState(state: CreditState): CreditState {
+  return {
+    wallets: new Map(
+      [...state.wallets].map(([userId, wallet]) => [
+        userId,
+        {
+          ...wallet,
+          createdAt: new Date(wallet.createdAt),
+          updatedAt: new Date(wallet.updatedAt),
+        },
+      ]),
+    ),
+    transactions: state.transactions.map((transaction) => ({
+      ...transaction,
+      createdAt: new Date(transaction.createdAt),
+    })),
+    usageEvents: new Map(
+      [...state.usageEvents].map(([generationId, usageEvent]) => [
+        generationId,
+        {
+          ...usageEvent,
+          refundedAt: usageEvent.refundedAt
+            ? new Date(usageEvent.refundedAt)
+            : null,
+        },
+      ]),
+    ),
+    paymentOrders: new Map(
+      [...state.paymentOrders].map(([orderId, order]) => [
+        orderId,
+        {
+          ...order,
+          creditedAt: order.creditedAt ? new Date(order.creditedAt) : null,
+        },
+      ]),
+    ),
+  };
+}
+
+function rowChanged<T>(before: T | undefined, after: T) {
+  return JSON.stringify(before) !== JSON.stringify(after);
+}
+
+function mergeCreditState(
+  committed: CreditState,
+  base: CreditState,
+  working: CreditState,
+) {
+  const addedTransactions = working.transactions.filter(
+    (transaction) =>
+      !base.transactions.some(
+        (existing) => existing.id === transaction.id,
+      ),
+  );
+  for (const transaction of addedTransactions) {
+    if (
+      committed.transactions.some(
+        (existing) =>
+          existing.idempotencyKey === transaction.idempotencyKey,
+      )
+    ) {
+      throw new Error("UNIQUE_CREDIT_TRANSACTION");
+    }
+  }
+
+  for (const [userId, wallet] of working.wallets) {
+    if (rowChanged(base.wallets.get(userId), wallet)) {
+      committed.wallets.set(userId, {
+        ...wallet,
+        createdAt: new Date(wallet.createdAt),
+        updatedAt: new Date(wallet.updatedAt),
+      });
+    }
+  }
+  for (const [generationId, usageEvent] of working.usageEvents) {
+    if (rowChanged(base.usageEvents.get(generationId), usageEvent)) {
+      committed.usageEvents.set(generationId, {
+        ...usageEvent,
+        refundedAt: usageEvent.refundedAt
+          ? new Date(usageEvent.refundedAt)
+          : null,
+      });
+    }
+  }
+  for (const [orderId, order] of working.paymentOrders) {
+    if (rowChanged(base.paymentOrders.get(orderId), order)) {
+      committed.paymentOrders.set(orderId, {
+        ...order,
+        creditedAt: order.creditedAt ? new Date(order.creditedAt) : null,
+      });
+    }
+  }
+  committed.transactions.push(
+    ...addedTransactions.map((transaction) => ({
+      ...transaction,
+      createdAt: new Date(transaction.createdAt),
+    })),
+  );
+}
+
 function createCreditHarness(seed?: Partial<CreditState>) {
   const state: CreditState = {
     wallets: seed?.wallets ?? new Map(),
@@ -67,199 +167,228 @@ function createCreditHarness(seed?: Partial<CreditState>) {
     usageEvents: seed?.usageEvents ?? new Map(),
     paymentOrders: seed?.paymentOrders ?? new Map(),
   };
-  const lockedUsers = new Set<string>();
+  const lockTails = new Map<string, Promise<void>>();
   let nextTransactionId = 1;
 
-  const requireLock = (userId: string) => {
-    if (!lockedUsers.has(userId)) {
-      throw new Error(`BALANCE_MUTATION_WITHOUT_LOCK:${userId}`);
-    }
-  };
-
-  const createTransaction = (
-    data: Omit<TransactionRow, "id" | "createdAt">,
-  ) => {
-    requireLock(data.userId);
-    if (
-      state.transactions.some(
-        (transaction) =>
-          transaction.idempotencyKey === data.idempotencyKey,
-      )
-    ) {
-      throw new Error("UNIQUE_CREDIT_TRANSACTION");
-    }
-    const transaction = {
-      ...data,
-      id: `transaction-${nextTransactionId++}`,
-      createdAt: new Date(),
-    };
-    state.transactions.push(transaction);
-    return transaction;
-  };
-
-  const tx = {
-    $executeRaw: async (
-      _query: TemplateStringsArray,
-      userId: unknown,
-    ) => {
-      if (typeof userId !== "string") {
-        throw new Error("INVALID_LOCK_USER");
+  const acquireUserLock = async (userId: string) => {
+    const previous = lockTails.get(userId) ?? Promise.resolve();
+    const current = Promise.withResolvers<void>();
+    lockTails.set(userId, current.promise);
+    await previous;
+    return () => {
+      current.resolve();
+      if (lockTails.get(userId) === current.promise) {
+        lockTails.delete(userId);
       }
-      lockedUsers.add(userId);
-      return 1;
-    },
-    creditWallet: {
-      upsert: async (args: {
-        where: { userId: string };
-        create: { userId: string; balance: number };
-      }) => {
-        requireLock(args.where.userId);
-        const existing = state.wallets.get(args.where.userId);
-        if (existing) return existing;
-        const now = new Date();
-        const wallet = {
-          ...args.create,
-          createdAt: now,
-          updatedAt: now,
-        };
-        state.wallets.set(wallet.userId, wallet);
-        return wallet;
-      },
-      findUniqueOrThrow: async (args: { where: { userId: string } }) => {
-        const wallet = state.wallets.get(args.where.userId);
-        if (!wallet) throw new Error("WALLET_NOT_FOUND");
-        return wallet;
-      },
-      updateMany: async (args: {
-        where: { userId: string; balance: { gte: number } };
-        data: { balance: { decrement: number } };
-      }) => {
-        requireLock(args.where.userId);
-        const wallet = state.wallets.get(args.where.userId);
-        if (!wallet || wallet.balance < args.where.balance.gte) {
-          return { count: 0 };
-        }
-        wallet.balance -= args.data.balance.decrement;
-        wallet.updatedAt = new Date();
-        return { count: 1 };
-      },
-      update: async (args: {
-        where: { userId: string };
-        data: { balance: { increment: number } };
-      }) => {
-        requireLock(args.where.userId);
-        const wallet = state.wallets.get(args.where.userId);
-        if (!wallet) throw new Error("WALLET_NOT_FOUND");
-        wallet.balance += args.data.balance.increment;
-        wallet.updatedAt = new Date();
-        return wallet;
-      },
-    },
-    creditTransaction: {
-      createMany: async (args: {
-        data:
-          | Omit<TransactionRow, "id" | "createdAt">
-          | Array<Omit<TransactionRow, "id" | "createdAt">>;
-        skipDuplicates?: boolean;
-      }) => {
-        const entries = Array.isArray(args.data) ? args.data : [args.data];
-        let count = 0;
-        for (const entry of entries) {
-          const duplicate = state.transactions.some(
-            (transaction) =>
-              transaction.idempotencyKey === entry.idempotencyKey,
-          );
-          if (duplicate && args.skipDuplicates) continue;
-          createTransaction(entry);
-          count += 1;
-        }
-        return { count };
-      },
-      create: async (args: {
-        data: Omit<TransactionRow, "id" | "createdAt">;
-      }) => createTransaction(args.data),
-      findMany: async (args: {
-        where: { userId: string };
-        orderBy: { createdAt: "desc" };
-        take: number;
-      }) =>
-        state.transactions
-          .filter((transaction) => transaction.userId === args.where.userId)
-          .sort(
-            (left, right) =>
-              right.createdAt.getTime() - left.createdAt.getTime(),
-          )
-          .slice(0, args.take),
-    },
-    usageEvent: {
-      findUnique: async (args: { where: { generationId: string } }) =>
-        state.usageEvents.get(args.where.generationId) ?? null,
-      updateMany: async (args: {
-        where: {
-          generationId: string;
-          status: UsageEventRow["status"];
-        };
-        data: {
-          status: UsageEventRow["status"];
-          refundedAt: Date;
-          reason: string;
-        };
-      }) => {
-        const usageEvent = state.usageEvents.get(args.where.generationId);
-        if (!usageEvent || usageEvent.status !== args.where.status) {
-          return { count: 0 };
-        }
-        requireLock(usageEvent.userId);
-        usageEvent.status = args.data.status;
-        usageEvent.refundedAt = args.data.refundedAt;
-        usageEvent.reason = args.data.reason;
-        return { count: 1 };
-      },
-    },
-    paymentOrder: {
-      findUnique: async (args: { where: { id: string } }) =>
-        state.paymentOrders.get(args.where.id) ?? null,
-      findUniqueOrThrow: async (args: { where: { id: string } }) => {
-        const order = state.paymentOrders.get(args.where.id);
-        if (!order) throw new Error("PAYMENT_ORDER_NOT_FOUND");
-        return order;
-      },
-      update: async (args: {
-        where: { id: string };
-        data: { creditedAt: Date };
-      }) => {
-        const order = state.paymentOrders.get(args.where.id);
-        if (!order) throw new Error("PAYMENT_ORDER_NOT_FOUND");
-        requireLock(order.userId);
-        order.creditedAt = args.data.creditedAt;
-        return order;
-      },
-    },
-  } as unknown as Prisma.TransactionClient;
+    };
+  };
 
   const db = {
     async $transaction<T>(
       callback: (transaction: Prisma.TransactionClient) => Promise<T>,
     ) {
-      lockedUsers.clear();
-      return callback(tx);
+      let base = cloneCreditState(state);
+      let working = cloneCreditState(state);
+      const releases = new Map<string, () => void>();
+
+      const requireLock = (userId: string) => {
+        if (!releases.has(userId)) {
+          throw new Error(`BALANCE_MUTATION_WITHOUT_LOCK:${userId}`);
+        }
+      };
+      const createTransaction = (
+        data: Omit<TransactionRow, "id" | "createdAt">,
+      ) => {
+        requireLock(data.userId);
+        if (
+          working.transactions.some(
+            (transaction) =>
+              transaction.idempotencyKey === data.idempotencyKey,
+          )
+        ) {
+          throw new Error("UNIQUE_CREDIT_TRANSACTION");
+        }
+        const transaction = {
+          ...data,
+          id: `transaction-${nextTransactionId++}`,
+          createdAt: new Date(),
+        };
+        working.transactions.push(transaction);
+        return transaction;
+      };
+
+      const tx = {
+        $executeRaw: async (
+          _query: TemplateStringsArray,
+          userId: unknown,
+        ) => {
+          if (typeof userId !== "string") {
+            throw new Error("INVALID_LOCK_USER");
+          }
+          if (!releases.has(userId)) {
+            const release = await acquireUserLock(userId);
+            releases.set(userId, release);
+            base = cloneCreditState(state);
+            working = cloneCreditState(state);
+          }
+          return 1;
+        },
+        creditWallet: {
+          upsert: async (args: {
+            where: { userId: string };
+            create: { userId: string; balance: number };
+          }) => {
+            requireLock(args.where.userId);
+            const existing = working.wallets.get(args.where.userId);
+            if (existing) return existing;
+            const now = new Date();
+            const wallet = {
+              ...args.create,
+              createdAt: now,
+              updatedAt: now,
+            };
+            working.wallets.set(wallet.userId, wallet);
+            return wallet;
+          },
+          findUniqueOrThrow: async (args: { where: { userId: string } }) => {
+            const wallet = working.wallets.get(args.where.userId);
+            if (!wallet) throw new Error("WALLET_NOT_FOUND");
+            return wallet;
+          },
+          updateMany: async (args: {
+            where: { userId: string; balance: { gte: number } };
+            data: { balance: { decrement: number } };
+          }) => {
+            requireLock(args.where.userId);
+            const wallet = working.wallets.get(args.where.userId);
+            if (!wallet || wallet.balance < args.where.balance.gte) {
+              return { count: 0 };
+            }
+            wallet.balance -= args.data.balance.decrement;
+            wallet.updatedAt = new Date();
+            return { count: 1 };
+          },
+          update: async (args: {
+            where: { userId: string };
+            data: { balance: { increment: number } };
+          }) => {
+            requireLock(args.where.userId);
+            const wallet = working.wallets.get(args.where.userId);
+            if (!wallet) throw new Error("WALLET_NOT_FOUND");
+            wallet.balance += args.data.balance.increment;
+            wallet.updatedAt = new Date();
+            return wallet;
+          },
+        },
+        creditTransaction: {
+          createMany: async (args: {
+            data:
+              | Omit<TransactionRow, "id" | "createdAt">
+              | Array<Omit<TransactionRow, "id" | "createdAt">>;
+            skipDuplicates?: boolean;
+          }) => {
+            const entries = Array.isArray(args.data)
+              ? args.data
+              : [args.data];
+            let count = 0;
+            for (const entry of entries) {
+              const duplicate = working.transactions.some(
+                (transaction) =>
+                  transaction.idempotencyKey === entry.idempotencyKey,
+              );
+              if (duplicate && args.skipDuplicates) continue;
+              createTransaction(entry);
+              count += 1;
+            }
+            return { count };
+          },
+          create: async (args: {
+            data: Omit<TransactionRow, "id" | "createdAt">;
+          }) => createTransaction(args.data),
+          findMany: async (args: {
+            where: { userId: string };
+            orderBy: { createdAt: "desc" };
+            take: number;
+          }) =>
+            working.transactions
+              .filter(
+                (transaction) =>
+                  transaction.userId === args.where.userId,
+              )
+              .sort(
+                (left, right) =>
+                  right.createdAt.getTime() - left.createdAt.getTime(),
+              )
+              .slice(0, args.take),
+        },
+        usageEvent: {
+          findUnique: async (args: { where: { generationId: string } }) =>
+            working.usageEvents.get(args.where.generationId) ?? null,
+          updateMany: async (args: {
+            where: {
+              generationId: string;
+              status: UsageEventRow["status"];
+            };
+            data: {
+              status: UsageEventRow["status"];
+              refundedAt: Date;
+              reason: string;
+            };
+          }) => {
+            const usageEvent = working.usageEvents.get(
+              args.where.generationId,
+            );
+            if (!usageEvent || usageEvent.status !== args.where.status) {
+              return { count: 0 };
+            }
+            requireLock(usageEvent.userId);
+            usageEvent.status = args.data.status;
+            usageEvent.refundedAt = args.data.refundedAt;
+            usageEvent.reason = args.data.reason;
+            return { count: 1 };
+          },
+        },
+        paymentOrder: {
+          findUnique: async (args: { where: { id: string } }) =>
+            working.paymentOrders.get(args.where.id) ?? null,
+          findUniqueOrThrow: async (args: { where: { id: string } }) => {
+            const order = working.paymentOrders.get(args.where.id);
+            if (!order) throw new Error("PAYMENT_ORDER_NOT_FOUND");
+            return order;
+          },
+          update: async (args: {
+            where: { id: string };
+            data: { creditedAt: Date };
+          }) => {
+            const order = working.paymentOrders.get(args.where.id);
+            if (!order) throw new Error("PAYMENT_ORDER_NOT_FOUND");
+            requireLock(order.userId);
+            order.creditedAt = args.data.creditedAt;
+            return order;
+          },
+        },
+      } as unknown as Prisma.TransactionClient;
+
+      try {
+        const result = await callback(tx);
+        mergeCreditState(state, base, working);
+        return result;
+      } finally {
+        for (const release of releases.values()) release();
+      }
     },
   };
 
-  return {
-    db,
-    resetLocks: () => lockedUsers.clear(),
-    state,
-    tx,
-  };
+  return { db, state };
 }
 
 test("creates one signup wallet and grant when initialization is retried", async () => {
-  const { resetLocks, state, tx } = createCreditHarness();
+  const { db, state } = createCreditHarness();
 
-  await ensureCreditWallet(tx, "user-1");
-  resetLocks();
-  await ensureCreditWallet(tx, "user-1");
+  await Promise.all([
+    db.$transaction((tx) => ensureCreditWallet(tx, "user-1")),
+    db.$transaction((tx) => ensureCreditWallet(tx, "user-1")),
+  ]);
 
   assert.equal(state.wallets.get("user-1")?.balance, 10);
   assert.deepEqual(
@@ -338,7 +467,7 @@ test("returns the stored balance and latest 30 transactions by default", async (
 
 test("credits one paid order exactly once", async () => {
   const now = new Date();
-  const { state, tx } = createCreditHarness({
+  const { db, state } = createCreditHarness({
     wallets: new Map([
       [
         "user-1",
@@ -364,10 +493,12 @@ test("credits one paid order exactly once", async () => {
     ]),
   });
 
-  const balance = await creditPaidOrder(tx, { orderId: "order-1" });
-  const duplicateBalance = await creditPaidOrder(tx, {
-    orderId: "order-1",
-  });
+  const balance = await db.$transaction((tx) =>
+    creditPaidOrder(tx, { orderId: "order-1" }),
+  );
+  const duplicateBalance = await db.$transaction((tx) =>
+    creditPaidOrder(tx, { orderId: "order-1" }),
+  );
 
   assert.equal(balance, 30);
   assert.equal(duplicateBalance, null);
@@ -395,7 +526,7 @@ test("credits one paid order exactly once", async () => {
 
 test("refuses to credit an order that is not paid", async () => {
   const now = new Date();
-  const { state, tx } = createCreditHarness({
+  const { db, state } = createCreditHarness({
     wallets: new Map([
       [
         "user-1",
@@ -422,7 +553,10 @@ test("refuses to credit an order that is not paid", async () => {
   });
 
   await assert.rejects(
-    () => creditPaidOrder(tx, { orderId: "order-1" }),
+    () =>
+      db.$transaction((tx) =>
+        creditPaidOrder(tx, { orderId: "order-1" }),
+      ),
     (error) =>
       error instanceof CreditBalanceError &&
       error.code === "PAYMENT_ORDER_NOT_PAID",
@@ -433,15 +567,16 @@ test("refuses to credit an order that is not paid", async () => {
 });
 
 test("debits only when the wallet has enough credits", async () => {
-  const { resetLocks, state, tx } = createCreditHarness();
-  await ensureCreditWallet(tx, "user-1");
-  resetLocks();
+  const { db, state } = createCreditHarness();
+  await db.$transaction((tx) => ensureCreditWallet(tx, "user-1"));
 
-  const balance = await debitGenerationCredits(tx, {
-    userId: "user-1",
-    generationId: "generation-1",
-    amount: 4,
-  });
+  const balance = await db.$transaction((tx) =>
+    debitGenerationCredits(tx, {
+      userId: "user-1",
+      generationId: "generation-1",
+      amount: 4,
+    }),
+  );
 
   assert.equal(balance, 6);
   assert.equal(state.wallets.get("user-1")?.balance, 6);
@@ -462,14 +597,15 @@ test("debits only when the wallet has enough credits", async () => {
     ],
   );
 
-  resetLocks();
   await assert.rejects(
     () =>
-      debitGenerationCredits(tx, {
-        userId: "user-1",
-        generationId: "generation-2",
-        amount: 7,
-      }),
+      db.$transaction((tx) =>
+        debitGenerationCredits(tx, {
+          userId: "user-1",
+          generationId: "generation-2",
+          amount: 7,
+        }),
+      ),
     (error) =>
       error instanceof CreditBalanceError &&
       error.code === "INSUFFICIENT_CREDITS",
@@ -479,16 +615,18 @@ test("debits only when the wallet has enough credits", async () => {
 });
 
 test("rejects a non-positive debit before changing the wallet", async () => {
-  const { state, tx } = createCreditHarness();
-  await ensureCreditWallet(tx, "user-1");
+  const { db, state } = createCreditHarness();
+  await db.$transaction((tx) => ensureCreditWallet(tx, "user-1"));
 
   await assert.rejects(
     () =>
-      debitGenerationCredits(tx, {
-        userId: "user-1",
-        generationId: "generation-1",
-        amount: 0,
-      }),
+      db.$transaction((tx) =>
+        debitGenerationCredits(tx, {
+          userId: "user-1",
+          generationId: "generation-1",
+          amount: 0,
+        }),
+      ),
     (error) =>
       error instanceof CreditBalanceError &&
       error.code === "INVALID_CREDIT_AMOUNT",
@@ -499,7 +637,7 @@ test("rejects a non-positive debit before changing the wallet", async () => {
 
 test("refunds a reserved generation exactly once", async () => {
   const now = new Date();
-  const { state, tx } = createCreditHarness({
+  const { db, state } = createCreditHarness({
     wallets: new Map([
       [
         "user-1",
@@ -526,16 +664,20 @@ test("refunds a reserved generation exactly once", async () => {
     ]),
   });
 
-  const first = await refundReservedGeneration(tx, {
-    generationId: "generation-1",
-    kind: "TECHNICAL_REFUND",
-    reason: "PROVIDER_TIMEOUT",
-  });
-  const duplicate = await refundReservedGeneration(tx, {
-    generationId: "generation-1",
-    kind: "TECHNICAL_REFUND",
-    reason: "PROVIDER_TIMEOUT",
-  });
+  const first = await db.$transaction((tx) =>
+    refundReservedGeneration(tx, {
+      generationId: "generation-1",
+      kind: "TECHNICAL_REFUND",
+      reason: "PROVIDER_TIMEOUT",
+    }),
+  );
+  const duplicate = await db.$transaction((tx) =>
+    refundReservedGeneration(tx, {
+      generationId: "generation-1",
+      kind: "TECHNICAL_REFUND",
+      reason: "PROVIDER_TIMEOUT",
+    }),
+  );
 
   assert.equal(first, true);
   assert.equal(duplicate, false);
@@ -559,4 +701,89 @@ test("refunds a reserved generation exactly once", async () => {
       },
     ],
   );
+});
+
+test("rolls back a debit when its journal key was already committed", async () => {
+  const { db, state } = createCreditHarness();
+  await db.$transaction((tx) => ensureCreditWallet(tx, "user-1"));
+  await db.$transaction((tx) =>
+    debitGenerationCredits(tx, {
+      userId: "user-1",
+      generationId: "generation-1",
+      amount: 4,
+    }),
+  );
+
+  await assert.rejects(
+    () =>
+      db.$transaction((tx) =>
+        debitGenerationCredits(tx, {
+          userId: "user-1",
+          generationId: "generation-1",
+          amount: 4,
+        }),
+      ),
+    /UNIQUE_CREDIT_TRANSACTION/,
+  );
+
+  assert.equal(state.wallets.get("user-1")?.balance, 6);
+  assert.equal(state.transactions.length, 2);
+});
+
+test("waits for the same user's advisory lock before crediting an order", async () => {
+  const now = new Date();
+  const { db, state } = createCreditHarness({
+    wallets: new Map([
+      [
+        "user-1",
+        {
+          userId: "user-1",
+          balance: 10,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    ]),
+    paymentOrders: new Map([
+      [
+        "order-1",
+        {
+          id: "order-1",
+          userId: "user-1",
+          status: "PAID",
+          credits: 20,
+          creditedAt: null,
+        },
+      ],
+    ]),
+  });
+  const lockAcquired = Promise.withResolvers<void>();
+  const releaseLock = Promise.withResolvers<void>();
+  const blocker = db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"user-1"}, 0))`;
+    lockAcquired.resolve();
+    await releaseLock.promise;
+  });
+  await lockAcquired.promise;
+
+  let creditSettled = false;
+  const credit = db
+    .$transaction((tx) =>
+      creditPaidOrder(tx, { orderId: "order-1" }),
+    )
+    .finally(() => {
+      creditSettled = true;
+    });
+
+  try {
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(creditSettled, false);
+  } finally {
+    releaseLock.resolve();
+    await blocker;
+  }
+
+  assert.equal(await credit, 30);
+  assert.equal(state.wallets.get("user-1")?.balance, 30);
+  assert.equal(state.transactions.length, 1);
 });
