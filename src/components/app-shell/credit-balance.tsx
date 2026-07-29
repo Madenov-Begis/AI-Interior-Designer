@@ -1,5 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Coins } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { GENERATION_CREDIT_COST } from "@/config/product";
+import {
+  creditQueryOptions,
+  loadCredits,
+} from "@/features/credits/client";
 import { presentCreditBalance } from "@/features/credits/presentation";
 import { cn } from "@/lib/cn";
 
@@ -10,7 +18,20 @@ export function CreditBalance({
   balance?: number | null;
   className?: string;
 }) {
-  const presentation = presentCreditBalance(balance);
+  const creditsQuery = useQuery(
+    creditQueryOptions(
+      ({ signal }) => loadCredits(signal),
+      balance == null
+        ? undefined
+        : {
+            balance,
+            generationCost: GENERATION_CREDIT_COST,
+          },
+    ),
+  );
+  const presentation = presentCreditBalance(
+    creditsQuery.data?.balance ?? balance,
+  );
 
   return (
     <Link

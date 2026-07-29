@@ -52,6 +52,10 @@ function createGenerationHarness(input?: {
   balance?: number;
   generation?: GenerationRow;
   usageEvent?: UsageEventRow;
+  parentModel?: {
+    provider: "FAKE" | "VERTEX_AI";
+    costPerGeneration: string;
+  };
 }) {
   const state: GenerationState = {
     wallets: new Map([["user-1", input?.balance ?? 10]]),
@@ -163,7 +167,10 @@ function createGenerationHarness(input?: {
           resultOriginalId: "result-original-1",
           status: "SUCCEEDED",
           project: { deletedAt: null },
-          model: { costPerGeneration: "0.147200" },
+          model: input?.parentModel ?? {
+            provider: "FAKE",
+            costPerGeneration: "0.000000",
+          },
         };
       },
       async count() {
@@ -322,11 +329,19 @@ function createGenerationHarness(input?: {
     },
   };
 
-  function createTransaction(transactionId: symbol) {
+  function createTransaction(
+    transactionId: symbol,
+    onFirstUserLock: () => void,
+  ) {
+    let firstUserLockTaken = false;
     return {
       ...txMethods,
       async $executeRaw(_query: TemplateStringsArray, userId: string) {
         await acquireUserLock(transactionId, userId);
+        if (!firstUserLockTaken) {
+          firstUserLockTaken = true;
+          onFirstUserLock();
+        }
         return 1;
       },
     };
@@ -338,15 +353,23 @@ function createGenerationHarness(input?: {
         transaction: ReturnType<typeof createTransaction>,
       ) => Promise<T>,
     ) {
-      const snapshot = structuredClone(state);
+      let rollbackState = structuredClone(state);
       const transactionId = Symbol("transaction");
       try {
-        return await operation(createTransaction(transactionId));
+        return await operation(
+          createTransaction(transactionId, () => {
+            rollbackState = structuredClone(state);
+          }),
+        );
       } catch (error) {
-        replaceMap(state.wallets, snapshot.wallets);
-        replaceMap(state.generations, snapshot.generations);
-        replaceMap(state.usageEvents, snapshot.usageEvents);
-        state.journals.splice(0, state.journals.length, ...snapshot.journals);
+        replaceMap(state.wallets, rollbackState.wallets);
+        replaceMap(state.generations, rollbackState.generations);
+        replaceMap(state.usageEvents, rollbackState.usageEvents);
+        state.journals.splice(
+          0,
+          state.journals.length,
+          ...rollbackState.journals,
+        );
         throw error;
       } finally {
         releaseUserLocks(transactionId);
@@ -486,9 +509,44 @@ test("refinement ignores exhausted daily quota and debits four credits", async (
     "generation-parent",
   );
   assert.equal(
+    state.generations.get("generation-refinement")?.estimatedCost,
+    "0.000000",
+  );
+  assert.equal(
     state.usageEvents.get("generation-refinement")?.creditAmount,
     4,
   );
+});
+
+test("fake-mode refinement rejects a historical Vertex parent without debit or partial records", async () => {
+  const { db, state } = createGenerationHarness({
+    parentModel: {
+      provider: "VERTEX_AI",
+      costPerGeneration: "0.147200",
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      reserveRefinementWithDependencies(
+        reservationDependencies(db, "generation-refinement"),
+        {
+          userId: "user-1",
+          parentGenerationId: "generation-parent",
+          prompt: "refine",
+          referenceFileIds: [],
+          idempotencyKey: "refinement-key",
+        },
+      ),
+    (error) =>
+      error instanceof GenerationReservationError &&
+      error.code === "MODEL_NOT_ALLOWED",
+  );
+
+  assert.equal(state.wallets.get("user-1"), 10);
+  assert.equal(state.generations.size, 0);
+  assert.equal(state.usageEvents.size, 0);
+  assert.equal(state.journals.length, 0);
 });
 
 test("idempotent reservation repeat returns the original without a second debit", async () => {
@@ -551,6 +609,74 @@ test("root reservation rechecks idempotency after waiting for the user lock", as
   assert.equal(state.wallets.get("user-1"), 10);
   assert.equal(state.usageEvents.size, 0);
   assert.equal(state.journals.length, 0);
+});
+
+test("two concurrent distinct reservations against four credits commit exactly one complete debit", async () => {
+  const { db, state } = createGenerationHarness({ balance: 4 });
+  const reserve = (generationId: string, idempotencyKey: string) =>
+    reserveRootGenerationWithDependencies(
+      reservationDependencies(db, generationId),
+      {
+        userId: "user-1",
+        projectId: "project-1",
+        prompt: "redesign",
+        aspectRatio: "RATIO_16_9",
+        idempotencyKey,
+      },
+    );
+
+  const results = await Promise.allSettled([
+    reserve("generation-concurrent-a", "root-concurrent-key-a"),
+    reserve("generation-concurrent-b", "root-concurrent-key-b"),
+  ]);
+
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    1,
+  );
+  assert.equal(
+    results.filter(
+      (result) =>
+        result.status === "rejected" &&
+        result.reason instanceof GenerationReservationError &&
+        result.reason.code === "INSUFFICIENT_CREDITS",
+    ).length,
+    1,
+  );
+  assert.equal(state.wallets.get("user-1"), 0);
+  assert.equal(state.generations.size, 1);
+  assert.equal(state.usageEvents.size, 1);
+  assert.equal(state.journals.length, 1);
+  assert.equal(state.journals[0]?.kind, "GENERATION_DEBIT");
+  assert.equal(state.journals[0]?.amount, -4);
+});
+
+test("concurrent transport replay with one retry key creates and debits once", async () => {
+  const { db, state } = createGenerationHarness({ balance: 8 });
+  const reserve = (generationId: string) =>
+    reserveRootGenerationWithDependencies(
+      reservationDependencies(db, generationId),
+      {
+        userId: "user-1",
+        projectId: "project-1",
+        prompt: "redesign",
+        aspectRatio: "RATIO_16_9",
+        idempotencyKey:
+          "retry:generation-failed:client-attempt-1234567890",
+      },
+    );
+
+  const results = await Promise.all([
+    reserve("generation-retry-a"),
+    reserve("generation-retry-b"),
+  ]);
+
+  assert.equal(results.filter((result) => result.isExisting).length, 1);
+  assert.equal(new Set(results.map((result) => result.generation.id)).size, 1);
+  assert.equal(state.wallets.get("user-1"), 4);
+  assert.equal(state.generations.size, 1);
+  assert.equal(state.usageEvents.size, 1);
+  assert.equal(state.journals.length, 1);
 });
 
 test("worker failure refunds the stored amount exactly once", async () => {

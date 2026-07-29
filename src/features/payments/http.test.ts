@@ -35,21 +35,33 @@ test("maps authentication and validation failures to their HTTP contracts", () =
   }
 });
 
-test("maps payment service failures to 503, 403, 409, and 404", () => {
+test("maps payment service failures to localized provider-neutral HTTP errors", () => {
   const cases = [
-    ["PAYMENTS_DISABLED", 503],
-    ["MOCK_PAYMENTS_NOT_SAFE", 403],
-    ["INVALID_PAYMENT_TRANSITION", 409],
-    ["PAYMENT_ORDER_EXPIRED", 409],
-    ["PAYMENT_EVENT_MISMATCH", 409],
-    ["CREDIT_PACKAGE_NOT_FOUND", 404],
-    ["PAYMENT_ORDER_NOT_FOUND", 404],
+    ["PAYMENTS_DISABLED", 503, "Оплата временно недоступна"],
+    [
+      "MOCK_PAYMENTS_NOT_SAFE",
+      403,
+      "Тестовая оплата недоступна в этом режиме",
+    ],
+    [
+      "INVALID_PAYMENT_TRANSITION",
+      409,
+      "Статус оплаты уже изменился. Обновите страницу",
+    ],
+    ["PAYMENT_ORDER_EXPIRED", 409, "Время оплаты заказа истекло"],
+    [
+      "PAYMENT_EVENT_MISMATCH",
+      409,
+      "Не удалось подтвердить результат оплаты",
+    ],
+    ["CREDIT_PACKAGE_NOT_FOUND", 404, "Пакет кредитов не найден"],
+    ["PAYMENT_ORDER_NOT_FOUND", 404, "Заказ на оплату не найден"],
   ] as const;
 
-  for (const [code, status] of cases) {
+  for (const [code, status, message] of cases) {
     assert.deepEqual(paymentHttpError(new PaymentServiceError(code)), {
       code,
-      message: code,
+      message,
       status,
     });
   }

@@ -3,6 +3,8 @@ import test from "node:test";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import {
   ApiResponseError,
+  buildRetryGenerationRequest,
+  createRetryGenerationAttempt,
   creditsInvalidationQueryKey,
   generationCanvasActionErrorPresentation,
   generationActionErrorPresentation,
@@ -31,6 +33,33 @@ test("API failures preserve the server error code and message", async () => {
     assert.equal(error.message, "Для генерации нужно 4 кредита");
     return true;
   });
+});
+
+test("one client retry attempt generates one idempotency key and reuses it for transport replay", () => {
+  let generatedKeys = 0;
+  const attempt = createRetryGenerationAttempt(
+    { id: "generation-failed", status: "FAILED" },
+    () => {
+      generatedKeys += 1;
+      return "client-attempt-1234567890";
+    },
+  );
+
+  const first = buildRetryGenerationRequest(attempt);
+  const replay = buildRetryGenerationRequest(attempt);
+  const firstRequest = new Request(`http://localhost${first.url}`, first.init);
+  const replayRequest = new Request(`http://localhost${replay.url}`, replay.init);
+
+  assert.equal(generatedKeys, 1);
+  assert.equal(
+    firstRequest.headers.get("idempotency-key"),
+    "client-attempt-1234567890",
+  );
+  assert.equal(
+    replayRequest.headers.get("idempotency-key"),
+    "client-attempt-1234567890",
+  );
+  assert.equal(firstRequest.url, replayRequest.url);
 });
 
 test("root generation is disabled with a purchase reason below four credits", () => {

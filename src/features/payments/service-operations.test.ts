@@ -90,6 +90,7 @@ function createPaymentHarness(seed?: Partial<HarnessState>) {
     transactions: seed?.transactions ?? [],
   };
   let nextOrder = state.orders.size + 1;
+  const orderLockQueries: string[] = [];
 
   function paymentOrderClient(active: HarnessState) {
     return {
@@ -175,9 +176,10 @@ function createPaymentHarness(seed?: Partial<HarnessState>) {
       const tx = {
         $executeRaw: async () => 1,
         $queryRaw: async (
-          _query: TemplateStringsArray,
+          query: TemplateStringsArray,
           orderId: unknown,
         ) => {
+          orderLockQueries.push(query.join("$orderId"));
           if (typeof orderId !== "string") return [];
           const order = state.orders.get(orderId);
           return order ? [order] : [];
@@ -267,7 +269,11 @@ function createPaymentHarness(seed?: Partial<HarnessState>) {
       }
     },
   };
-  return { db: db as unknown as PaymentDatabase, state };
+  return {
+    db: db as unknown as PaymentDatabase,
+    state,
+    orderLockQueries,
+  };
 }
 
 function seedOrder(overrides: Partial<OrderRow> = {}): OrderRow {
@@ -475,6 +481,30 @@ test("a paid event credits the snapshotted credits exactly once", async () => {
     },
   ]);
   assert.ok(state.orders.get(order.id)?.creditedAt instanceof Date);
+});
+
+test("payment events use a parent-row lock compatible with the event foreign-key key-share lock", async () => {
+  const order = seedOrder();
+  const { db, orderLockQueries } = createPaymentHarness({
+    orders: new Map([[order.id, order]]),
+    wallets: new Map([["user-1", 10]]),
+  });
+
+  await applyPaymentEventWithDatabase(
+    db,
+    {
+      provider: "MOCK",
+      providerEventId: "event-lock-contract",
+      orderId: order.id,
+      outcome: "FAILED",
+      occurredAt: new Date("2026-07-29T10:05:00.000Z"),
+    },
+    new Date("2026-07-29T10:05:00.000Z"),
+  );
+
+  assert.equal(orderLockQueries.length, 1);
+  assert.match(orderLockQueries[0] ?? "", /FOR NO KEY UPDATE/i);
+  assert.doesNotMatch(orderLockQueries[0] ?? "", /\bFOR UPDATE\b/i);
 });
 
 test("an expired pending order is persisted as expired and rejects a late outcome", async () => {

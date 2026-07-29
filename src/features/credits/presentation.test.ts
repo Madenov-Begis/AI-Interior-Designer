@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  checkoutTerminalMessageClassName,
   checkoutPresentation,
   formatCreditAmount,
   formatUzs,
@@ -86,6 +87,10 @@ test("paid checkout disables controls, confirms crediting, and returns to the wo
       label: "Вернуться к созданию интерьера",
     },
   });
+});
+
+test("terminal checkout balances render with tabular numerals", () => {
+  assert.match(checkoutTerminalMessageClassName("PAID"), /\btabular-nums\b/);
 });
 
 test("failed and cancelled checkouts disable controls without claiming success", () => {

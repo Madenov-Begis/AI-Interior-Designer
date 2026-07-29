@@ -19,6 +19,10 @@ import {
   type CreditWalletPayload,
   presentWalletSummary,
 } from "@/features/credits/presentation";
+import {
+  creditQueryOptions,
+  loadCredits,
+} from "@/features/credits/client";
 
 type ProfilePayload = {
   profile: {
@@ -57,6 +61,12 @@ export function ProfilePanel() {
     queryFn: async () =>
       (await apiData(await fetch("/api/v1/profile"))) as ProfilePayload,
   });
+  const credits = useQuery(
+    creditQueryOptions(
+      ({ signal }) => loadCredits<CreditWalletPayload>(signal),
+      profile.data?.wallet,
+    ),
+  );
   const nameInputRef = useRef<HTMLInputElement>(null);
   const update = useMutation({
     mutationFn: async () =>
@@ -91,7 +101,8 @@ export function ProfilePanel() {
     );
   }
 
-  const { usage, wallet } = profile.data;
+  const { usage } = profile.data;
+  const wallet = credits.data ?? profile.data.wallet;
   const walletSummary = presentWalletSummary(wallet);
 
   return (

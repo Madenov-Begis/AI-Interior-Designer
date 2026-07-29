@@ -20,11 +20,25 @@ export type PaymentDatabase = Pick<
   "$transaction" | "paymentOrder"
 >;
 
+const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
+  PAYMENTS_DISABLED: "Оплата временно недоступна",
+  MOCK_PAYMENTS_NOT_SAFE: "Тестовая оплата недоступна в этом режиме",
+  INVALID_PAYMENT_TRANSITION:
+    "Статус оплаты уже изменился. Обновите страницу",
+  PAYMENT_ORDER_EXPIRED: "Время оплаты заказа истекло",
+  PAYMENT_EVENT_MISMATCH: "Не удалось подтвердить результат оплаты",
+  CREDIT_PACKAGE_NOT_FOUND: "Пакет кредитов не найден",
+  PAYMENT_ORDER_NOT_FOUND: "Заказ на оплату не найден",
+};
+
 export class PaymentServiceError extends Error {
   readonly code: string;
 
   constructor(code: string) {
-    super(code);
+    super(
+      PAYMENT_ERROR_MESSAGES[code] ??
+        "Не удалось выполнить платёжный запрос",
+    );
     this.name = "PaymentServiceError";
     this.code = code;
   }
@@ -164,7 +178,7 @@ export async function applyPaymentEventWithDatabase(
       SELECT *
       FROM "PaymentOrder"
       WHERE "id" = ${event.orderId}::uuid
-      FOR UPDATE
+      FOR NO KEY UPDATE
     `;
     if (!order) {
       throw new PaymentServiceError("PAYMENT_ORDER_NOT_FOUND");

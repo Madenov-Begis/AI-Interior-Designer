@@ -21,9 +21,16 @@ import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
 import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
 import { nextRefinementOverlayState } from "@/features/canvas/refinement-overlay-state";
 import {
+  creditQueryOptions,
+  loadCredits,
+} from "@/features/credits/client";
+import {
   ApiResponseError,
+  buildRetryGenerationRequest,
+  createRetryGenerationAttempt,
   type CreditsLifecycleEvent,
   type GenerationWallet,
+  type RetryGenerationAttempt,
   generationCanvasActionErrorPresentation,
   generationWalletPresentation,
   pruneTrackedGenerationIds,
@@ -132,13 +139,11 @@ function ReadyDesignWorkspace({
         )
       ).interiorStyles,
   });
-  const creditsQuery = useQuery({
-    queryKey: ["credits"],
-    queryFn: async ({ signal }) =>
-      readApiData<GenerationWallet>(
-        await fetch("/api/v1/credits", { signal }),
-      ),
-  });
+  const creditsQuery = useQuery(
+    creditQueryOptions(({ signal }) =>
+      loadCredits<GenerationWallet>(signal),
+    ),
+  );
 
   const invalidateCredits = useCallback(
     (event: CreditsLifecycleEvent) =>
@@ -170,7 +175,9 @@ function ReadyDesignWorkspace({
     }
   }, [generationsQuery.data?.items, invalidateCredits]);
 
-  async function reserveCurrentGeneration() {
+  async function reserveCurrentGeneration(
+    idempotencyKey = crypto.randomUUID(),
+  ) {
     if (prompt.trim().length < 3) {
       throw new Error("Опишите изменения не менее чем в трёх символах");
     }
@@ -185,7 +192,7 @@ function ReadyDesignWorkspace({
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "idempotency-key": crypto.randomUUID(),
+          "idempotency-key": idempotencyKey,
         },
         body: JSON.stringify({
           projectId: project.id,
@@ -198,7 +205,7 @@ function ReadyDesignWorkspace({
   }
 
   const createGeneration = useMutation({
-    mutationFn: reserveCurrentGeneration,
+    mutationFn: () => reserveCurrentGeneration(),
     onSuccess: async (data: { id: string }) => {
       setTrackedGenerationIds((current) =>
         current.includes(data.id) ? current : [...current, data.id],
@@ -235,9 +242,12 @@ function ReadyDesignWorkspace({
     },
   });
   const retryGeneration = useMutation({
-    mutationFn: async (generation: WorkspaceGeneration) => {
+    mutationFn: async (
+      attempt: RetryGenerationAttempt<WorkspaceGeneration>,
+    ) => {
+      const generation = attempt.generation;
       if (generation.status === "REJECTED") {
-        return reserveCurrentGeneration();
+        return reserveCurrentGeneration(attempt.idempotencyKey);
       }
       if (!visualPromptRef.current) {
         throw new Error("Редактор разметки ещё не готов");
@@ -245,10 +255,9 @@ function ReadyDesignWorkspace({
 
       await visualPromptRef.current.persist();
 
+      const retryRequest = buildRetryGenerationRequest(attempt);
       return readApiData<{ id: string }>(
-        await fetch(`/api/v1/generations/${generation.id}/retry`, {
-          method: "POST",
-        }),
+        await fetch(retryRequest.url, retryRequest.init),
       );
     },
     onSuccess: async (data: { id: string }) => {
@@ -464,7 +473,7 @@ function ReadyDesignWorkspace({
         cancelGeneration.variables === generation.id;
       const retryIsCurrent =
         retryGeneration.isPending &&
-        retryGeneration.variables?.id === generation.id;
+        retryGeneration.variables?.generation.id === generation.id;
       const actionError = generationCanvasActionErrorPresentation({
         generationId: generation.id,
         status: generation.status,
@@ -478,7 +487,7 @@ function ReadyDesignWorkspace({
         retryFailure:
           retryGeneration.isError && retryGeneration.variables
             ? {
-                generationId: retryGeneration.variables.id,
+                generationId: retryGeneration.variables.generation.id,
                 error: retryGeneration.error,
               }
             : null,
@@ -505,7 +514,11 @@ function ReadyDesignWorkspace({
             retryPending={retryIsCurrent}
             actionError={actionError}
             onCancel={() => cancelGeneration.mutate(generation.id)}
-            onRetry={() => retryGeneration.mutate(generation)}
+            onRetry={() =>
+              retryGeneration.mutate(
+                createRetryGenerationAttempt(generation),
+              )
+            }
             onRemove={() => {
               setHiddenCanvasItemIds((current) => {
                 const next = new Set(current);

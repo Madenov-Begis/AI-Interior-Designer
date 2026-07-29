@@ -1,5 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { GENERATION_CREDIT_COST } from "../../config/product.ts";
+import {
+  CREDITS_QUERY_KEY,
+  refreshCreditsQuery,
+} from "../credits/client.ts";
 import { fullGenerationCount } from "../credits/presentation.ts";
 
 export type GenerationWallet = {
@@ -35,7 +39,6 @@ const PURCHASE_LINK = {
   label: "Пополнить баланс",
 } as const;
 
-const CREDITS_QUERY_KEY = ["credits"] as const;
 const TERMINAL_GENERATION_STATUSES = new Set([
   "SUCCEEDED",
   "FAILED",
@@ -51,6 +54,39 @@ export class ApiResponseError extends Error {
     this.name = "ApiResponseError";
     this.code = code;
   }
+}
+
+export type RetryGenerationAttempt<
+  TGeneration extends { id: string; status: string },
+> = {
+  generation: TGeneration;
+  idempotencyKey: string;
+};
+
+export function createRetryGenerationAttempt<
+  TGeneration extends { id: string; status: string },
+>(
+  generation: TGeneration,
+  createIdempotencyKey: () => string = () => crypto.randomUUID(),
+): RetryGenerationAttempt<TGeneration> {
+  return {
+    generation,
+    idempotencyKey: createIdempotencyKey(),
+  };
+}
+
+export function buildRetryGenerationRequest(
+  attempt: RetryGenerationAttempt<{ id: string; status: string }>,
+) {
+  return {
+    url: `/api/v1/generations/${attempt.generation.id}/retry`,
+    init: {
+      method: "POST",
+      headers: {
+        "idempotency-key": attempt.idempotencyKey,
+      },
+    } satisfies RequestInit,
+  };
 }
 
 export async function readApiData<T>(response: Response): Promise<T> {
@@ -114,8 +150,7 @@ export async function refreshCreditsAfterLifecycle(
 ) {
   const queryKey = creditsInvalidationQueryKey(event);
   if (!queryKey) return;
-  await queryClient.cancelQueries({ queryKey });
-  await queryClient.invalidateQueries({ queryKey });
+  await refreshCreditsQuery(queryClient);
 }
 
 export function reconcileTerminalCredits(

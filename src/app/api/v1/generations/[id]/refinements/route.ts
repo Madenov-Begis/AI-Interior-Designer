@@ -1,10 +1,7 @@
 import { after, type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
-import {
-  GenerationReservationError,
-  reserveRefinement,
-} from "@/features/generations/reservation";
-import { refinementReservationHttpStatus } from "@/features/generations/reservation-policy";
+import { reserveRefinement } from "@/features/generations/reservation";
+import { handleRefinementGenerationReservation } from "@/features/generations/route-handlers";
 import {
   createRefinementSchema,
   idempotencyKeySchema,
@@ -19,7 +16,7 @@ import {
   saveGenerationRefinementVisualPrompt,
   VisualPromptProjectNotFoundError,
 } from "@/features/visual-prompt/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
+import { apiError } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
@@ -61,26 +58,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
       visualPromptImageId = visualPrompt.id;
     }
 
-    const reserved = await reserveRefinement({
-      userId: user.id,
-      parentGenerationId,
-      prompt: input.prompt,
-      referenceFileIds: input.referenceFileIds,
-      visualPromptImageId,
-      idempotencyKey,
-    });
-    if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
-      after(() => processGeneration(reserved.generation.id));
-    }
-    return apiSuccess(
+    return handleRefinementGenerationReservation(
       {
-        id: reserved.generation.id,
+        userId: user.id,
         parentGenerationId,
-        status: reserved.generation.status,
-        isExisting: reserved.isExisting,
+        prompt: input.prompt,
+        referenceFileIds: input.referenceFileIds,
+        visualPromptImageId,
+        idempotencyKey,
       },
       requestId,
-      { status: reserved.isExisting ? 200 : 202 },
+      {
+        reserve: reserveRefinement,
+        schedule: (generationId) =>
+          after(() => processGeneration(generationId)),
+      },
     );
   } catch (error) {
     if (error instanceof RateLimitError) {
@@ -89,20 +81,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
     }
-    if (
-      error instanceof VisualPromptProjectNotFoundError ||
-      (error instanceof GenerationReservationError &&
-        error.code === "GENERATION_NOT_FOUND")
-    ) {
+    if (error instanceof VisualPromptProjectNotFoundError) {
       return apiError("GENERATION_NOT_FOUND", "Результат не найден", requestId, 404);
-    }
-    if (error instanceof GenerationReservationError) {
-      return apiError(
-        error.code,
-        error.message,
-        requestId,
-        refinementReservationHttpStatus(error.code),
-      );
     }
     if (error instanceof VisualPromptValidationError) {
       return apiError(error.code, error.message, requestId, 400);

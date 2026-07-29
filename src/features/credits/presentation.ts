@@ -104,6 +104,12 @@ export function checkoutPresentation(
   };
 }
 
+export function checkoutTerminalMessageClassName(status: CheckoutStatus) {
+  return status === "PAID"
+    ? "text-sm font-semibold text-success tabular-nums"
+    : "text-sm font-semibold text-foreground tabular-nums";
+}
+
 export function checkoutControlsDisabled(
   status: CheckoutStatus,
   state: {

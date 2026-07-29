@@ -3,6 +3,10 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { STORAGE_BUCKETS } from "@/config/storage";
+import {
+  classifyGenerationFailure,
+  generateWithConfiguredProvider,
+} from "@/features/generations/execution-policy";
 import { failGenerationWithDatabase } from "@/features/generations/operations";
 import { getImageGenerationProvider } from "@/features/generations/provider";
 import { getDb } from "@/lib/db";
@@ -66,13 +70,22 @@ export async function processGeneration(generationId: string) {
     const metadata = await sharp(source.data, { failOn: "error" }).metadata();
     if (!metadata.width || !metadata.height) throw new Error("SOURCE_DIMENSIONS_MISSING");
 
-    const output = await getImageGenerationProvider(generation.model.provider, generation.model.externalModelId, generation.model.timeoutSeconds).generate({
-      source,
-      visualPrompt,
-      references,
-      prompt: generation.finalPrompt ?? generation.prompt,
-      aspectRatio: generation.aspectRatio,
-    });
+    const output = await generateWithConfiguredProvider(
+      {
+        configuredProvider: process.env.AI_PROVIDER,
+        storedProvider: generation.model.provider,
+        modelId: generation.model.externalModelId,
+        timeoutSeconds: generation.model.timeoutSeconds,
+        input: {
+          source,
+          visualPrompt,
+          references,
+          prompt: generation.finalPrompt ?? generation.prompt,
+          aspectRatio: generation.aspectRatio,
+        },
+      },
+      getImageGenerationProvider,
+    );
     const activePlan = generation.user.subscriptions[0]?.plan ?? generation.user.plan;
     const userImage = activePlan?.watermarkRequired === false ? output.image : await addWatermark(output.image);
     const originalId = randomUUID();
@@ -97,9 +110,7 @@ export async function processGeneration(generationId: string) {
     });
   } catch (error) {
     for (const item of uploaded) await getSupabaseAdmin().storage.from(item.bucket).remove([item.path]);
-    const configurationErrors = ["VERTEX_PROVIDER_NOT_CONFIGURED", "VERTEX_CREDENTIALS_NOT_FOUND", "AI_PROVIDER_NOT_SUPPORTED"];
-    const code = error instanceof Error && configurationErrors.includes(error.message) ? "AI_PROVIDER_NOT_CONFIGURED" : "AI_GENERATION_FAILED";
-    const message = code === "AI_PROVIDER_NOT_CONFIGURED" ? "AI provider ещё не настроен" : "Не удалось создать изображение. Лимит автоматически возвращён";
-    await markFailed(generationId, code, message);
+    const failure = classifyGenerationFailure(error);
+    await markFailed(generationId, failure.code, failure.message);
   }
 }

@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  creditQueryOptions,
+  loadCredits,
+} from "@/features/credits/client";
+import {
   type CreditTransactionKind,
   formatUzs,
   fullGenerationCount,
@@ -86,11 +90,11 @@ function CreditsLoading() {
 
 export function CreditsGrid() {
   const router = useRouter();
-  const creditsQuery = useQuery({
-    queryKey: ["credits"],
-    queryFn: async () =>
-      apiData<CreditsPayload>(await fetch("/api/v1/credits")),
-  });
+  const creditsQuery = useQuery(
+    creditQueryOptions(({ signal }) =>
+      loadCredits<CreditsPayload>(signal),
+    ),
+  );
   const createOrder = useMutation({
     mutationFn: async (packageCode: string) =>
       apiData<PaymentOrderCreated>(

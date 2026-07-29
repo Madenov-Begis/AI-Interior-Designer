@@ -386,6 +386,9 @@ export async function reserveRefinementWithDependencies<TDatabase>(
           profile.plan,
           () => tx.plan.findUniqueOrThrow({ where: { code: "FREE" } }),
         );
+        const requiredProvider = resolveRequiredProvider(
+          dependencies.aiProvider,
+        );
         const parent = await tx.generation.findFirst({
           where: {
             id: input.parentGenerationId,
@@ -401,13 +404,24 @@ export async function reserveRefinementWithDependencies<TDatabase>(
             resultOriginalId: true,
             status: true,
             project: { select: { deletedAt: true } },
-            model: { select: { costPerGeneration: true } },
+            model: {
+              select: {
+                provider: true,
+                costPerGeneration: true,
+              },
+            },
           },
         });
         if (!parent || parent.project.deletedAt) {
           throw new GenerationReservationError(
             "GENERATION_NOT_FOUND",
             "Генерация не найдена",
+          );
+        }
+        if (parent.model.provider !== requiredProvider) {
+          throw new GenerationReservationError(
+            "MODEL_NOT_ALLOWED",
+            "Этот результат нельзя доработать в текущем режиме",
           );
         }
 

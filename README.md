@@ -6,7 +6,7 @@
 
 - Prisma — единственный слой доступа к PostgreSQL: модели, запросы, транзакции и миграции находятся в `prisma/` и серверных сервисах.
 - Supabase SDK используется только для Google OAuth, серверной сессии и приватного Storage.
-- Приложение не обращается к таблицам через Supabase Data API (`from`, `rpc`). Роли `anon` и `authenticated` не имеют доступа к бизнес-таблицам.
+- Сервер приложения не обращается к бизнес-таблицам через Supabase Data API (`from`, `rpc`). Для `authenticated` разрешено только owner-scoped чтение собственных `CreditWallet`, `CreditTransaction` и `PaymentOrder`, защищённое RLS; любые записи и таблица `PaymentEvent` остаются доступны только серверному Prisma-слою. У роли `anon` доступа к этим таблицам нет.
 - Корневая папка `supabase/` не используется. Приватные Storage buckets создаются один раз в панели Supabase: `source-images`, `visual-prompts`, `reference-images`, `generation-originals`, `generation-results`, `branding`.
 
 ## Локальный запуск

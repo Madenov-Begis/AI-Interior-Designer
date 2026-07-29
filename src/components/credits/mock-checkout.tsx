@@ -13,10 +13,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { refreshCreditsQuery } from "@/features/credits/client";
 import {
   type CheckoutStatus,
   checkoutControlsDisabled,
   checkoutPresentation,
+  checkoutTerminalMessageClassName,
   formatUzs,
 } from "@/features/credits/presentation";
 import {
@@ -96,10 +98,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
       }),
     onSuccess: async (result) => {
       if (result.order.status === "PAID") {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["credits"] }),
-          queryClient.invalidateQueries({ queryKey: ["profile"] }),
-        ]);
+        await refreshCreditsQuery(queryClient);
       }
     },
   });
@@ -213,11 +212,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
           ) : null}
           {result.message ? (
             <p
-              className={
-                order.status === "PAID"
-                  ? "text-sm font-semibold text-success"
-                  : "text-sm font-semibold text-foreground"
-              }
+              className={checkoutTerminalMessageClassName(order.status)}
             >
               {result.message}
             </p>

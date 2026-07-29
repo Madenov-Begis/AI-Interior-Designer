@@ -1,3 +1,5 @@
+BEGIN;
+
 -- CreateEnum
 CREATE TYPE "CreditTransactionKind" AS ENUM ('SIGNUP_GRANT', 'PURCHASE', 'GENERATION_DEBIT', 'TECHNICAL_REFUND', 'CANCELLATION_REFUND', 'ADMIN_ADJUSTMENT');
 
@@ -123,14 +125,14 @@ INSERT INTO "CreditTransaction"
   ("id", "userId", "kind", "amount", "balanceAfter", "idempotencyKey", "reason", "createdAt")
 SELECT
   gen_random_uuid(),
-  id,
+  wallet."userId",
   'SIGNUP_GRANT'::"CreditTransactionKind",
   10,
   10,
-  'SIGNUP_GRANT:' || id::text,
+  'SIGNUP_GRANT:' || wallet."userId"::text,
   'INITIAL_WALLET_BACKFILL',
   CURRENT_TIMESTAMP
-FROM "Profile"
+FROM "CreditWallet" AS wallet
 ON CONFLICT ("idempotencyKey") DO NOTHING;
 
 -- Set the active Vertex model's USD provider-cost snapshot.
@@ -159,3 +161,5 @@ using ((select auth.uid()) = "userId");
 create policy "payment_order_select_own"
 on public."PaymentOrder" for select to authenticated
 using ((select auth.uid()) = "userId");
+
+COMMIT;
