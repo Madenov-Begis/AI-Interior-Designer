@@ -24,9 +24,11 @@ import {
   ApiResponseError,
   type CreditsLifecycleEvent,
   type GenerationWallet,
-  creditsInvalidationQueryKey,
+  generationActionErrorPresentation,
   generationWalletPresentation,
   readApiData,
+  reconcileTerminalCredits,
+  refreshCreditsAfterLifecycle,
 } from "@/features/generations/client-wallet";
 import { buildGenerationLabels } from "@/features/generations/tree";
 import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
@@ -78,7 +80,7 @@ function ReadyDesignWorkspace({
   const queryClient = useQueryClient();
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const refinementPromptRef = useRef<VisualPromptEditorHandle | null>(null);
-  const observedPointTerminalIdsRef = useRef(new Set<string>());
+  const observedTerminalIdsRef = useRef(new Set<string>());
   const inspectorDialogRef = useRef<HTMLDialogElement>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -131,16 +133,15 @@ function ReadyDesignWorkspace({
   });
   const creditsQuery = useQuery({
     queryKey: ["credits"],
-    queryFn: async () =>
-      readApiData<GenerationWallet>(await fetch("/api/v1/credits")),
+    queryFn: async ({ signal }) =>
+      readApiData<GenerationWallet>(
+        await fetch("/api/v1/credits", { signal }),
+      ),
   });
 
   const invalidateCredits = useCallback(
-    (event: CreditsLifecycleEvent) => {
-      const queryKey = creditsInvalidationQueryKey(event);
-      if (!queryKey) return Promise.resolve();
-      return queryClient.invalidateQueries({ queryKey });
-    },
+    (event: CreditsLifecycleEvent) =>
+      refreshCreditsAfterLifecycle(queryClient, event),
     [queryClient],
   );
 
@@ -155,6 +156,18 @@ function ReadyDesignWorkspace({
     },
     [invalidateCredits],
   );
+
+  useEffect(() => {
+    if (!generationsQuery.data?.items) return;
+    const reconciliation = reconcileTerminalCredits(
+      observedTerminalIdsRef.current,
+      generationsQuery.data.items,
+    );
+    observedTerminalIdsRef.current = reconciliation.observedTerminalIds;
+    if (reconciliation.queryKey) {
+      void invalidateCredits("terminal");
+    }
+  }, [generationsQuery.data?.items, invalidateCredits]);
 
   async function reserveCurrentGeneration() {
     if (prompt.trim().length < 3) {
@@ -198,19 +211,25 @@ function ReadyDesignWorkspace({
   });
   const cancelGeneration = useMutation({
     mutationFn: async (generationId: string) =>
-      readApiData<{ id: string }>(
+      readApiData<{ id: string; status: "CANCELLED" }>(
         await fetch(`/api/v1/generations/${generationId}/cancel`, {
           method: "POST",
         }),
       ),
-    onSuccess: async (data: { id: string }) => {
-      observedPointTerminalIdsRef.current.add(data.id);
+    onSuccess: async (data: { id: string; status: "CANCELLED" }) => {
+      const reconciliation = reconcileTerminalCredits(
+        observedTerminalIdsRef.current,
+        [data],
+      );
+      observedTerminalIdsRef.current = reconciliation.observedTerminalIds;
       setTrackedGenerationIds((current) =>
         current.filter((generationId) => generationId !== data.id),
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
-        invalidateCredits("cancellation-refund"),
+        reconciliation.queryKey
+          ? invalidateCredits("cancellation-refund")
+          : Promise.resolve(),
       ]);
     },
   });
@@ -275,15 +294,16 @@ function ReadyDesignWorkspace({
       const generation = query.data;
       if (
         !generation ||
-        isActiveGeneration(generation.status) ||
-        observedPointTerminalIdsRef.current.has(generation.id)
+        isActiveGeneration(generation.status)
       ) {
         continue;
       }
-      observedPointTerminalIdsRef.current.add(generation.id);
-      setTrackedGenerationIds((current) =>
-        current.filter((generationId) => generationId !== generation.id),
+      const reconciliation = reconcileTerminalCredits(
+        observedTerminalIdsRef.current,
+        [generation],
       );
+      observedTerminalIdsRef.current = reconciliation.observedTerminalIds;
+      if (!reconciliation.queryKey) continue;
       void Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["generations", project.id],
@@ -429,14 +449,17 @@ function ReadyDesignWorkspace({
       const retryIsCurrent =
         retryGeneration.isPending &&
         retryGeneration.variables?.id === generation.id;
-      const actionError =
+      const actionFailure =
         cancelGeneration.isError &&
         cancelGeneration.variables === generation.id
-          ? cancelGeneration.error?.message
+          ? cancelGeneration.error
           : retryGeneration.isError &&
               retryGeneration.variables?.id === generation.id
-            ? retryGeneration.error?.message
+            ? retryGeneration.error
             : null;
+      const actionError = actionFailure
+        ? generationActionErrorPresentation(actionFailure, "retry")
+        : null;
 
       return {
         id: nodeId,

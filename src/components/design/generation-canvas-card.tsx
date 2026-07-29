@@ -9,10 +9,12 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import type { Ref } from "react";
 import { VisualPromptEditor } from "@/components/design/visual-prompt-editor";
 import type { WorkspaceGeneration } from "@/components/design/workspace-types";
 import { buttonClassName } from "@/components/ui/button";
+import type { GenerationActionErrorPresentation } from "@/features/generations/client-wallet";
 import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
@@ -23,7 +25,7 @@ type GenerationCanvasCardProps = {
   variantNumber: string;
   cancelPending?: boolean;
   retryPending?: boolean;
-  actionError?: string | null;
+  actionError?: GenerationActionErrorPresentation | null;
   selected: boolean;
   editorRef: Ref<VisualPromptEditorHandle>;
   tool: VisualPromptTool;
@@ -104,6 +106,31 @@ function StatusPanel({
   );
 }
 
+function ActionErrorNotice({
+  error,
+}: {
+  error: GenerationActionErrorPresentation;
+}) {
+  return (
+    <p className="text-xs text-red-300" role="alert">
+      {error.message}
+      {error.purchaseLink ? (
+        <>
+          {" "}
+          <Link
+            href={error.purchaseLink.href}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            className="font-semibold underline underline-offset-2"
+          >
+            {error.purchaseLink.label}
+          </Link>
+        </>
+      ) : null}
+    </p>
+  );
+}
+
 export function GenerationCanvasCard({
   generation,
   variantNumber,
@@ -140,7 +167,7 @@ export function GenerationCanvasCard({
     Boolean(actionError);
   let announcement = statusLabels[generation.status];
   if (actionError) {
-    announcement = actionError;
+    announcement = actionError.message;
   } else if (resultQuery.isError) {
     announcement = resultQuery.error.message;
   } else if (resultUnavailable) {
@@ -189,9 +216,7 @@ export function GenerationCanvasCard({
             {cancelPending ? "Отменяем…" : "Отменить"}
           </button>
           {actionError ? (
-            <p className="text-xs text-red-300">
-              {actionError}
-            </p>
+            <ActionErrorNotice error={actionError} />
           ) : null}
         </StatusPanel>
       );
@@ -347,9 +372,7 @@ export function GenerationCanvasCard({
             {retryPending ? "Повторяем…" : "Повторить"}
           </button>
           {actionError ? (
-            <p className="text-xs text-red-300">
-              {actionError}
-            </p>
+            <ActionErrorNotice error={actionError} />
           ) : null}
         </StatusPanel>
       );
@@ -400,9 +423,7 @@ export function GenerationCanvasCard({
             {retryPending ? "Запускаем…" : "Повторить"}
           </button>
           {actionError ? (
-            <p className="text-xs text-red-300">
-              {actionError}
-            </p>
+            <ActionErrorNotice error={actionError} />
           ) : null}
         </StatusPanel>
       );

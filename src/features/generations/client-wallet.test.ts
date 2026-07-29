@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import {
   ApiResponseError,
   creditsInvalidationQueryKey,
+  generationActionErrorPresentation,
   generationWalletPresentation,
   readApiData,
+  reconcileTerminalCredits,
+  refreshCreditsAfterLifecycle,
 } from "./client-wallet.ts";
 
 test("API failures preserve the server error code and message", async () => {
@@ -120,4 +124,126 @@ test("credit query invalidation follows reservation, terminal, cancellation-refu
     "credits",
   ]);
   assert.equal(creditsInvalidationQueryKey("poll"), null);
+});
+
+test("a terminal generation first observed in the list reconciles credits exactly once", () => {
+  const firstObservation = reconcileTerminalCredits(new Set(), [
+    { id: "generation-failed", status: "FAILED" },
+    { id: "generation-processing", status: "PROCESSING" },
+  ]);
+
+  assert.deepEqual(firstObservation.queryKey, ["credits"]);
+  assert.deepEqual(
+    [...firstObservation.observedTerminalIds],
+    ["generation-failed"],
+  );
+
+  const repeatedObservation = reconcileTerminalCredits(
+    firstObservation.observedTerminalIds,
+    [
+      { id: "generation-failed", status: "FAILED" },
+      { id: "generation-processing", status: "PROCESSING" },
+    ],
+  );
+
+  assert.equal(repeatedObservation.queryKey, null);
+  assert.deepEqual(
+    [...repeatedObservation.observedTerminalIds],
+    ["generation-failed"],
+  );
+});
+
+test("list reconciliation deduplicates a terminal generation already observed by point polling or cancellation", () => {
+  const reconciliation = reconcileTerminalCredits(
+    new Set(["generation-cancelled"]),
+    [{ id: "generation-cancelled", status: "CANCELLED" }],
+  );
+
+  assert.equal(reconciliation.queryKey, null);
+  assert.deepEqual(
+    [...reconciliation.observedTerminalIds],
+    ["generation-cancelled"],
+  );
+});
+
+test("terminal reconciliation cancels an in-flight stale wallet read before refetching", async () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  let requestNumber = 0;
+  let markFirstRequestStarted: (() => void) | undefined;
+  const firstRequestStarted = new Promise<void>((resolve) => {
+    markFirstRequestStarted = resolve;
+  });
+  const observer = new QueryObserver(queryClient, {
+    queryKey: ["credits"],
+    queryFn: ({ signal }) => {
+      requestNumber += 1;
+      if (requestNumber > 1) {
+        return Promise.resolve({ balance: 10, generationCost: 4 });
+      }
+      markFirstRequestStarted?.();
+      return new Promise<{ balance: number; generationCost: number }>(
+        (_resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true },
+          );
+        },
+      );
+    },
+  });
+  const unsubscribe = observer.subscribe(() => undefined);
+
+  await firstRequestStarted;
+  await refreshCreditsAfterLifecycle(queryClient, "terminal");
+
+  assert.deepEqual(queryClient.getQueryData(["credits"]), {
+    balance: 10,
+    generationCost: 4,
+  });
+  unsubscribe();
+});
+
+test("retry and variation 402 errors preserve visible purchase destinations", () => {
+  const serverError = new ApiResponseError(
+    "INSUFFICIENT_CREDITS",
+    "Для генерации нужно 4 кредита",
+  );
+
+  assert.deepEqual(generationActionErrorPresentation(serverError, "retry"), {
+    message: "Для генерации нужно 4 кредита",
+    purchaseLink: {
+      href: "/app/credits",
+      label: "Пополнить баланс",
+    },
+  });
+  assert.deepEqual(
+    generationActionErrorPresentation(serverError, "variation"),
+    {
+      message: "Для генерации нужно 4 кредита",
+      purchaseLink: {
+        href: "/app/credits",
+        label: "Пополнить баланс",
+      },
+    },
+  );
+});
+
+test("ordinary retry and variation errors do not offer a purchase destination", () => {
+  assert.deepEqual(
+    generationActionErrorPresentation(new Error("Повтор не удался"), "retry"),
+    {
+      message: "Повтор не удался",
+      purchaseLink: null,
+    },
+  );
+  assert.deepEqual(
+    generationActionErrorPresentation("unexpected", "variation"),
+    {
+      message: "Не удалось создать ещё один вариант",
+      purchaseLink: null,
+    },
+  );
 });

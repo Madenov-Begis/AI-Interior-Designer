@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import { GENERATION_CREDIT_COST } from "../../config/product.ts";
 import { fullGenerationCount } from "../credits/presentation.ts";
 
@@ -7,6 +8,12 @@ export type GenerationWallet = {
 };
 
 export type GenerationSurface = "root" | "refinement";
+export type GenerationActionSurface = "retry" | "variation";
+
+export type GenerationActionErrorPresentation = {
+  message: string;
+  purchaseLink: typeof PURCHASE_LINK | null;
+};
 
 export type CreditsLifecycleEvent =
   | "reservation"
@@ -24,6 +31,12 @@ const PURCHASE_LINK = {
 } as const;
 
 const CREDITS_QUERY_KEY = ["credits"] as const;
+const TERMINAL_GENERATION_STATUSES = new Set([
+  "SUCCEEDED",
+  "FAILED",
+  "REJECTED",
+  "CANCELLED",
+]);
 
 export class ApiResponseError extends Error {
   readonly code: string;
@@ -88,4 +101,57 @@ export function generationWalletPresentation(
 
 export function creditsInvalidationQueryKey(event: CreditsLifecycleEvent) {
   return event === "poll" ? null : CREDITS_QUERY_KEY;
+}
+
+export async function refreshCreditsAfterLifecycle(
+  queryClient: QueryClient,
+  event: CreditsLifecycleEvent,
+) {
+  const queryKey = creditsInvalidationQueryKey(event);
+  if (!queryKey) return;
+  await queryClient.cancelQueries({ queryKey });
+  await queryClient.invalidateQueries({ queryKey });
+}
+
+export function reconcileTerminalCredits(
+  observedTerminalIds: ReadonlySet<string>,
+  generations: ReadonlyArray<{ id: string; status: string }>,
+) {
+  const nextObservedTerminalIds = new Set(observedTerminalIds);
+  let foundNewTerminal = false;
+
+  for (const generation of generations) {
+    if (
+      !TERMINAL_GENERATION_STATUSES.has(generation.status) ||
+      nextObservedTerminalIds.has(generation.id)
+    ) {
+      continue;
+    }
+    nextObservedTerminalIds.add(generation.id);
+    foundNewTerminal = true;
+  }
+
+  return {
+    observedTerminalIds: nextObservedTerminalIds,
+    queryKey: foundNewTerminal ? CREDITS_QUERY_KEY : null,
+  };
+}
+
+export function generationActionErrorPresentation(
+  error: unknown,
+  surface: GenerationActionSurface,
+): GenerationActionErrorPresentation {
+  const fallbackMessage =
+    surface === "retry"
+      ? "Не удалось повторить генерацию"
+      : "Не удалось создать ещё один вариант";
+
+  return {
+    message: error instanceof Error ? error.message : fallbackMessage,
+    purchaseLink:
+      error instanceof ApiResponseError &&
+      error.code === "INSUFFICIENT_CREDITS"
+        ? PURCHASE_LINK
+        : null,
+  };
 }

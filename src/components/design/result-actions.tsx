@@ -1,10 +1,15 @@
 "use client";
 
 import { Download, LoaderCircle, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BeforeAfter } from "@/components/design/before-after";
 import type { WorkspaceGeneration } from "@/components/design/workspace-types";
 import { buttonClassName } from "@/components/ui/button";
+import {
+  type GenerationActionErrorPresentation,
+  generationActionErrorPresentation,
+} from "@/features/generations/client-wallet";
 
 export type ResultActionsProps = {
   generation: WorkspaceGeneration;
@@ -33,7 +38,8 @@ export function ResultActions({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [variationPending, setVariationPending] = useState(false);
-  const [variationError, setVariationError] = useState<string | null>(null);
+  const [variationError, setVariationError] =
+    useState<GenerationActionErrorPresentation | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -58,9 +64,7 @@ export function ResultActions({
       dialogRef.current?.close();
     } catch (error) {
       setVariationError(
-        error instanceof Error
-          ? error.message
-          : "Не удалось создать ещё один вариант",
+        generationActionErrorPresentation(error, "variation"),
       );
       setVariationPending(false);
     }
@@ -137,7 +141,18 @@ export function ResultActions({
         </div>
         {variationError ? (
           <p role="alert" aria-live="polite" className="text-sm text-red-300">
-            {variationError}
+            {variationError.message}
+            {variationError.purchaseLink ? (
+              <>
+                {" "}
+                <Link
+                  href={variationError.purchaseLink.href}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  {variationError.purchaseLink.label}
+                </Link>
+              </>
+            ) : null}
           </p>
         ) : null}
 
