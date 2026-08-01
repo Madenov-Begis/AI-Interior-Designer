@@ -6,7 +6,6 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { adminApiError, adminMutationLimit } from "@/features/admin/http";
 import { updateUserSchema } from "@/features/admin/schemas";
-import { writeAuditLog } from "@/features/admin/audit";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const requestId = getRequestId(request.headers);
@@ -20,7 +19,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     await adminMutationLimit(request); const { profile: actor } = await requireAdmin(); const id = z.uuid().parse((await context.params).id); const input = updateUserSchema.parse(await request.json());
     if (id === actor.id && (input.role === "USER" || input.status === "BLOCKED" || input.status === "DELETED")) return apiError("SELF_LOCKOUT", "Нельзя лишить себя административного доступа", requestId, 409);
     const updated = await getDb().profile.update({ where: { id }, data: { ...input, vipExpiresAt: input.vipExpiresAt === undefined ? undefined : input.vipExpiresAt ? new Date(input.vipExpiresAt) : null, deletedAt: input.status === "DELETED" ? new Date() : input.status ? null : undefined }, include: { plan: true } });
-    await writeAuditLog({ request, actorId: actor.id, action: "admin.user.update", entityType: "Profile", entityId: id, metadata: { changedFields: Object.keys(input) } });
     return apiSuccess(updated, requestId);
   } catch (error) { return adminApiError(error, requestId, "Не удалось обновить пользователя"); }
 }

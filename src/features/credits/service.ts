@@ -11,6 +11,7 @@ export {
   debitGenerationCredits,
   ensureCreditWallet,
   refundReservedGeneration,
+  adjustCreditBalance,
 } from "@/features/credits/service-operations";
 export type { WalletSnapshot } from "@/features/credits/service-operations";
 

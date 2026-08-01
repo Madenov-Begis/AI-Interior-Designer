@@ -1,4 +1,9 @@
+packages:
+  - admin
+  - packages/*
+
 allowBuilds:
+  esbuild: true
   '@google/genai': false
   '@prisma/engines': true
   canvas: false

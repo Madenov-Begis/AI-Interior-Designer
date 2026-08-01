@@ -15,6 +15,7 @@ import {
 } from "./interior-styles.ts";
 import { buildRefinementSnapshot } from "./refinement-policy.ts";
 import { resolveRequiredProvider } from "./reservation-policy.ts";
+import { getGenerationModelConfig, supportedGenerationAspectRatios } from "./model-config.ts";
 import { resolveEffectivePlan } from "../plans/resolve-plan.ts";
 
 type GenerationDatabase = {
@@ -253,21 +254,8 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
           );
         }
 
-        const model = await tx.aiModel.findFirst({
-          where: {
-            active: true,
-            provider: resolveRequiredProvider(dependencies.aiProvider),
-            plans: { some: { planId: plan.id } },
-          },
-          orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
-        });
-        if (!model) {
-          throw new GenerationReservationError(
-            "MODEL_NOT_FOUND",
-            "Модель недоступна",
-          );
-        }
-        if (!model.supportedAspectRatios.includes(input.aspectRatio)) {
+        const model = getGenerationModelConfig(dependencies.aiProvider);
+        if (!supportedGenerationAspectRatios.includes(input.aspectRatio)) {
           throw new GenerationReservationError(
             "MODEL_NOT_ALLOWED",
             "Модель не поддерживает выбранный формат",
@@ -305,7 +293,6 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
           data: {
             userId: input.userId,
             projectId: project.id,
-            modelId: model.id,
             idempotencyKey: input.idempotencyKey,
             prompt: input.prompt,
             styleCode: input.styleCode ?? null,
@@ -333,7 +320,6 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
           where: { id: project.id },
           data: {
             prompt: input.prompt,
-            modelId: model.id,
             aspectRatio: input.aspectRatio,
           },
         });
@@ -386,9 +372,7 @@ export async function reserveRefinementWithDependencies<TDatabase>(
           profile.plan,
           () => tx.plan.findUniqueOrThrow({ where: { code: "FREE" } }),
         );
-        const requiredProvider = resolveRequiredProvider(
-          dependencies.aiProvider,
-        );
+        const model = getGenerationModelConfig(dependencies.aiProvider);
         const parent = await tx.generation.findFirst({
           where: {
             id: input.parentGenerationId,
@@ -398,18 +382,11 @@ export async function reserveRefinementWithDependencies<TDatabase>(
           select: {
             id: true,
             projectId: true,
-            modelId: true,
             styleCode: true,
             aspectRatio: true,
             resultOriginalId: true,
             status: true,
             project: { select: { deletedAt: true } },
-            model: {
-              select: {
-                provider: true,
-                costPerGeneration: true,
-              },
-            },
           },
         });
         if (!parent || parent.project.deletedAt) {
@@ -418,13 +395,6 @@ export async function reserveRefinementWithDependencies<TDatabase>(
             "Генерация не найдена",
           );
         }
-        if (parent.model.provider !== requiredProvider) {
-          throw new GenerationReservationError(
-            "MODEL_NOT_ALLOWED",
-            "Этот результат нельзя доработать в текущем режиме",
-          );
-        }
-
         let snapshot: ReturnType<typeof buildRefinementSnapshot>;
         try {
           snapshot = buildRefinementSnapshot(parent);
@@ -506,7 +476,7 @@ export async function reserveRefinementWithDependencies<TDatabase>(
         return createGenerationReservation(tx, {
           generationId,
           userId: input.userId,
-          estimatedCost: parent.model.costPerGeneration,
+          estimatedCost: model.costPerGeneration,
           data: {
             userId: input.userId,
             idempotencyKey: input.idempotencyKey,

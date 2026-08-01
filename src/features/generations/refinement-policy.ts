@@ -8,7 +8,6 @@ export type RefinementAspectRatio =
 type RefinementParent = {
   id: string;
   projectId: string;
-  modelId: string;
   styleCode: string | null;
   aspectRatio: RefinementAspectRatio;
   resultOriginalId: string | null;
@@ -26,7 +25,6 @@ export function buildRefinementSnapshot(parent: RefinementParent) {
   return {
     parentGenerationId: parent.id,
     projectId: parent.projectId,
-    modelId: parent.modelId,
     styleCode: parent.styleCode,
     aspectRatio: parent.aspectRatio,
     sourceImageId: parent.resultOriginalId,

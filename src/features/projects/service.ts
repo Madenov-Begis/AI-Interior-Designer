@@ -83,7 +83,7 @@ export function findOwnedProject(userId: string, id: string) {
   });
 }
 
-export async function updateOwnedProject(userId: string, id: string, data: { name?: string; prompt?: string | null; aspectRatio?: "RATIO_1_1" | "RATIO_16_9" | "RATIO_9_16" | "RATIO_4_3" | "RATIO_3_4"; modelId?: string | null; status?: "DRAFT" | "READY" | "ARCHIVED" }) {
+export async function updateOwnedProject(userId: string, id: string, data: { name?: string; prompt?: string | null; aspectRatio?: "RATIO_1_1" | "RATIO_16_9" | "RATIO_9_16" | "RATIO_4_3" | "RATIO_3_4"; status?: "DRAFT" | "READY" | "ARCHIVED" }) {
   const found = await getDb().project.findFirst({ where: { id, userId, deletedAt: null }, select: { id: true } });
   if (!found) return null;
   return getDb().project.update({ where: { id }, data, select: projectSummarySelect });
@@ -97,5 +97,5 @@ export async function archiveOwnedProject(userId: string, id: string) {
 export async function duplicateOwnedProject(userId: string, id: string) {
   const source = await getDb().project.findFirst({ where: { id, userId, deletedAt: null }, include: { references: { orderBy: { position: "asc" } } } });
   if (!source) return null;
-  return getDb().project.create({ data: { userId, name: `${source.name} — копия`.slice(0, 120), prompt: source.prompt, modelId: source.modelId, aspectRatio: source.aspectRatio, sourceImageId: source.sourceImageId, sourcePreviewId: source.sourcePreviewId, visualPromptId: source.visualPromptId, canvasState: source.canvasState ?? undefined, visualPromptUsed: source.visualPromptUsed, references: { create: source.references.map((reference) => ({ fileId: reference.fileId, sourceUrl: reference.sourceUrl, position: reference.position })) } }, select: projectSummarySelect });
+  return getDb().project.create({ data: { userId, name: `${source.name} — копия`.slice(0, 120), prompt: source.prompt, aspectRatio: source.aspectRatio, sourceImageId: source.sourceImageId, sourcePreviewId: source.sourcePreviewId, visualPromptId: source.visualPromptId, canvasState: source.canvasState ?? undefined, visualPromptUsed: source.visualPromptUsed, references: { create: source.references.map((reference) => ({ fileId: reference.fileId, sourceUrl: reference.sourceUrl, position: reference.position })) } }, select: projectSummarySelect });
 }

@@ -9,6 +9,11 @@
   },
   "scripts": {
     "dev": "next dev",
+    "admin:dev": "pnpm --dir admin dev",
+    "admin:test": "pnpm --dir admin test",
+    "admin:typecheck": "pnpm --dir admin typecheck",
+    "admin:build": "pnpm --dir admin build",
+    "admin:seed": "node --experimental-strip-types scripts/seed-admin.ts",
     "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",

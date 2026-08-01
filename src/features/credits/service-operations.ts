@@ -131,6 +131,28 @@ export async function debitGenerationCredits(
   return wallet.balance;
 }
 
+export async function adjustCreditBalance(
+  tx: CreditTx,
+  input: { userId: string; actorId: string; amount: number; reason: string; idempotencyKey: string },
+) {
+  if (!Number.isInteger(input.amount) || input.amount === 0) throw new CreditBalanceError("INVALID_CREDIT_AMOUNT");
+  const key = creditTransactionKey("ADMIN_ADJUSTMENT", `${input.actorId}:${input.idempotencyKey}`);
+  const existing = await tx.creditTransaction.findUnique({ where: { idempotencyKey: key }, select: { balanceAfter: true } });
+  if (existing) return existing.balanceAfter;
+
+  await ensureCreditWallet(tx, input.userId);
+  await lockCreditWallet(tx, input.userId);
+  if (input.amount < 0) {
+    const result = await tx.creditWallet.updateMany({ where: { userId: input.userId, balance: { gte: -input.amount } }, data: { balance: { decrement: -input.amount } } });
+    if (result.count === 0) throw new CreditBalanceError("INSUFFICIENT_CREDITS");
+  } else {
+    await tx.creditWallet.update({ where: { userId: input.userId }, data: { balance: { increment: input.amount } } });
+  }
+  const wallet = await tx.creditWallet.findUniqueOrThrow({ where: { userId: input.userId } });
+  await tx.creditTransaction.create({ data: { userId: input.userId, kind: "ADMIN_ADJUSTMENT", amount: input.amount, balanceAfter: wallet.balance, idempotencyKey: key, orderId: null, generationId: null, reason: input.reason } });
+  return wallet.balance;
+}
+
 export async function refundReservedGeneration(
   tx: CreditTx,
   input: {

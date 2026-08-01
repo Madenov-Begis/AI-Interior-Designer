@@ -92,16 +92,10 @@ enum PaymentOrderStatus {
   EXPIRED
 }
 
-enum NotificationType {
-  INFO
-  WARNING
-  SUCCESS
-  ERROR
-}
-
 model Profile {
   id                  String     @id @db.Uuid
-  email               String     @unique
+  email               String?    @unique
+  phone               String?    @unique
   firstName           String?
   lastName            String?
   displayName         String?
@@ -124,7 +118,6 @@ model Profile {
   mediaFiles    MediaFile[]
   generations   Generation[]
   usageEvents   UsageEvent[]
-  auditLogs     AuditLog[]     @relation("AuditActor")
   creditWallet  CreditWallet?
   paymentOrders PaymentOrder[]
 
@@ -154,7 +147,6 @@ model Plan {
 
   users         Profile[]
   subscriptions Subscription[]
-  models        PlanModel[]
 }
 
 model Subscription {
@@ -180,7 +172,6 @@ model Project {
   name             String
   status           ProjectStatus @default(DRAFT)
   prompt           String?
-  modelId          String?       @db.Uuid
   aspectRatio      AspectRatio   @default(RATIO_16_9)
   sourceImageId    String?       @db.Uuid
   sourcePreviewId  String?       @db.Uuid
@@ -195,7 +186,6 @@ model Project {
   sourceImage   MediaFile?         @relation("ProjectSourceImage", fields: [sourceImageId], references: [id])
   sourcePreview MediaFile?         @relation("ProjectSourcePreview", fields: [sourcePreviewId], references: [id])
   visualPrompt  MediaFile?         @relation("ProjectVisualPrompt", fields: [visualPromptId], references: [id])
-  model         AiModel?           @relation(fields: [modelId], references: [id])
   references    ProjectReference[]
   generations   Generation[]
 
@@ -252,49 +242,11 @@ model ProjectReference {
   @@index([fileId])
 }
 
-model AiModel {
-  id                    String        @id @default(uuid()) @db.Uuid
-  provider              AiProvider
-  code                  String        @unique
-  externalModelId       String
-  name                  String
-  description           String?
-  active                Boolean       @default(true)
-  preview               Boolean       @default(false)
-  timeoutSeconds        Int           @default(120)
-  maxReferenceImages    Int           @default(10)
-  maxInputSizeMb        Int           @default(15)
-  supportedAspectRatios AspectRatio[]
-  supportsVisualPrompt  Boolean       @default(true)
-  costPerGeneration     Decimal?      @db.Decimal(12, 6)
-  priority              Int           @default(0)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-
-  generations Generation[]
-  plans       PlanModel[]
-  projects    Project[]
-
-  @@index([active, priority])
-}
-
-model PlanModel {
-  planId  String @db.Uuid
-  modelId String @db.Uuid
-
-  plan  Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
-  model AiModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
-
-  @@id([planId, modelId])
-  @@index([modelId])
-}
-
 model Generation {
   id                  String           @id @default(uuid()) @db.Uuid
   userId              String           @db.Uuid
   projectId           String           @db.Uuid
   parentGenerationId  String?          @db.Uuid
-  modelId             String           @db.Uuid
   status              GenerationStatus @default(QUEUED)
   idempotencyKey      String?
   jobId               String?          @unique
@@ -324,7 +276,6 @@ model Generation {
   project            Project               @relation(fields: [projectId], references: [id])
   parentGeneration   Generation?           @relation("GenerationRefinements", fields: [parentGenerationId], references: [id])
   refinements        Generation[]          @relation("GenerationRefinements")
-  model              AiModel               @relation(fields: [modelId], references: [id])
   sourceImage        MediaFile             @relation("GenerationSourceImage", fields: [sourceImageId], references: [id])
   visualPromptImage  MediaFile?            @relation("GenerationVisualPrompt", fields: [visualPromptImageId], references: [id])
   resultOriginal     MediaFile?            @relation("GenerationOriginalResult", fields: [resultOriginalId], references: [id])
@@ -442,43 +393,4 @@ model PaymentEvent {
 
   @@unique([provider, providerEventId])
   @@index([orderId, createdAt])
-}
-
-model Notification {
-  id        String           @id @default(uuid()) @db.Uuid
-  title     String?
-  content   String
-  type      NotificationType @default(INFO)
-  linkUrl   String?
-  active    Boolean          @default(true)
-  startsAt  DateTime?
-  endsAt    DateTime?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-
-  @@index([active, startsAt, endsAt])
-}
-
-model SystemSetting {
-  key       String   @id
-  value     Json
-  updatedAt DateTime @updatedAt
-}
-
-model AuditLog {
-  id         String   @id @default(uuid()) @db.Uuid
-  actorId    String?  @db.Uuid
-  action     String
-  entityType String?
-  entityId   String?
-  metadata   Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-
-  actor Profile? @relation("AuditActor", fields: [actorId], references: [id])
-
-  @@index([actorId, createdAt])
-  @@index([entityType, entityId, createdAt])
-  @@index([action, createdAt])
 }

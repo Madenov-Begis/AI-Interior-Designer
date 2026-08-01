@@ -7,6 +7,7 @@ import {
   classifyGenerationFailure,
   generateWithConfiguredProvider,
 } from "@/features/generations/execution-policy";
+import { getGenerationModelConfig } from "@/features/generations/model-config";
 import { failGenerationWithDatabase } from "@/features/generations/operations";
 import { getImageGenerationProvider } from "@/features/generations/provider";
 import { getDb } from "@/lib/db";
@@ -53,7 +54,6 @@ export async function processGeneration(generationId: string) {
     const generation = await db.generation.findUnique({
       where: { id: generationId },
       include: {
-        model: true,
         sourceImage: true,
         visualPromptImage: true,
         references: { orderBy: { position: "asc" }, include: { file: true } },
@@ -70,12 +70,13 @@ export async function processGeneration(generationId: string) {
     const metadata = await sharp(source.data, { failOn: "error" }).metadata();
     if (!metadata.width || !metadata.height) throw new Error("SOURCE_DIMENSIONS_MISSING");
 
+    const model = getGenerationModelConfig(process.env.AI_PROVIDER);
     const output = await generateWithConfiguredProvider(
       {
         configuredProvider: process.env.AI_PROVIDER,
-        storedProvider: generation.model.provider,
-        modelId: generation.model.externalModelId,
-        timeoutSeconds: generation.model.timeoutSeconds,
+        storedProvider: model.provider,
+        modelId: model.externalModelId,
+        timeoutSeconds: model.timeoutSeconds,
         input: {
           source,
           visualPrompt,

@@ -39,6 +39,7 @@ import {
   RetryAttemptRegistry,
 } from "@/features/generations/client-wallet";
 import { buildGenerationLabels } from "@/features/generations/tree";
+import { INTERIOR_STYLES } from "@/features/generations/interior-styles";
 import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
 
 type GenerationList = {
@@ -134,15 +135,6 @@ function ReadyDesignWorkspace({
       readApiData<GenerationList>(
         await fetch(`/api/v1/generations?projectId=${project.id}&limit=20`),
       ),
-  });
-  const configQuery = useQuery({
-    queryKey: ["config"],
-    queryFn: async () =>
-      (
-        await readApiData<{ interiorStyles: Style[] }>(
-          await fetch("/api/v1/config"),
-        )
-      ).interiorStyles,
   });
   const creditsQuery = useQuery(
     creditQueryOptions(({ signal }) =>
@@ -440,9 +432,9 @@ function ReadyDesignWorkspace({
     generationErrorCode,
   );
   const inspectorDataError =
-    creditsQuery.error?.message ?? configQuery.error?.message ?? null;
+    creditsQuery.error?.message ?? null;
   const inspectorDataLoading =
-    creditsQuery.isLoading || configQuery.isLoading;
+    creditsQuery.isLoading;
   const disabledReasons: string[] = [];
   if (createGeneration.isPending) {
     disabledReasons.push("Генерация уже запускается.");
@@ -852,7 +844,7 @@ function ReadyDesignWorkspace({
             initialReferences={initialReferences}
             prompt={prompt}
             onPromptChange={setPrompt}
-            styles={configQuery.data ?? []}
+            styles={[...INTERIOR_STYLES]}
             styleCode={styleCode}
             onStyleChange={setStyleCode}
             aspectRatio={aspectRatio}

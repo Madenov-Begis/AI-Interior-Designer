@@ -423,7 +423,7 @@ function reservationDependencies(
   };
 }
 
-test("root reservation ignores exhausted daily quota, snapshots cost, and debits four credits", async () => {
+test("root reservation ignores exhausted daily quota and debits four credits", async () => {
   const { db, state } = createGenerationHarness();
 
   await reserveRootGenerationWithDependencies(
@@ -439,10 +439,7 @@ test("root reservation ignores exhausted daily quota, snapshots cost, and debits
   );
 
   assert.equal(state.wallets.get("user-1"), 6);
-  assert.equal(
-    state.generations.get("generation-root")?.estimatedCost,
-    "0.147200",
-  );
+  assert.equal(state.generations.get("generation-root")?.estimatedCost, 0);
   assert.equal(
     state.usageEvents.get("generation-root")?.creditAmount,
     4,
@@ -510,7 +507,7 @@ test("refinement ignores exhausted daily quota and debits four credits", async (
   );
   assert.equal(
     state.generations.get("generation-refinement")?.estimatedCost,
-    "0.000000",
+    0,
   );
   assert.equal(
     state.usageEvents.get("generation-refinement")?.creditAmount,
@@ -518,35 +515,11 @@ test("refinement ignores exhausted daily quota and debits four credits", async (
   );
 });
 
-test("fake-mode refinement rejects a historical Vertex parent without debit or partial records", async () => {
-  const { db, state } = createGenerationHarness({
-    parentModel: {
-      provider: "VERTEX_AI",
-      costPerGeneration: "0.147200",
-    },
-  });
-
-  await assert.rejects(
-    () =>
-      reserveRefinementWithDependencies(
-        reservationDependencies(db, "generation-refinement"),
-        {
-          userId: "user-1",
-          parentGenerationId: "generation-parent",
-          prompt: "refine",
-          referenceFileIds: [],
-          idempotencyKey: "refinement-key",
-        },
-      ),
-    (error) =>
-      error instanceof GenerationReservationError &&
-      error.code === "MODEL_NOT_ALLOWED",
-  );
-
-  assert.equal(state.wallets.get("user-1"), 10);
-  assert.equal(state.generations.size, 0);
-  assert.equal(state.usageEvents.size, 0);
-  assert.equal(state.journals.length, 0);
+test("refinement uses the current fixed configuration", async () => {
+  const { db, state } = createGenerationHarness();
+  await reserveRefinementWithDependencies(reservationDependencies(db, "generation-refinement"), { userId: "user-1", parentGenerationId: "generation-parent", prompt: "refine", referenceFileIds: [], idempotencyKey: "refinement-key" });
+  assert.equal(state.wallets.get("user-1"), 6);
+  assert.equal(state.generations.size, 1);
 });
 
 test("idempotent reservation repeat returns the original without a second debit", async () => {

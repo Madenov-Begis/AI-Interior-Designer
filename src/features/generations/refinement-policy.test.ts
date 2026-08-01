@@ -18,7 +18,6 @@ test("inherits immutable settings and uses the clean parent result", () => {
     {
       parentGenerationId: successfulParent.id,
       projectId: successfulParent.projectId,
-      modelId: successfulParent.modelId,
       styleCode: successfulParent.styleCode,
       aspectRatio: successfulParent.aspectRatio,
       sourceImageId: successfulParent.resultOriginalId,
