@@ -1,5 +1,5 @@
-import type { ApiEnvelope } from "@renoa/admin-contracts";
 import { getAdminPhone } from "./admin-session";
+import type { ApiEnvelope } from "./api-types";
 
 const apiBase = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 

@@ -1,9 +1,9 @@
 import { Button, Card, Center, Container, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { adminLoginSchema } from "@renoa/admin-contracts";
 import { adminApi } from "../../shared/api";
 import { clearAdminPhone, setAdminPhone } from "../../shared/admin-session";
+import { adminLoginSchema } from "./schema";
 
 export function LoginPage({ onAuthenticated }: { onAuthenticated: () => void }) {
   const form = useForm({ mode: "uncontrolled", initialValues: { phone: "+998" }, validate: (values) => { const result = adminLoginSchema.safeParse(values); return result.success ? {} : Object.fromEntries(Object.entries(result.error.flatten().fieldErrors).map(([key, messages]) => [key, messages?.[0] ?? "Некорректное значение"])); } });

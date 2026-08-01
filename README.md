@@ -71,4 +71,4 @@ pnpm build
 validation и production build. Проверка миграций требует доступного PostgreSQL:
 сначала выполните `pnpm db:migrate:deploy`, затем `pnpm db:status`.
 
-Полное исходное ТЗ хранится в [`docs/requirements/technical-specification.md`](docs/requirements/technical-specification.md). Архитектурный дизайн и поэтапные планы находятся в `docs/superpowers/`.
+Актуальное ТЗ хранится в [`docs/requirements/technical-specification.md`](docs/requirements/technical-specification.md), а сводная история решений — в [`docs/project-history.md`](docs/project-history.md). Исходные материалы `superpowers` объединены в эту историю и при необходимости восстанавливаются из Git.
