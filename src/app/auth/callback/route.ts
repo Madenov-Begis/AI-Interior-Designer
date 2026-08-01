@@ -15,13 +15,19 @@ export async function GET(request: NextRequest) {
       if (data.user) {
         try {
           await upsertProfileFromAuthUser(data.user);
-          return NextResponse.redirect(new URL(safeNext, request.nextUrl.origin));
+          return NextResponse.redirect(
+            new URL(safeNext, request.nextUrl.origin),
+          );
         } catch {
-          return NextResponse.redirect(new URL("/login?error=profile_setup", request.nextUrl.origin));
+          return NextResponse.redirect(
+            new URL("/login?error=profile_setup", request.nextUrl.origin),
+          );
         }
       }
     }
   }
 
-  return NextResponse.redirect(new URL("/login?error=oauth_callback", request.nextUrl.origin));
+  return NextResponse.redirect(
+    new URL("/login?error=oauth_callback", request.nextUrl.origin),
+  );
 }

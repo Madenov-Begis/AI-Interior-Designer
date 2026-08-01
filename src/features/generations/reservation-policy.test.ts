@@ -28,9 +28,7 @@ test("maps insufficient credits to payment required in every generation route", 
     402,
   );
   assert.equal(
-    reservationPolicy.retryReservationHttpStatus(
-      "GENERATION_ALREADY_RUNNING",
-    ),
+    reservationPolicy.retryReservationHttpStatus("GENERATION_ALREADY_RUNNING"),
     409,
   );
 });

@@ -44,7 +44,6 @@ export function Hero({ authenticated }: { authenticated: boolean }) {
             10 приветственных кредитов · без привязки карты
           </p>
         </div>
-
       </div>
       <div className="overflow-hidden border-t border-border py-5">
         <div className="flex min-w-max items-center justify-center gap-7 px-4">
@@ -54,7 +53,10 @@ export function Hero({ authenticated }: { authenticated: boolean }) {
               className="flex items-center gap-7 text-lg font-black italic tracking-[-0.03em] text-foreground"
             >
               {item}
-              <Sparkle className="size-4 fill-primary text-primary" aria-hidden="true" />
+              <Sparkle
+                className="size-4 fill-primary text-primary"
+                aria-hidden="true"
+              />
             </span>
           ))}
         </div>

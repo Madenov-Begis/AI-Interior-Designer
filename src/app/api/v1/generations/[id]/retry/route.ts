@@ -10,15 +10,9 @@ import { handleRetryGenerationReservation } from "@/features/generations/route-h
 import { processGeneration } from "@/features/generations/worker";
 import { apiError } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
-import {
-  requireCurrentUser,
-  UnauthorizedError,
-} from "@/lib/auth/current-user";
+import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
-import {
-  enforceRateLimit,
-  RateLimitError,
-} from "@/lib/security/rate-limit";
+import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -72,10 +66,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         prompt: generation.prompt,
         aspectRatio: generation.aspectRatio,
         styleCode,
-        idempotencyKey: namespaceRetryIdempotencyKey(
-          id,
-          clientIdempotencyKey,
-        ),
+        idempotencyKey: namespaceRetryIdempotencyKey(id, clientIdempotencyKey),
       },
       id,
       requestId,

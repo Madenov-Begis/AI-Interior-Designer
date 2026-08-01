@@ -81,18 +81,19 @@ export function HistoryGrid() {
   });
   const remove = useMutation({
     mutationFn: async (id: string) =>
-      apiData(
-        await fetch(`/api/v1/generations/${id}`, { method: "DELETE" }),
-      ),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["history"] }),
+      apiData(await fetch(`/api/v1/generations/${id}`, { method: "DELETE" })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["history"] }),
   });
   const items = history.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Фильтр истории">
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="tablist"
+          aria-label="Фильтр истории"
+        >
           {FILTERS.map(([value, label]) => (
             <Button
               key={value}
@@ -106,7 +107,10 @@ export function HistoryGrid() {
             </Button>
           ))}
         </div>
-        <Link href="/app" className={buttonClassName("default", undefined, "sm")}>
+        <Link
+          href="/app"
+          className={buttonClassName("default", undefined, "sm")}
+        >
           <Plus className="size-4" />
           Новый интерьер
         </Link>
@@ -140,10 +144,7 @@ export function HistoryGrid() {
                 Загрузите комнату и создайте первый вариант — он появится здесь
                 вместе со всеми следующими итерациями.
               </p>
-              <Link
-                href="/app"
-                className={buttonClassName("default", "mt-5")}
-              >
+              <Link href="/app" className={buttonClassName("default", "mt-5")}>
                 Создать интерьер
               </Link>
             </div>
@@ -175,7 +176,10 @@ export function HistoryGrid() {
                   </div>
                 ) : (
                   <div className="grid aspect-[4/3] place-items-center bg-secondary">
-                    <ImageIcon className="size-7 text-muted-foreground" aria-hidden="true" />
+                    <ImageIcon
+                      className="size-7 text-muted-foreground"
+                      aria-hidden="true"
+                    />
                   </div>
                 )}
                 <Badge
@@ -188,10 +192,14 @@ export function HistoryGrid() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="truncate font-semibold">{item.project.name}</h2>
+                    <h2 className="truncate font-semibold">
+                      {item.project.name}
+                    </h2>
                     <p className="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
                       <GitBranch className="size-3" aria-hidden="true" />
-                      {item.parentGenerationId ? "Итерация" : "Основной вариант"}
+                      {item.parentGenerationId
+                        ? "Итерация"
+                        : "Основной вариант"}
                     </p>
                   </div>
                   <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
@@ -202,7 +210,9 @@ export function HistoryGrid() {
                   {item.prompt}
                 </p>
                 <div className="mt-3 flex gap-2 font-mono text-[10px] text-muted-foreground">
-                  <span>{item.aspectRatio.replace("RATIO_", "").replace("_", ":")}</span>
+                  <span>
+                    {item.aspectRatio.replace("RATIO_", "").replace("_", ":")}
+                  </span>
                   <span>·</span>
                   <span>{item._count.references} реф.</span>
                 </div>

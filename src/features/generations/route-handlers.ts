@@ -22,11 +22,7 @@ type ReservationDependencies<TInput> = {
   schedule(generationId: string): void;
 };
 
-function jsonResponse(
-  body: unknown,
-  requestId: string,
-  init?: ResponseInit,
-) {
+function jsonResponse(body: unknown, requestId: string, init?: ResponseInit) {
   const response = Response.json(body, init);
   response.headers.set("x-request-id", requestId);
   return response;

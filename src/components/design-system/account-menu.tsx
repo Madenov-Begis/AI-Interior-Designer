@@ -1,12 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  CreditCard,
-  LogOut,
-  Sparkle,
-  UserRound,
-} from "lucide-react";
+import { CreditCard, LogOut, Sparkle, UserRound } from "lucide-react";
 
 export type RenoaUserSummary = {
   name: string;
@@ -43,7 +38,11 @@ export function AccountMenu({
           {user.avatarUrl ? (
             // Remote user avatar cannot use a stable Next image loader.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+            <img
+              src={user.avatarUrl}
+              alt=""
+              className="size-full object-cover"
+            />
           ) : (
             initials
           )}

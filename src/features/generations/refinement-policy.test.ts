@@ -13,16 +13,13 @@ const successfulParent = {
 } as const;
 
 test("inherits immutable settings and uses the clean parent result", () => {
-  assert.deepEqual(
-    refinementPolicy.buildRefinementSnapshot(successfulParent),
-    {
-      parentGenerationId: successfulParent.id,
-      projectId: successfulParent.projectId,
-      styleCode: successfulParent.styleCode,
-      aspectRatio: successfulParent.aspectRatio,
-      sourceImageId: successfulParent.resultOriginalId,
-    },
-  );
+  assert.deepEqual(refinementPolicy.buildRefinementSnapshot(successfulParent), {
+    parentGenerationId: successfulParent.id,
+    projectId: successfulParent.projectId,
+    styleCode: successfulParent.styleCode,
+    aspectRatio: successfulParent.aspectRatio,
+    sourceImageId: successfulParent.resultOriginalId,
+  });
 });
 
 test("rejects a parent that has not succeeded", () => {

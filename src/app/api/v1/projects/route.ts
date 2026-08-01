@@ -4,13 +4,29 @@ import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { createProject, listProjects } from "@/features/projects/service";
-import { createProjectSchema, listProjectsSchema } from "@/features/projects/schemas";
+import {
+  createProjectSchema,
+  listProjectsSchema,
+} from "@/features/projects/schemas";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 function routeError(error: unknown, requestId: string) {
-  if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
-  if (error instanceof ZodError) return apiError("VALIDATION_ERROR", "Проверьте входные данные", requestId, 400, error.flatten());
-  return apiError("INTERNAL_ERROR", "Не удалось выполнить запрос", requestId, 500);
+  if (error instanceof UnauthorizedError)
+    return apiError("UNAUTHORIZED", error.message, requestId, 401);
+  if (error instanceof ZodError)
+    return apiError(
+      "VALIDATION_ERROR",
+      "Проверьте входные данные",
+      requestId,
+      400,
+      error.flatten(),
+    );
+  return apiError(
+    "INTERNAL_ERROR",
+    "Не удалось выполнить запрос",
+    requestId,
+    500,
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -18,7 +34,9 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireCurrentUser();
     const input = createProjectSchema.parse(await request.json());
-    return apiSuccess(await createProject(user.id, input.name), requestId, { status: 201 });
+    return apiSuccess(await createProject(user.id, input.name), requestId, {
+      status: 201,
+    });
   } catch (error) {
     return routeError(error, requestId);
   }
@@ -28,7 +46,9 @@ export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
     const user = await requireCurrentUser();
-    const query = listProjectsSchema.parse(Object.fromEntries(request.nextUrl.searchParams));
+    const query = listProjectsSchema.parse(
+      Object.fromEntries(request.nextUrl.searchParams),
+    );
     const projects = await listProjects(user.id, query.limit, query.cursor);
     const items = await Promise.all(
       projects.items.map(async (project) => {
@@ -36,8 +56,8 @@ export async function GET(request: NextRequest) {
           project.generations[0]?.resultUser ?? project.sourcePreview;
         let previewUrl: string | null = null;
         if (media) {
-          const signed = await getSupabaseAdmin().storage
-            .from(media.bucket)
+          const signed = await getSupabaseAdmin()
+            .storage.from(media.bucket)
             .createSignedUrl(media.path, 600);
           previewUrl = signed.data?.signedUrl ?? null;
         }
@@ -55,10 +75,7 @@ export async function GET(request: NextRequest) {
         };
       }),
     );
-    return apiSuccess(
-      { items, nextCursor: projects.nextCursor },
-      requestId,
-    );
+    return apiSuccess({ items, nextCursor: projects.nextCursor }, requestId);
   } catch (error) {
     return routeError(error, requestId);
   }

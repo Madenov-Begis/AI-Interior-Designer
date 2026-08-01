@@ -1,11 +1,7 @@
 "use client";
 
 import { SquarePen, Trash2 } from "lucide-react";
-import {
-  useEffect,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 type Props = {
   editorOpen: boolean;

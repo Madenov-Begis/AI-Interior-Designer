@@ -1,7 +1,4 @@
-import type {
-  Generation,
-  Prisma,
-} from "../../generated/prisma/client.ts";
+import type { Generation, Prisma } from "../../generated/prisma/client.ts";
 import type { AspectRatio } from "../../generated/prisma/enums.ts";
 import { GENERATION_CREDIT_COST } from "../../config/product.ts";
 import {
@@ -9,13 +6,13 @@ import {
   debitGenerationCredits,
   refundReservedGeneration,
 } from "../credits/service-operations.ts";
-import {
-  getInteriorStyle,
-  type InteriorStyleCode,
-} from "./interior-styles.ts";
+import { getInteriorStyle, type InteriorStyleCode } from "./interior-styles.ts";
 import { buildRefinementSnapshot } from "./refinement-policy.ts";
 import { resolveRequiredProvider } from "./reservation-policy.ts";
-import { getGenerationModelConfig, supportedGenerationAspectRatios } from "./model-config.ts";
+import {
+  getGenerationModelConfig,
+  supportedGenerationAspectRatios,
+} from "./model-config.ts";
 import { resolveEffectivePlan } from "../plans/resolve-plan.ts";
 
 type GenerationDatabase = {
@@ -302,7 +299,7 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
               project.visualPromptUsed && Boolean(project.visualPrompt),
             sourceImageId: project.sourceImage.id,
             visualPromptImageId: project.visualPromptUsed
-              ? project.visualPrompt?.id ?? null
+              ? (project.visualPrompt?.id ?? null)
               : null,
             references: {
               create: project.references.map((reference) => ({
@@ -422,9 +419,7 @@ export async function reserveRefinementWithDependencies<TDatabase>(
               select: { id: true },
             })
           : [];
-        const referenceIds = new Set(
-          referenceFiles.map((file) => file.id),
-        );
+        const referenceIds = new Set(referenceFiles.map((file) => file.id));
         if (input.referenceFileIds.some((id) => !referenceIds.has(id))) {
           throw new GenerationReservationError(
             "REFERENCE_NOT_FOUND",

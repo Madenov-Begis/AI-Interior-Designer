@@ -18,12 +18,13 @@ import { ResultActions } from "@/components/design/result-actions";
 import { SourceReplaceControl } from "@/components/design/source-replace-control";
 import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
-import type { DesignWorkspaceProps, WorkspaceGeneration, WorkspaceGenerationStatus } from "@/components/design/workspace-types";
+import type {
+  DesignWorkspaceProps,
+  WorkspaceGeneration,
+  WorkspaceGenerationStatus,
+} from "@/components/design/workspace-types";
 import { nextRefinementOverlayState } from "@/features/canvas/refinement-overlay-state";
-import {
-  creditQueryOptions,
-  loadCredits,
-} from "@/features/credits/client";
+import { creditQueryOptions, loadCredits } from "@/features/credits/client";
 import {
   ApiResponseError,
   buildRetryGenerationRequest,
@@ -40,7 +41,10 @@ import {
 } from "@/features/generations/client-wallet";
 import { buildGenerationLabels } from "@/features/generations/tree";
 import { INTERIOR_STYLES } from "@/features/generations/interior-styles";
-import type { VisualPromptEditorHandle, VisualPromptTool } from "@/features/visual-prompt/types";
+import type {
+  VisualPromptEditorHandle,
+  VisualPromptTool,
+} from "@/features/visual-prompt/types";
 
 type GenerationList = {
   items: WorkspaceGeneration[];
@@ -106,7 +110,8 @@ function ReadyDesignWorkspace({
   const [prompt, setPrompt] = useState(project.prompt ?? DEFAULT_PROMPT);
   const [aspectRatio, setAspectRatio] = useState(project.aspectRatio);
   const [styleCode, setStyleCode] = useState<string>();
-  const [selectedCanvasItem, setSelectedCanvasItem] = useState<string>("source");
+  const [selectedCanvasItem, setSelectedCanvasItem] =
+    useState<string>("source");
   const [hiddenCanvasItemIds, setHiddenCanvasItemIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -137,9 +142,7 @@ function ReadyDesignWorkspace({
       ),
   });
   const creditsQuery = useQuery(
-    creditQueryOptions(({ signal }) =>
-      loadCredits<GenerationWallet>(signal),
-    ),
+    creditQueryOptions(({ signal }) => loadCredits<GenerationWallet>(signal)),
   );
 
   const invalidateCredits = useCallback(
@@ -208,7 +211,9 @@ function ReadyDesignWorkspace({
         current.includes(data.id) ? current : [...current, data.id],
       );
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({
+          queryKey: ["generations", project.id],
+        }),
         invalidateCredits("reservation"),
       ]);
     },
@@ -231,7 +236,9 @@ function ReadyDesignWorkspace({
         current.filter((generationId) => generationId !== data.id),
       );
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({
+          queryKey: ["generations", project.id],
+        }),
         reconciliation.queryKey
           ? invalidateCredits("cancellation-refund")
           : Promise.resolve(),
@@ -266,14 +273,13 @@ function ReadyDesignWorkspace({
         current.includes(data.id) ? current : [...current, data.id],
       );
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({
+          queryKey: ["generations", project.id],
+        }),
         invalidateCredits("reservation"),
       ]);
     },
-    onError: (
-      error,
-      attempt: RetryGenerationAttempt<WorkspaceGeneration>,
-    ) => {
+    onError: (error, attempt: RetryGenerationAttempt<WorkspaceGeneration>) => {
       retryAttempts.recordFailure(attempt.generation.id, error);
       reconcileInsufficientCredits(error);
     },
@@ -297,9 +303,7 @@ function ReadyDesignWorkspace({
         readApiData<WorkspaceGeneration>(
           await fetch(`/api/v1/generations/${generationId}`),
         ),
-      refetchInterval: (query: {
-        state: { data?: WorkspaceGeneration };
-      }) =>
+      refetchInterval: (query: { state: { data?: WorkspaceGeneration } }) =>
         query.state.data && !isActiveGeneration(query.state.data.status)
           ? false
           : 1500,
@@ -390,31 +394,28 @@ function ReadyDesignWorkspace({
         current.includes(data.id) ? current : [...current, data.id],
       );
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["generations", project.id] }),
+        queryClient.invalidateQueries({
+          queryKey: ["generations", project.id],
+        }),
         invalidateCredits("reservation"),
       ]);
     },
     onError: reconcileInsufficientCredits,
   });
-  const indexedGenerations = useMemo(
-    () => {
-      const items = generationsQuery.data?.items ?? [];
-      const labels = buildGenerationLabels(items);
-      return items
-        .map((generation) => ({
-          generation,
-          variantNumber: labels.get(generation.id) ?? "—",
-        }))
-        .sort(
-          (left, right) =>
-            left.generation.createdAt.localeCompare(
-              right.generation.createdAt,
-            ) ||
-            left.generation.id.localeCompare(right.generation.id),
-        );
-    },
-    [generationsQuery.data],
-  );
+  const indexedGenerations = useMemo(() => {
+    const items = generationsQuery.data?.items ?? [];
+    const labels = buildGenerationLabels(items);
+    return items
+      .map((generation) => ({
+        generation,
+        variantNumber: labels.get(generation.id) ?? "—",
+      }))
+      .sort(
+        (left, right) =>
+          left.generation.createdAt.localeCompare(right.generation.createdAt) ||
+          left.generation.id.localeCompare(right.generation.id),
+      );
+  }, [generationsQuery.data]);
   const canvasGenerationInstances = useMemo(() => {
     return indexedGenerations
       .map((item) => ({
@@ -431,10 +432,8 @@ function ReadyDesignWorkspace({
     "root",
     generationErrorCode,
   );
-  const inspectorDataError =
-    creditsQuery.error?.message ?? null;
-  const inspectorDataLoading =
-    creditsQuery.isLoading;
+  const inspectorDataError = creditsQuery.error?.message ?? null;
+  const inspectorDataLoading = creditsQuery.isLoading;
   const disabledReasons: string[] = [];
   if (createGeneration.isPending) {
     disabledReasons.push("Генерация уже запускается.");
@@ -502,9 +501,7 @@ function ReadyDesignWorkspace({
             actionError={actionError}
             onCancel={() => cancelGeneration.mutate(generation.id)}
             onRetry={() =>
-              retryGeneration.mutate(
-                retryAttempts.begin(generation),
-              )
+              retryGeneration.mutate(retryAttempts.begin(generation))
             }
             onRemove={() => {
               setHiddenCanvasItemIds((current) => {
@@ -565,9 +562,7 @@ function ReadyDesignWorkspace({
       next.add(selectedCanvasGeneration.nodeId);
       return next;
     });
-    if (
-      openedResult?.generationId === selectedCanvasGeneration.generation.id
-    ) {
+    if (openedResult?.generationId === selectedCanvasGeneration.generation.id) {
       setOpenedResult(null);
     }
     setSelectedCanvasItem("source");
@@ -593,13 +588,11 @@ function ReadyDesignWorkspace({
             )}
             pending={
               createRefinement.isPending &&
-              createRefinement.variables?.generationId ===
-                selectedGeneration.id
+              createRefinement.variables?.generationId === selectedGeneration.id
             }
             error={
               createRefinement.isError &&
-              createRefinement.variables?.generationId ===
-                selectedGeneration.id
+              createRefinement.variables?.generationId === selectedGeneration.id
                 ? createRefinement.error.message
                 : null
             }
@@ -711,20 +704,25 @@ function ReadyDesignWorkspace({
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={() =>
-          void (selectedCanvasItem === "source"
-            ? visualPromptRef.current
-            : refinementPromptRef.current
+          void (
+            selectedCanvasItem === "source"
+              ? visualPromptRef.current
+              : refinementPromptRef.current
           )?.undo()
         }
         onRedo={() =>
-          void (selectedCanvasItem === "source"
-            ? visualPromptRef.current
-            : refinementPromptRef.current
+          void (
+            selectedCanvasItem === "source"
+              ? visualPromptRef.current
+              : refinementPromptRef.current
           )?.redo()
         }
       />
       <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="relative min-h-0 overflow-hidden bg-background" aria-label="Холст проекта">
+        <section
+          className="relative min-h-0 overflow-hidden bg-background"
+          aria-label="Холст проекта"
+        >
           <SourceReplaceControl projectId={project.id} />
           <button
             ref={inspectorTriggerRef}
@@ -780,15 +778,17 @@ function ReadyDesignWorkspace({
             onColorChange={setColor}
             onStrokeWidthChange={setStrokeWidth}
             onUndo={() =>
-              void (selectedCanvasItem === "source"
-                ? visualPromptRef.current
-                : refinementPromptRef.current
+              void (
+                selectedCanvasItem === "source"
+                  ? visualPromptRef.current
+                  : refinementPromptRef.current
               )?.undo()
             }
             onRedo={() =>
-              void (selectedCanvasItem === "source"
-                ? visualPromptRef.current
-                : refinementPromptRef.current
+              void (
+                selectedCanvasItem === "source"
+                  ? visualPromptRef.current
+                  : refinementPromptRef.current
               )?.redo()
             }
             onDelete={() =>
@@ -828,7 +828,9 @@ function ReadyDesignWorkspace({
               >
                 Новый интерьер
               </h2>
-              <p className="mt-1 text-xs text-muted-foreground">Стиль, формат и ваши изменения</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Стиль, формат и ваши изменения
+              </p>
             </div>
             <button
               type="button"

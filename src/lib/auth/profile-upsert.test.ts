@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type {
-  Prisma,
-  PrismaClient,
-} from "../../generated/prisma/client.ts";
-import {
-  upsertProfileFromAuthUserWithDatabase,
-} from "./profile-upsert.ts";
+import type { Prisma, PrismaClient } from "../../generated/prisma/client.ts";
+import { upsertProfileFromAuthUserWithDatabase } from "./profile-upsert.ts";
 
 type ProfileRow = {
   id: string;
@@ -118,10 +113,7 @@ function createProfileHarness() {
     ) {
       const lockedUsers = new Set<string>();
       const tx = {
-        $executeRaw: async (
-          _query: TemplateStringsArray,
-          userId: unknown,
-        ) => {
+        $executeRaw: async (_query: TemplateStringsArray, userId: unknown) => {
           if (typeof userId !== "string") {
             throw new Error("INVALID_LOCK_USER");
           }
@@ -147,9 +139,7 @@ function createProfileHarness() {
             state.wallets.set(wallet.userId, wallet);
             return wallet;
           },
-          findUniqueOrThrow: async (args: {
-            where: { userId: string };
-          }) => {
+          findUniqueOrThrow: async (args: { where: { userId: string } }) => {
             const wallet = state.wallets.get(args.where.userId);
             if (!wallet) throw new Error("WALLET_NOT_FOUND");
             return wallet;

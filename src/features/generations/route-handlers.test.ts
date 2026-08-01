@@ -74,8 +74,7 @@ test("retry route handler preserves the authoritative 402 contract", async () =>
       projectId: "project-1",
       prompt: "retry",
       aspectRatio: "RATIO_16_9",
-      idempotencyKey:
-        "retry:generation-failed:client-attempt-1234567890",
+      idempotencyKey: "retry:generation-failed:client-attempt-1234567890",
     },
     "generation-failed",
     "request-retry",
@@ -142,8 +141,7 @@ test("root, refinement, and retry route boundaries map injected async rejection 
             projectId: "project-1",
             prompt: "retry",
             aspectRatio: "RATIO_16_9",
-            idempotencyKey:
-              "retry:generation-failed:client-attempt-1234567890",
+            idempotencyKey: "retry:generation-failed:client-attempt-1234567890",
           },
           "generation-failed",
           "request-retry-unexpected",
@@ -156,10 +154,7 @@ test("root, refinement, and retry route boundaries map injected async rejection 
     const response = await fallback.invoke();
 
     assert.equal(response.status, 500);
-    assert.equal(
-      response.headers.get("x-request-id"),
-      fallback.requestId,
-    );
+    assert.equal(response.headers.get("x-request-id"), fallback.requestId);
     assert.deepEqual(await response.json(), {
       error: {
         code: fallback.code,

@@ -15,9 +15,7 @@ export async function upsertProfileFromAuthUserWithDatabase(
   const firstName =
     typeof metadata.given_name === "string" ? metadata.given_name : null;
   const lastName =
-    typeof metadata.family_name === "string"
-      ? metadata.family_name
-      : null;
+    typeof metadata.family_name === "string" ? metadata.family_name : null;
   const displayName =
     typeof metadata.full_name === "string"
       ? metadata.full_name

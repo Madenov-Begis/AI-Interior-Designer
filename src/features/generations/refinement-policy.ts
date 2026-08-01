@@ -1,9 +1,5 @@
 export type RefinementAspectRatio =
-  | "RATIO_1_1"
-  | "RATIO_16_9"
-  | "RATIO_9_16"
-  | "RATIO_4_3"
-  | "RATIO_3_4";
+  "RATIO_1_1" | "RATIO_16_9" | "RATIO_9_16" | "RATIO_4_3" | "RATIO_3_4";
 
 type RefinementParent = {
   id: string;

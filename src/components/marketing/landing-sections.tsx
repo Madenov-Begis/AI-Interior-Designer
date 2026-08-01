@@ -93,11 +93,7 @@ export function InteriorModesSection({
   );
 }
 
-export function WorkflowSection({
-  authenticated,
-}: {
-  authenticated: boolean;
-}) {
+export function WorkflowSection({ authenticated }: { authenticated: boolean }) {
   const entry = authEntry(authenticated);
   const items = [
     { icon: Upload, text: "Фото сразу появляется на холсте" },
@@ -215,7 +211,10 @@ export function ComparisonSection({
             <p className="mt-2 text-4xl font-black italic">3–7 дней</p>
             <ul className="mt-8 grid gap-4">
               {traditional.map((item) => (
-                <li key={item} className="flex gap-3 text-sm text-muted-foreground">
+                <li
+                  key={item}
+                  className="flex gap-3 text-sm text-muted-foreground"
+                >
                   <span className="grid size-6 shrink-0 place-items-center rounded-full bg-secondary">
                     <X className="size-3.5" />
                   </span>
@@ -253,11 +252,7 @@ export function ComparisonSection({
   );
 }
 
-export function PricingSection({
-  authenticated,
-}: {
-  authenticated: boolean;
-}) {
+export function PricingSection({ authenticated }: { authenticated: boolean }) {
   const entry = authEntry(authenticated);
 
   return (
@@ -325,7 +320,10 @@ export function PricingSection({
               Новым пользователям — чтобы проверить Renoa без оплаты.
             </p>
           </div>
-          <Link href={entry.href} className={buttonClassName("outline", "rounded-xl")}>
+          <Link
+            href={entry.href}
+            className={buttonClassName("outline", "rounded-xl")}
+          >
             Давайте попробуем
           </Link>
         </div>
@@ -448,11 +446,7 @@ export function FaqSection() {
   );
 }
 
-export function FinalCtaSection({
-  authenticated,
-}: {
-  authenticated: boolean;
-}) {
+export function FinalCtaSection({ authenticated }: { authenticated: boolean }) {
   const entry = authEntry(authenticated);
   return (
     <section className="bg-primary text-primary-foreground">
@@ -462,7 +456,8 @@ export function FinalCtaSection({
           Всё ещё не уверены?
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-base font-medium opacity-75">
-          Загрузите комнату и создайте первые варианты бесплатно. Карта не нужна.
+          Загрузите комнату и создайте первые варианты бесплатно. Карта не
+          нужна.
         </p>
         <Link
           href={entry.href}

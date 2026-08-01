@@ -33,8 +33,5 @@ export function reserveRootGeneration(input: RootGenerationReservationInput) {
 }
 
 export function reserveRefinement(input: RefinementReservationInput) {
-  return reserveRefinementWithDependencies(
-    reservationDependencies(),
-    input,
-  );
+  return reserveRefinementWithDependencies(reservationDependencies(), input);
 }

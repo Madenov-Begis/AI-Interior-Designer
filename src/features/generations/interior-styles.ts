@@ -9,8 +9,13 @@ export const INTERIOR_STYLE_CODES = [
 
 export type InteriorStyleCode = (typeof INTERIOR_STYLE_CODES)[number];
 
-export function isInteriorStyleCode(code: string | null | undefined): code is InteriorStyleCode {
-  return typeof code === "string" && INTERIOR_STYLE_CODES.some((styleCode) => styleCode === code);
+export function isInteriorStyleCode(
+  code: string | null | undefined,
+): code is InteriorStyleCode {
+  return (
+    typeof code === "string" &&
+    INTERIOR_STYLE_CODES.some((styleCode) => styleCode === code)
+  );
 }
 
 export const INTERIOR_STYLES = [
@@ -64,5 +69,7 @@ export const INTERIOR_STYLES = [
 }>;
 
 export function getInteriorStyle(code: InteriorStyleCode | undefined) {
-  return code ? INTERIOR_STYLES.find((style) => style.code === code) : undefined;
+  return code
+    ? INTERIOR_STYLES.find((style) => style.code === code)
+    : undefined;
 }

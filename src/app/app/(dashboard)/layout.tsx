@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell/app-shell";
-import {
-  requireCurrentUser,
-  UnauthorizedError,
-} from "@/lib/auth/current-user";
+import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { getCreditWallet } from "@/features/credits/service";
 
 export default async function DashboardLayout({

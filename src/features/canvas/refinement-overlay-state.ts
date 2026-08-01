@@ -3,10 +3,7 @@ export type RefinementOverlayState = {
 };
 
 export type RefinementOverlayAction =
-  | "select"
-  | "toggle"
-  | "close"
-  | "submit-success";
+  "select" | "toggle" | "close" | "submit-success";
 
 export function nextRefinementOverlayState(
   state: RefinementOverlayState,

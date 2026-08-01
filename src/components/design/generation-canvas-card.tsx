@@ -72,9 +72,7 @@ function CardHeader({
           {status === "SUCCEEDED" ? "Готовый дизайн" : "AI-генерация"}
         </p>
       </div>
-      <span
-        className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted"
-      >
+      <span className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
         {statusLabels[status]}
       </span>
     </header>
@@ -173,14 +171,10 @@ export function GenerationCanvasCard({
   } else if (resultUnavailable) {
     announcement = "Результат недоступен";
   } else if (generation.status === "FAILED") {
-    announcement =
-      generation.errorMessage ?? "Не удалось создать интерьер";
+    announcement = generation.errorMessage ?? "Не удалось создать интерьер";
   } else if (generation.status === "REJECTED") {
     announcement = generation.errorMessage ?? "Запрос отклонён";
-  } else if (
-    generation.status === "SUCCEEDED" &&
-    resultQuery.isPending
-  ) {
+  } else if (generation.status === "SUCCEEDED" && resultQuery.isPending) {
     announcement = "Загружаем вариант";
   }
 
@@ -215,9 +209,7 @@ export function GenerationCanvasCard({
           >
             {cancelPending ? "Отменяем…" : "Отменить"}
           </button>
-          {actionError ? (
-            <ActionErrorNotice error={actionError} />
-          ) : null}
+          {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
       );
       break;
@@ -239,10 +231,10 @@ export function GenerationCanvasCard({
     case "SUCCEEDED":
       if (!generation.resultUserId) {
         content = (
-        <StatusPanel
-          icon={
-            <ImageOff size={30} className="text-muted" aria-hidden="true" />
-          }
+          <StatusPanel
+            icon={
+              <ImageOff size={30} className="text-muted" aria-hidden="true" />
+            }
             title="Результат недоступен"
             message="Файл результата ещё не привязан к генерации."
           />
@@ -263,7 +255,9 @@ export function GenerationCanvasCard({
       } else if (resultQuery.isError) {
         content = (
           <StatusPanel
-            icon={<ImageOff size={30} className="text-muted" aria-hidden="true" />}
+            icon={
+              <ImageOff size={30} className="text-muted" aria-hidden="true" />
+            }
             title="Не удалось открыть изображение"
             message={resultQuery.error.message}
           >
@@ -371,9 +365,7 @@ export function GenerationCanvasCard({
             <RotateCcw size={16} aria-hidden="true" />
             {retryPending ? "Повторяем…" : "Повторить"}
           </button>
-          {actionError ? (
-            <ActionErrorNotice error={actionError} />
-          ) : null}
+          {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
       );
       break;
@@ -422,9 +414,7 @@ export function GenerationCanvasCard({
             <RotateCcw size={16} aria-hidden="true" />
             {retryPending ? "Запускаем…" : "Повторить"}
           </button>
-          {actionError ? (
-            <ActionErrorNotice error={actionError} />
-          ) : null}
+          {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
       );
       break;
@@ -462,10 +452,7 @@ export function GenerationCanvasCard({
       >
         {announcement}
       </span>
-      <CardHeader
-        variantNumber={variantNumber}
-        status={generation.status}
-      />
+      <CardHeader variantNumber={variantNumber} status={generation.status} />
       {content}
     </div>
   );

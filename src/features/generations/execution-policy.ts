@@ -34,11 +34,9 @@ export async function generateWithConfiguredProvider<TInput, TOutput>(
     input.configuredProvider,
     input.storedProvider,
   );
-  return createProvider(
-    provider,
-    input.modelId,
-    input.timeoutSeconds,
-  ).generate(input.input);
+  return createProvider(provider, input.modelId, input.timeoutSeconds).generate(
+    input.input,
+  );
 }
 
 const CONFIGURATION_ERRORS = new Set([

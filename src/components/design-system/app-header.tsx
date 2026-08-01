@@ -18,7 +18,11 @@ export function RenoaAppHeader({
   return (
     <header className="relative z-50 flex h-[72px] shrink-0 items-center gap-4 border-b border-border bg-[#1b1b1d] px-4 sm:px-6 lg:px-10">
       <RenoaLogo className="lg:min-w-48" />
-      {middle ? <div className="min-w-0 flex-1">{middle}</div> : <div className="flex-1" />}
+      {middle ? (
+        <div className="min-w-0 flex-1">{middle}</div>
+      ) : (
+        <div className="flex-1" />
+      )}
       <nav
         className="hidden items-center gap-1 xl:flex"
         aria-label="Основная навигация"

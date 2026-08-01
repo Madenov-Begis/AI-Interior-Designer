@@ -32,11 +32,7 @@ type GetPaymentOrderDependencies = {
   getCreditBalance(userId: string): Promise<number>;
 };
 
-function jsonResponse(
-  body: unknown,
-  requestId: string,
-  init?: ResponseInit,
-) {
+function jsonResponse(body: unknown, requestId: string, init?: ResponseInit) {
   const response = Response.json(body, init);
   response.headers.set("x-request-id", requestId);
   return response;
@@ -52,11 +48,9 @@ function paymentErrorResponse(error: unknown, requestId: string) {
           message: mapped.message,
           details: mapped.details,
         };
-  return jsonResponse(
-    { error: apiError, meta: { requestId } },
-    requestId,
-    { status: mapped.status },
-  );
+  return jsonResponse({ error: apiError, meta: { requestId } }, requestId, {
+    status: mapped.status,
+  });
 }
 
 export async function handlePaymentOrderPost(

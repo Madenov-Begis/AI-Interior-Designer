@@ -5,18 +5,33 @@ import { ForbiddenError } from "@/lib/auth/admin";
 import { UnauthorizedError } from "@/lib/auth/current-user";
 import { RateLimitError } from "@/lib/security/rate-limit";
 
-export function adminApiError(error: unknown, requestId: string, fallback: string) {
-  if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
-  if (error instanceof ForbiddenError) return apiError("FORBIDDEN", error.message, requestId, 403);
+export function adminApiError(
+  error: unknown,
+  requestId: string,
+  fallback: string,
+) {
+  if (error instanceof UnauthorizedError)
+    return apiError("UNAUTHORIZED", error.message, requestId, 401);
+  if (error instanceof ForbiddenError)
+    return apiError("FORBIDDEN", error.message, requestId, 403);
   if (error instanceof RateLimitError) {
     const response = apiError("RATE_LIMITED", error.message, requestId, 429);
     response.headers.set("retry-after", String(error.retryAfter));
     return response;
   }
-  if (error instanceof ZodError) return apiError("VALIDATION_ERROR", "Проверьте введённые данные", requestId, 422, error.flatten());
+  if (error instanceof ZodError)
+    return apiError(
+      "VALIDATION_ERROR",
+      "Проверьте введённые данные",
+      requestId,
+      422,
+      error.flatten(),
+    );
   return apiError("INTERNAL_ERROR", fallback, requestId, 500);
 }
 
 export function adminMutationLimit(request: NextRequest) {
-  return import("@/lib/security/rate-limit").then(({ enforceRateLimit }) => enforceRateLimit(request, "admin-mutation", 60, 60_000));
+  return import("@/lib/security/rate-limit").then(({ enforceRateLimit }) =>
+    enforceRateLimit(request, "admin-mutation", 60, 60_000),
+  );
 }

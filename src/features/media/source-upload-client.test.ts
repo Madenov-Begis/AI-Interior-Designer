@@ -46,28 +46,25 @@ test("surfaces the API error message", async () => {
 });
 
 test("derives a safe project name from the source filename", () => {
-  assert.equal(sourceProjectName("  living-room.final.jpg  "), "living-room.final");
+  assert.equal(
+    sourceProjectName("  living-room.final.jpg  "),
+    "living-room.final",
+  );
   assert.equal(sourceProjectName(".jpg"), "Новый интерьер");
   assert.equal(sourceProjectName("x".repeat(140)), "x".repeat(120));
 });
 
 test("accepts only supported room image types within the size limit", () => {
   assert.equal(
-    isAcceptedSourceFile(
-      new File(["x"], "room.jpg", { type: "image/jpeg" }),
-    ),
+    isAcceptedSourceFile(new File(["x"], "room.jpg", { type: "image/jpeg" })),
     true,
   );
   assert.equal(
-    isAcceptedSourceFile(
-      new File(["x"], "room.webp", { type: "image/webp" }),
-    ),
+    isAcceptedSourceFile(new File(["x"], "room.webp", { type: "image/webp" })),
     true,
   );
   assert.equal(
-    isAcceptedSourceFile(
-      new File(["x"], "room.gif", { type: "image/gif" }),
-    ),
+    isAcceptedSourceFile(new File(["x"], "room.gif", { type: "image/gif" })),
     false,
   );
   assert.equal(
@@ -134,5 +131,5 @@ test("a newer source upload aborts the previous request", async () => {
 
   assert.equal(signals[0]?.aborted, true);
   assert.deepEqual(await second, { mediaId: "second" });
-  assert.equal((await first as DOMException).name, "AbortError");
+  assert.equal(((await first) as DOMException).name, "AbortError");
 });

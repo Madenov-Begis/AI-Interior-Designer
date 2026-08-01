@@ -13,44 +13,83 @@ import { VisualPromptValidationError } from "@/features/visual-prompt/schema";
 export class VisualPromptProjectNotFoundError extends Error {}
 
 async function readOverlay(file: File, state: VisualPromptCanvasState) {
-  if (file.size <= 0) throw new VisualPromptValidationError("OVERLAY_REQUIRED", "Разметка отсутствует");
-  if (file.size > VISUAL_PROMPT_RULES.maxOverlayBytes) throw new VisualPromptValidationError("OVERLAY_TOO_LARGE", "Разметка превышает 15 МБ");
+  if (file.size <= 0)
+    throw new VisualPromptValidationError(
+      "OVERLAY_REQUIRED",
+      "Разметка отсутствует",
+    );
+  if (file.size > VISUAL_PROMPT_RULES.maxOverlayBytes)
+    throw new VisualPromptValidationError(
+      "OVERLAY_TOO_LARGE",
+      "Разметка превышает 15 МБ",
+    );
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const detected = await fileTypeFromBuffer(buffer);
-  if (detected?.mime !== "image/png") throw new VisualPromptValidationError("INVALID_OVERLAY", "Разметка должна быть корректным PNG");
+  if (detected?.mime !== "image/png")
+    throw new VisualPromptValidationError(
+      "INVALID_OVERLAY",
+      "Разметка должна быть корректным PNG",
+    );
 
   try {
     const metadata = await sharp(buffer, { failOn: "error" }).metadata();
-    if (metadata.width !== state.coordinateSpace.editorWidth || metadata.height !== state.coordinateSpace.editorHeight) {
-      throw new VisualPromptValidationError("OVERLAY_SIZE_MISMATCH", "Размер разметки не совпадает с состоянием редактора");
+    if (
+      metadata.width !== state.coordinateSpace.editorWidth ||
+      metadata.height !== state.coordinateSpace.editorHeight
+    ) {
+      throw new VisualPromptValidationError(
+        "OVERLAY_SIZE_MISMATCH",
+        "Размер разметки не совпадает с состоянием редактора",
+      );
     }
   } catch (error) {
     if (error instanceof VisualPromptValidationError) throw error;
-    throw new VisualPromptValidationError("INVALID_OVERLAY", "Не удалось декодировать разметку");
+    throw new VisualPromptValidationError(
+      "INVALID_OVERLAY",
+      "Не удалось декодировать разметку",
+    );
   }
 
   return buffer;
 }
 
-export async function saveVisualPrompt(userId: string, projectId: string, overlayFile: File, state: VisualPromptCanvasState) {
+export async function saveVisualPrompt(
+  userId: string,
+  projectId: string,
+  overlayFile: File,
+  state: VisualPromptCanvasState,
+) {
   const db = getDb();
   const project = await db.project.findFirst({
     where: { id: projectId, userId, deletedAt: null },
     include: { sourceImage: true, visualPrompt: true },
   });
-  if (!project?.sourceImage) throw new VisualPromptProjectNotFoundError("Проект или исходное изображение не найдены");
+  if (!project?.sourceImage)
+    throw new VisualPromptProjectNotFoundError(
+      "Проект или исходное изображение не найдены",
+    );
 
   const overlay = await readOverlay(overlayFile, state);
   const storage = getSupabaseAdmin();
-  const sourceDownload = await storage.storage.from(project.sourceImage.bucket).download(project.sourceImage.path);
-  if (sourceDownload.error || !sourceDownload.data) throw new Error("SOURCE_DOWNLOAD_FAILED");
+  const sourceDownload = await storage.storage
+    .from(project.sourceImage.bucket)
+    .download(project.sourceImage.path);
+  if (sourceDownload.error || !sourceDownload.data)
+    throw new Error("SOURCE_DOWNLOAD_FAILED");
 
   const source = Buffer.from(await sourceDownload.data.arrayBuffer());
   const sourceMetadata = await sharp(source, { failOn: "error" }).metadata();
-  if (!sourceMetadata.width || !sourceMetadata.height) throw new Error("SOURCE_DIMENSIONS_MISSING");
-  if (sourceMetadata.width !== state.coordinateSpace.sourceWidth || sourceMetadata.height !== state.coordinateSpace.sourceHeight) {
-    throw new VisualPromptValidationError("SOURCE_SIZE_MISMATCH", "Исходное изображение изменилось — перезагрузите редактор");
+  if (!sourceMetadata.width || !sourceMetadata.height)
+    throw new Error("SOURCE_DIMENSIONS_MISSING");
+  if (
+    sourceMetadata.width !== state.coordinateSpace.sourceWidth ||
+    sourceMetadata.height !== state.coordinateSpace.sourceHeight
+  ) {
+    throw new VisualPromptValidationError(
+      "SOURCE_SIZE_MISMATCH",
+      "Исходное изображение изменилось — перезагрузите редактор",
+    );
   }
 
   const scaledOverlay = await sharp(overlay)
@@ -101,13 +140,18 @@ export async function saveVisualPrompt(userId: string, projectId: string, overla
         },
       });
       if (project.visualPrompt) {
-        await tx.mediaFile.update({ where: { id: project.visualPrompt.id }, data: { deletedAt: new Date() } });
+        await tx.mediaFile.update({
+          where: { id: project.visualPrompt.id },
+          data: { deletedAt: new Date() },
+        });
       }
       return media;
     });
 
     if (project.visualPrompt) {
-      await storage.storage.from(project.visualPrompt.bucket).remove([project.visualPrompt.path]);
+      await storage.storage
+        .from(project.visualPrompt.bucket)
+        .remove([project.visualPrompt.path]);
     }
     return saved;
   } catch (error) {
@@ -211,14 +255,23 @@ export async function removeVisualPrompt(userId: string, projectId: string) {
   await db.$transaction(async (tx) => {
     await tx.project.update({
       where: { id: projectId },
-      data: { visualPromptId: null, visualPromptUsed: false, canvasState: Prisma.JsonNull },
+      data: {
+        visualPromptId: null,
+        visualPromptUsed: false,
+        canvasState: Prisma.JsonNull,
+      },
     });
     if (project.visualPrompt) {
-      await tx.mediaFile.update({ where: { id: project.visualPrompt.id }, data: { deletedAt: new Date() } });
+      await tx.mediaFile.update({
+        where: { id: project.visualPrompt.id },
+        data: { deletedAt: new Date() },
+      });
     }
   });
 
   if (project.visualPrompt) {
-    await getSupabaseAdmin().storage.from(project.visualPrompt.bucket).remove([project.visualPrompt.path]);
+    await getSupabaseAdmin()
+      .storage.from(project.visualPrompt.bucket)
+      .remove([project.visualPrompt.path]);
   }
 }

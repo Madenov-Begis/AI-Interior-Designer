@@ -44,14 +44,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
     }
-    if (error instanceof RefinementParentNotFoundError || error instanceof ZodError) {
-      return apiError("GENERATION_NOT_FOUND", "Результат не найден", requestId, 404);
+    if (
+      error instanceof RefinementParentNotFoundError ||
+      error instanceof ZodError
+    ) {
+      return apiError(
+        "GENERATION_NOT_FOUND",
+        "Результат не найден",
+        requestId,
+        404,
+      );
     }
     if (error instanceof ImageValidationError) {
       return apiError(error.code, error.message, requestId, 400);
     }
     if (error instanceof Error && error.message === "REFERENCE_REQUIRED") {
-      return apiError("REFERENCE_REQUIRED", "Добавьте референс", requestId, 400);
+      return apiError(
+        "REFERENCE_REQUIRED",
+        "Добавьте референс",
+        requestId,
+        400,
+      );
     }
     return apiError(
       "REFERENCE_UPLOAD_FAILED",

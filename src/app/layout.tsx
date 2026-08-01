@@ -20,10 +20,17 @@ export const metadata: Metadata = {
     "Создавайте фотореалистичный дизайн помещения, сохраняя ракурс, геометрию и архитектурные элементы.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
-      <body><QueryProvider>{children}</QueryProvider></body>
+    <html
+      lang="ru"
+      className={`dark ${geistSans.variable} ${geistMono.variable}`}
+    >
+      <body>
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

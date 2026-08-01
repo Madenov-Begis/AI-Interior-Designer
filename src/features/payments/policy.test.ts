@@ -17,26 +17,30 @@ test("accepts only transitions out of PENDING", () => {
 
 test("rejects unsafe mock payment configurations", () => {
   assert.throws(
-    () => assertSafePaymentConfiguration({
-      nodeEnv: "production",
-      aiProvider: "fake",
-      paymentProvider: "mock",
-    }),
+    () =>
+      assertSafePaymentConfiguration({
+        nodeEnv: "production",
+        aiProvider: "fake",
+        paymentProvider: "mock",
+      }),
     /MOCK_PAYMENTS_NOT_SAFE/,
   );
   assert.throws(
-    () => assertSafePaymentConfiguration({
-      nodeEnv: "development",
-      aiProvider: "vertex",
-      paymentProvider: "mock",
-    }),
+    () =>
+      assertSafePaymentConfiguration({
+        nodeEnv: "development",
+        aiProvider: "vertex",
+        paymentProvider: "mock",
+      }),
     /MOCK_PAYMENTS_NOT_SAFE/,
   );
-  assert.doesNotThrow(() => assertSafePaymentConfiguration({
-    nodeEnv: "production",
-    aiProvider: "vertex",
-    paymentProvider: "disabled",
-  }));
+  assert.doesNotThrow(() =>
+    assertSafePaymentConfiguration({
+      nodeEnv: "production",
+      aiProvider: "vertex",
+      paymentProvider: "disabled",
+    }),
+  );
 });
 
 test("keeps an immutable order snapshot when package config changes", () => {

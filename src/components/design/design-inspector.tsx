@@ -1,6 +1,12 @@
 "use client";
 
-import { AlertCircle, Coins, LoaderCircle, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  Coins,
+  LoaderCircle,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { ReferenceManager } from "@/components/design/reference-manager";
 import { StylePicker } from "@/components/design/style-picker";
@@ -251,7 +257,10 @@ export function DesignInspector({
             </span>
           </div>
           <p className="mt-2 flex gap-2 text-[11px] leading-5 text-muted-foreground">
-            <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden="true" />
+            <ShieldCheck
+              className="mt-0.5 size-3.5 shrink-0 text-success"
+              aria-hidden="true"
+            />
             {GENERATION_REFUND_MESSAGE}
           </p>
         </div>
@@ -263,13 +272,15 @@ export function DesignInspector({
           size="lg"
         >
           {generationPending ? (
-            <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+            <LoaderCircle
+              size={18}
+              className="animate-spin"
+              aria-hidden="true"
+            />
           ) : (
             <Sparkles size={18} aria-hidden="true" />
           )}
-          {generationPending
-            ? "Запускаем…"
-            : walletPresentation.buttonLabel}
+          {generationPending ? "Запускаем…" : walletPresentation.buttonLabel}
         </Button>
       </div>
     </div>

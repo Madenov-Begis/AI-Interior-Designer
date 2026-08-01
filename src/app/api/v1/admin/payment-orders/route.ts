@@ -9,7 +9,15 @@ export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
     await requireAdmin(request);
-    const items = await getDb().paymentOrder.findMany({ orderBy: { createdAt: "desc" }, take: 100, include: { user: { select: { email: true, phone: true, displayName: true } } } });
+    const items = await getDb().paymentOrder.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        user: { select: { email: true, phone: true, displayName: true } },
+      },
+    });
     return apiSuccess(items, requestId);
-  } catch (error) { return adminApiError(error, requestId, "Не удалось загрузить платежи"); }
+  } catch (error) {
+    return adminApiError(error, requestId, "Не удалось загрузить платежи");
+  }
 }

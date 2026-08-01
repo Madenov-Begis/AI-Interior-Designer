@@ -15,9 +15,7 @@ test("maps authentication and validation failures to their HTTP contracts", () =
     status: 401,
   });
   assert.deepEqual(
-    paymentHttpError(
-      validation.parse.bind(validation, { packageCode: "pro" }),
-    ),
+    paymentHttpError(validation.parse.bind(validation, { packageCode: "pro" })),
     {
       code: "INTERNAL_ERROR",
       message: "Не удалось выполнить платежный запрос",
@@ -38,22 +36,14 @@ test("maps authentication and validation failures to their HTTP contracts", () =
 test("maps payment service failures to localized provider-neutral HTTP errors", () => {
   const cases = [
     ["PAYMENTS_DISABLED", 503, "Оплата временно недоступна"],
-    [
-      "MOCK_PAYMENTS_NOT_SAFE",
-      403,
-      "Тестовая оплата недоступна в этом режиме",
-    ],
+    ["MOCK_PAYMENTS_NOT_SAFE", 403, "Тестовая оплата недоступна в этом режиме"],
     [
       "INVALID_PAYMENT_TRANSITION",
       409,
       "Статус оплаты уже изменился. Обновите страницу",
     ],
     ["PAYMENT_ORDER_EXPIRED", 409, "Время оплаты заказа истекло"],
-    [
-      "PAYMENT_EVENT_MISMATCH",
-      409,
-      "Не удалось подтвердить результат оплаты",
-    ],
+    ["PAYMENT_EVENT_MISMATCH", 409, "Не удалось подтвердить результат оплаты"],
     ["CREDIT_PACKAGE_NOT_FOUND", 404, "Пакет кредитов не найден"],
     ["PAYMENT_ORDER_NOT_FOUND", 404, "Заказ на оплату не найден"],
   ] as const;

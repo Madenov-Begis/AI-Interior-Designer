@@ -4,10 +4,7 @@ import Link from "next/link";
 import { Coins } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { GENERATION_CREDIT_COST } from "@/config/product";
-import {
-  creditQueryOptions,
-  loadCredits,
-} from "@/features/credits/client";
+import { creditQueryOptions, loadCredits } from "@/features/credits/client";
 import { presentCreditBalance } from "@/features/credits/presentation";
 import { cn } from "@/lib/cn";
 

@@ -56,9 +56,7 @@ function cloneState(state: HarnessState): HarnessState {
           ...order,
           expiresAt: new Date(order.expiresAt),
           paidAt: order.paidAt ? new Date(order.paidAt) : null,
-          creditedAt: order.creditedAt
-            ? new Date(order.creditedAt)
-            : null,
+          creditedAt: order.creditedAt ? new Date(order.creditedAt) : null,
           createdAt: new Date(order.createdAt),
           updatedAt: new Date(order.updatedAt),
         },
@@ -118,9 +116,7 @@ function createPaymentHarness(seed?: Partial<HarnessState>) {
         active.orders.set(order.id, order);
         return order;
       },
-      findFirst: async (args: {
-        where: { id: string; userId: string };
-      }) => {
+      findFirst: async (args: { where: { id: string; userId: string } }) => {
         const order = active.orders.get(args.where.id);
         return order?.userId === args.where.userId ? order : null;
       },
@@ -156,8 +152,7 @@ function createPaymentHarness(seed?: Partial<HarnessState>) {
           !order ||
           (args.where.userId && order.userId !== args.where.userId) ||
           (args.where.status && order.status !== args.where.status) ||
-          (args.where.expiresAt &&
-            order.expiresAt > args.where.expiresAt.lte)
+          (args.where.expiresAt && order.expiresAt > args.where.expiresAt.lte)
         ) {
           return { count: 0 };
         }
@@ -175,10 +170,7 @@ function createPaymentHarness(seed?: Partial<HarnessState>) {
       const before = cloneState(state);
       const tx = {
         $executeRaw: async () => 1,
-        $queryRaw: async (
-          query: TemplateStringsArray,
-          orderId: unknown,
-        ) => {
+        $queryRaw: async (query: TemplateStringsArray, orderId: unknown) => {
           orderLockQueries.push(query.join("$orderId"));
           if (typeof orderId !== "string") return [];
           const order = state.orders.get(orderId);
@@ -244,8 +236,7 @@ function createPaymentHarness(seed?: Partial<HarnessState>) {
           }) => {
             if (
               state.transactions.some(
-                (item) =>
-                  item.idempotencyKey === args.data.idempotencyKey,
+                (item) => item.idempotencyKey === args.data.idempotencyKey,
               )
             ) {
               throw new Error("UNIQUE_CREDIT_TRANSACTION");
@@ -344,10 +335,7 @@ test("creates a 30-minute order from the server-owned package snapshot", async (
       providerOrderId: "mock-order-1",
     },
   );
-  assert.equal(
-    result.checkoutUrl,
-    "/app/credits/checkout/order-1",
-  );
+  assert.equal(result.checkoutUrl, "/app/credits/checkout/order-1");
   assert.equal(state.orders.size, 1);
 });
 
@@ -393,12 +381,7 @@ test("returns only an owned order and expires it at the boundary instant", async
 
   await assert.rejects(
     () =>
-      getOwnedPaymentOrderWithDatabase(
-        db,
-        "user-2",
-        order.id,
-        order.expiresAt,
-      ),
+      getOwnedPaymentOrderWithDatabase(db, "user-2", order.id, order.expiresAt),
     (error) =>
       error instanceof PaymentServiceError &&
       error.code === "PAYMENT_ORDER_NOT_FOUND",

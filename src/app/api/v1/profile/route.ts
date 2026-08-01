@@ -9,7 +9,18 @@ import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
 
-const profileSelect = { id: true, email: true, firstName: true, lastName: true, displayName: true, avatarUrl: true, role: true, status: true, timezone: true, createdAt: true } as const;
+const profileSelect = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  displayName: true,
+  avatarUrl: true,
+  role: true,
+  status: true,
+  timezone: true,
+  createdAt: true,
+} as const;
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
@@ -35,8 +46,14 @@ export async function GET(request: NextRequest) {
       requestId,
     );
   } catch (error) {
-    if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
-    return apiError("PROFILE_READ_FAILED", "Не удалось получить профиль", requestId, 500);
+    if (error instanceof UnauthorizedError)
+      return apiError("UNAUTHORIZED", error.message, requestId, 401);
+    return apiError(
+      "PROFILE_READ_FAILED",
+      "Не удалось получить профиль",
+      requestId,
+      500,
+    );
   }
 }
 
@@ -45,11 +62,28 @@ export async function PATCH(request: NextRequest) {
   try {
     const user = await requireCurrentUser();
     const input = updateProfileSchema.parse(await request.json());
-    const profile = await getDb().profile.update({ where: { id: user.id }, data: input, select: profileSelect });
+    const profile = await getDb().profile.update({
+      where: { id: user.id },
+      data: input,
+      select: profileSelect,
+    });
     return apiSuccess({ profile }, requestId);
   } catch (error) {
-    if (error instanceof UnauthorizedError) return apiError("UNAUTHORIZED", error.message, requestId, 401);
-    if (error instanceof ZodError) return apiError("VALIDATION_ERROR", "Проверьте имя", requestId, 400, error.flatten());
-    return apiError("PROFILE_UPDATE_FAILED", "Не удалось обновить профиль", requestId, 500);
+    if (error instanceof UnauthorizedError)
+      return apiError("UNAUTHORIZED", error.message, requestId, 401);
+    if (error instanceof ZodError)
+      return apiError(
+        "VALIDATION_ERROR",
+        "Проверьте имя",
+        requestId,
+        400,
+        error.flatten(),
+      );
+    return apiError(
+      "PROFILE_UPDATE_FAILED",
+      "Не удалось обновить профиль",
+      requestId,
+      500,
+    );
   }
 }

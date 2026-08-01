@@ -53,9 +53,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const colorRef = useRef(props.color);
     const strokeWidthRef = useRef(props.strokeWidth);
     const historyStateCallbackRef = useRef(props.onHistoryStateChange);
-    const persistenceStateCallbackRef = useRef(
-      props.onPersistenceStateChange,
-    );
+    const persistenceStateCallbackRef = useRef(props.onPersistenceStateChange);
     const hasSavedPromptRef = useRef(props.initialState !== null);
 
     useEffect(() => {
@@ -165,27 +163,30 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       [configureCanvas, lockCanvasInteraction],
     );
 
-    const captureHistory = useCallback((withinQueuedOperation = false) => {
-      const canvas = canvasRef.current;
-      if (
-        !canvas ||
-        loadingHistoryRef.current ||
-        (!withinQueuedOperation && pendingCanvasOperationsRef.current > 0)
-      ) {
-        return;
-      }
+    const captureHistory = useCallback(
+      (withinQueuedOperation = false) => {
+        const canvas = canvasRef.current;
+        if (
+          !canvas ||
+          loadingHistoryRef.current ||
+          (!withinQueuedOperation && pendingCanvasOperationsRef.current > 0)
+        ) {
+          return;
+        }
 
-      const snapshot = JSON.stringify(canvas.toJSON());
-      if (historyRef.current[historyIndexRef.current] === snapshot) return;
+        const snapshot = JSON.stringify(canvas.toJSON());
+        if (historyRef.current[historyIndexRef.current] === snapshot) return;
 
-      historyRef.current = historyRef.current.slice(
-        0,
-        historyIndexRef.current + 1,
-      );
-      historyRef.current.push(snapshot);
-      historyIndexRef.current = historyRef.current.length - 1;
-      emitHistoryState();
-    }, [emitHistoryState]);
+        historyRef.current = historyRef.current.slice(
+          0,
+          historyIndexRef.current + 1,
+        );
+        historyRef.current.push(snapshot);
+        historyIndexRef.current = historyRef.current.length - 1;
+        emitHistoryState();
+      },
+      [emitHistoryState],
+    );
 
     const loadSnapshot = useCallback(async (snapshot: string) => {
       const canvas = canvasRef.current;
@@ -450,15 +451,11 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           });
 
           let migratedCoordinateSpace = false;
-          if (
-            props.initialState?.version === 1 &&
-            props.initialState.fabric
-          ) {
+          if (props.initialState?.version === 1 && props.initialState.fabric) {
             loadingHistoryRef.current = true;
             try {
               await canvas.loadFromJSON(props.initialState.fabric);
-              const savedWidth =
-                props.initialState.coordinateSpace.editorWidth;
+              const savedWidth = props.initialState.coordinateSpace.editorWidth;
               const savedHeight =
                 props.initialState.coordinateSpace.editorHeight;
               const scaleX = props.editorWidth / savedWidth;
@@ -520,9 +517,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
                         for (let y = 0; y < paddedRaster.height; y += 1) {
                           for (let x = 0; x < paddedRaster.width; x += 1) {
                             if (
-                              pixels[
-                                (y * paddedRaster.width + x) * 4 + 3
-                              ] === 0
+                              pixels[(y * paddedRaster.width + x) * 4 + 3] === 0
                             ) {
                               continue;
                             }
@@ -532,7 +527,10 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
                             alphaBottom = Math.max(alphaBottom, y);
                           }
                         }
-                        if (alphaRight >= alphaLeft && alphaBottom >= alphaTop) {
+                        if (
+                          alphaRight >= alphaLeft &&
+                          alphaBottom >= alphaTop
+                        ) {
                           cropLeft = Math.max(0, alphaLeft - 1);
                           cropTop = Math.max(0, alphaTop - 1);
                           cropRight = Math.min(
@@ -654,12 +652,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       if (!canvas) return;
       if (pendingCanvasOperationsRef.current > 0) return;
       configureCanvas(canvas, props.tool, props.color, props.strokeWidth);
-    }, [
-      configureCanvas,
-      props.color,
-      props.strokeWidth,
-      props.tool,
-    ]);
+    }, [configureCanvas, props.color, props.strokeWidth, props.tool]);
 
     return (
       <canvas

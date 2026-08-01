@@ -23,16 +23,13 @@ test("signs history images once per bucket and attaches URLs to items", async ()
     },
   ];
 
-  const result = await attachHistoryResultUrls(
-    items,
-    async (bucket, paths) => {
-      calls.push({ bucket, paths });
-      return paths.map((path) => ({
-        path,
-        signedUrl: `https://storage.example/${bucket}/${path}`,
-      }));
-    },
-  );
+  const result = await attachHistoryResultUrls(items, async (bucket, paths) => {
+    calls.push({ bucket, paths });
+    return paths.map((path) => ({
+      path,
+      signedUrl: `https://storage.example/${bucket}/${path}`,
+    }));
+  });
 
   assert.deepEqual(calls, [
     { bucket: "results", paths: ["one.jpg", "two.jpg"] },

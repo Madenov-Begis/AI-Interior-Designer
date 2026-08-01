@@ -10,7 +10,8 @@ function adminCors(request: NextRequest) {
   const headers = new Headers({
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key, X-Request-Id",
+    "Access-Control-Allow-Headers":
+      "Authorization, Content-Type, Idempotency-Key, X-Request-Id",
     "Access-Control-Max-Age": "600",
     Vary: "Origin",
   });
@@ -19,7 +20,8 @@ function adminCors(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const cors = adminCors(request);
-  if (request.method === "OPTIONS" && cors) return new NextResponse(null, { status: 204, headers: cors });
+  if (request.method === "OPTIONS" && cors)
+    return new NextResponse(null, { status: 204, headers: cors });
   const response = await updateSupabaseSession(request);
   cors?.forEach((value, key) => response.headers.set(key, value));
   return response;

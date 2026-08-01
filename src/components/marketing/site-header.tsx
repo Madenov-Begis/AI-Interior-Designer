@@ -15,7 +15,10 @@ export function SiteHeader({ authenticated }: { authenticated: boolean }) {
           className="flex items-center gap-2"
           aria-label={`${APP_NAME} — главная`}
         >
-          <Sparkle className="size-5 fill-primary text-primary" aria-hidden="true" />
+          <Sparkle
+            className="size-5 fill-primary text-primary"
+            aria-hidden="true"
+          />
           <span className="text-xl font-black italic tracking-[-0.045em]">
             {APP_NAME}
           </span>
@@ -24,9 +27,21 @@ export function SiteHeader({ authenticated }: { authenticated: boolean }) {
           className="hidden items-center gap-8 text-sm text-muted-foreground md:flex"
           aria-label="Основная навигация"
         >
-          <a className="transition-colors hover:text-foreground" href="#process">Как это работает</a>
-          <a className="transition-colors hover:text-foreground" href="#modes">Возможности</a>
-          <a className="transition-colors hover:text-foreground" href="#pricing">Тарифы</a>
+          <a
+            className="transition-colors hover:text-foreground"
+            href="#process"
+          >
+            Как это работает
+          </a>
+          <a className="transition-colors hover:text-foreground" href="#modes">
+            Возможности
+          </a>
+          <a
+            className="transition-colors hover:text-foreground"
+            href="#pricing"
+          >
+            Тарифы
+          </a>
         </nav>
         <Link
           href={entry.href}

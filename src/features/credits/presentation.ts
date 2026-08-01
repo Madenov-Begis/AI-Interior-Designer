@@ -17,11 +17,7 @@ export const CREDIT_TRANSACTION_LABELS = {
 export type CreditTransactionKind = keyof typeof CREDIT_TRANSACTION_LABELS;
 
 export type CheckoutStatus =
-  | "PENDING"
-  | "PAID"
-  | "FAILED"
-  | "CANCELLED"
-  | "EXPIRED";
+  "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "EXPIRED";
 
 export function formatUzs(priceUzs: number) {
   return `${new Intl.NumberFormat("ru-RU").format(priceUzs)} сум`;

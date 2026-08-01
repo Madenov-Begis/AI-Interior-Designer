@@ -8,7 +8,13 @@ export const GENERATION_REFUND_MESSAGE =
 
 export const CREDIT_PACKAGES = [
   { code: "mini", name: "Мини", credits: 20, priceUzs: 25_000, popular: false },
-  { code: "standard", name: "Стандарт", credits: 60, priceUzs: 69_000, popular: true },
+  {
+    code: "standard",
+    name: "Стандарт",
+    credits: 60,
+    priceUzs: 69_000,
+    popular: true,
+  },
   { code: "pro", name: "Про", credits: 160, priceUzs: 169_000, popular: false },
 ] as const;
 

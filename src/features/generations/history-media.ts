@@ -12,9 +12,7 @@ type SignedFile = {
   signedUrl: string;
 };
 
-export async function attachHistoryResultUrls<
-  T extends HistoryItemWithMedia,
->(
+export async function attachHistoryResultUrls<T extends HistoryItemWithMedia>(
   items: T[],
   signPaths: (bucket: string, paths: string[]) => Promise<SignedFile[]>,
 ): Promise<Array<T & { resultUrl: string | null }>> {
@@ -28,10 +26,10 @@ export async function attachHistoryResultUrls<
   }
 
   const signedEntries = await Promise.all(
-    [...pathsByBucket.entries()].map(async ([bucket, paths]) => [
-      bucket,
-      await signPaths(bucket, paths),
-    ] as const),
+    [...pathsByBucket.entries()].map(
+      async ([bucket, paths]) =>
+        [bucket, await signPaths(bucket, paths)] as const,
+    ),
   );
   const signedByFile = new Map<string, string>();
   for (const [bucket, files] of signedEntries) {
@@ -43,9 +41,9 @@ export async function attachHistoryResultUrls<
   return items.map((item) => ({
     ...item,
     resultUrl: item.resultUser
-      ? signedByFile.get(
+      ? (signedByFile.get(
           `${item.resultUser.bucket}:${item.resultUser.path}`,
-        ) ?? null
+        ) ?? null)
       : null,
   }));
 }

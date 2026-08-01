@@ -14,16 +14,26 @@ export const visualPromptCanvasStateSchema = z.object({
 });
 
 export function parseVisualPromptCanvasState(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") throw new VisualPromptValidationError("CANVAS_STATE_REQUIRED", "Состояние редактора отсутствует");
+  if (typeof value !== "string")
+    throw new VisualPromptValidationError(
+      "CANVAS_STATE_REQUIRED",
+      "Состояние редактора отсутствует",
+    );
   try {
     return visualPromptCanvasStateSchema.parse(JSON.parse(value));
   } catch {
-    throw new VisualPromptValidationError("INVALID_CANVAS_STATE", "Состояние редактора повреждено");
+    throw new VisualPromptValidationError(
+      "INVALID_CANVAS_STATE",
+      "Состояние редактора повреждено",
+    );
   }
 }
 
 export class VisualPromptValidationError extends Error {
-  constructor(readonly code: string, message: string) {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
     super(message);
     this.name = "VisualPromptValidationError";
   }

@@ -1,9 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { GENERATION_CREDIT_COST } from "../../config/product.ts";
-import {
-  CREDITS_QUERY_KEY,
-  refreshCreditsQuery,
-} from "../credits/client.ts";
+import { CREDITS_QUERY_KEY, refreshCreditsQuery } from "../credits/client.ts";
 import { fullGenerationCount } from "../credits/presentation.ts";
 
 export type GenerationWallet = {
@@ -31,8 +28,7 @@ export type CreditsLifecycleEvent =
   | "insufficient-error"
   | "poll";
 
-const INSUFFICIENT_CREDITS_MESSAGE =
-  "Недостаточно кредитов. Пополните баланс.";
+const INSUFFICIENT_CREDITS_MESSAGE = "Недостаточно кредитов. Пополните баланс.";
 
 const PURCHASE_LINK = {
   href: "/app/credits",
@@ -189,17 +185,13 @@ export function generationWalletPresentation(
 ) {
   const generationCost = wallet?.generationCost ?? GENERATION_CREDIT_COST;
   const balanceInsufficient =
-    wallet !== null &&
-    wallet !== undefined &&
-    wallet.balance < generationCost;
+    wallet !== null && wallet !== undefined && wallet.balance < generationCost;
   const shouldShowPurchaseLink =
     balanceInsufficient || errorCode === "INSUFFICIENT_CREDITS";
 
   return {
     balanceInsufficient,
-    disabledReason: balanceInsufficient
-      ? INSUFFICIENT_CREDITS_MESSAGE
-      : null,
+    disabledReason: balanceInsufficient ? INSUFFICIENT_CREDITS_MESSAGE : null,
     balanceText:
       wallet === null || wallet === undefined
         ? "Баланс недоступен"
@@ -268,8 +260,7 @@ export function generationActionErrorPresentation(
   return {
     message: error instanceof Error ? error.message : fallbackMessage,
     purchaseLink:
-      error instanceof ApiResponseError &&
-      error.code === "INSUFFICIENT_CREDITS"
+      error instanceof ApiResponseError && error.code === "INSUFFICIENT_CREDITS"
         ? PURCHASE_LINK
         : null,
   };
@@ -292,8 +283,8 @@ export function generationCanvasActionErrorPresentation(input: {
   const retryIsVisible =
     input.status === "FAILED" || input.status === "REJECTED";
   const actionError = retryIsVisible
-    ? retryError ?? cancellationError
-    : cancellationError ?? retryError;
+    ? (retryError ?? cancellationError)
+    : (cancellationError ?? retryError);
 
   return actionError
     ? generationActionErrorPresentation(actionError, "retry")

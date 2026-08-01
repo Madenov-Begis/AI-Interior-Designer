@@ -10,10 +10,7 @@ import {
   canTransitionPayment,
   snapshotCreditPackage,
 } from "./policy.ts";
-import type {
-  CheckoutProvider,
-  NormalizedPaymentEvent,
-} from "./provider.ts";
+import type { CheckoutProvider, NormalizedPaymentEvent } from "./provider.ts";
 
 export type PaymentDatabase = Pick<
   PrismaClient,
@@ -23,8 +20,7 @@ export type PaymentDatabase = Pick<
 const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
   PAYMENTS_DISABLED: "Оплата временно недоступна",
   MOCK_PAYMENTS_NOT_SAFE: "Тестовая оплата недоступна в этом режиме",
-  INVALID_PAYMENT_TRANSITION:
-    "Статус оплаты уже изменился. Обновите страницу",
+  INVALID_PAYMENT_TRANSITION: "Статус оплаты уже изменился. Обновите страницу",
   PAYMENT_ORDER_EXPIRED: "Время оплаты заказа истекло",
   PAYMENT_EVENT_MISMATCH: "Не удалось подтвердить результат оплаты",
   CREDIT_PACKAGE_NOT_FOUND: "Пакет кредитов не найден",
@@ -36,8 +32,7 @@ export class PaymentServiceError extends Error {
 
   constructor(code: string) {
     super(
-      PAYMENT_ERROR_MESSAGES[code] ??
-        "Не удалось выполнить платёжный запрос",
+      PAYMENT_ERROR_MESSAGES[code] ?? "Не удалось выполнить платёжный запрос",
     );
     this.name = "PaymentServiceError";
     this.code = code;

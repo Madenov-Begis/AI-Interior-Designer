@@ -24,10 +24,7 @@ import {
   type CreditWalletPayload,
   presentWalletSummary,
 } from "@/features/credits/presentation";
-import {
-  creditQueryOptions,
-  loadCredits,
-} from "@/features/credits/client";
+import { creditQueryOptions, loadCredits } from "@/features/credits/client";
 
 type ProfilePayload = {
   profile: {
@@ -59,9 +56,7 @@ type ProfileProject = {
   generationCount: number;
 };
 
-async function apiData<T>(
-  response: Response | Promise<Response>,
-): Promise<T> {
+async function apiData<T>(response: Response | Promise<Response>): Promise<T> {
   const resolved = await response;
   const payload = await resolved.json();
   if (!resolved.ok) {
@@ -87,9 +82,7 @@ export function ProfilePanel() {
   const profile = useQuery({
     queryKey: ["profile"],
     queryFn: () =>
-      apiData<ProfilePayload>(
-        fetch("/api/v1/profile", { cache: "no-store" }),
-      ),
+      apiData<ProfilePayload>(fetch("/api/v1/profile", { cache: "no-store" })),
   });
   const projects = useQuery({
     queryKey: ["projects", "profile"],

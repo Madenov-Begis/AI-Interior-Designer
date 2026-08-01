@@ -1,9 +1,7 @@
 import "server-only";
 
 import { getDb } from "@/lib/db";
-import {
-  getCreditWalletWithDatabase,
-} from "@/features/credits/service-operations";
+import { getCreditWalletWithDatabase } from "@/features/credits/service-operations";
 
 export {
   CreditBalanceError,

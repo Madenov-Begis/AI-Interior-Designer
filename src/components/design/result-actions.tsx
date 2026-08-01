@@ -63,9 +63,7 @@ export function ResultActions({
       setVariationPending(false);
       dialogRef.current?.close();
     } catch (error) {
-      setVariationError(
-        generationActionErrorPresentation(error, "variation"),
-      );
+      setVariationError(generationActionErrorPresentation(error, "variation"));
       setVariationPending(false);
     }
   }

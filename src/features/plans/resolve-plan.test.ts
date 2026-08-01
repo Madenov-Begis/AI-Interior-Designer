@@ -22,14 +22,10 @@ test("uses the active subscription without loading the default plan", async () =
 test("loads the default plan only when the profile has no plan", async () => {
   let fallbackCalls = 0;
 
-  const plan = await resolveEffectivePlan(
-    undefined,
-    null,
-    async () => {
-      fallbackCalls += 1;
-      return { id: "free", name: "Free" };
-    },
-  );
+  const plan = await resolveEffectivePlan(undefined, null, async () => {
+    fallbackCalls += 1;
+    return { id: "free", name: "Free" };
+  });
 
   assert.deepEqual(plan, { id: "free", name: "Free" });
   assert.equal(fallbackCalls, 1);

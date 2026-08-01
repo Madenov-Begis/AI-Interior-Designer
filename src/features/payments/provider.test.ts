@@ -12,8 +12,7 @@ test("mock checkout points to the owned order checkout page", async () => {
   const checkout = await new MockPaymentProvider().createCheckout(order);
 
   assert.deepEqual(checkout, {
-    checkoutUrl:
-      "/app/credits/checkout/550e8400-e29b-41d4-a716-446655440000",
+    checkoutUrl: "/app/credits/checkout/550e8400-e29b-41d4-a716-446655440000",
     providerOrderId: "mock-550e8400-e29b-41d4-a716-446655440000",
   });
 });

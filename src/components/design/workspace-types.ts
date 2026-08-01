@@ -1,12 +1,7 @@
 import type { VisualPromptCanvasState } from "@/features/visual-prompt/types";
 
 export type WorkspaceGenerationStatus =
-  | "QUEUED"
-  | "PROCESSING"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CANCELLED"
-  | "REJECTED";
+  "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REJECTED";
 
 export type WorkspaceGeneration = {
   id: string;

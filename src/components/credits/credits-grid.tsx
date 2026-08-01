@@ -13,10 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RenoaPanel } from "@/components/design-system/surfaces";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  creditQueryOptions,
-  loadCredits,
-} from "@/features/credits/client";
+import { creditQueryOptions, loadCredits } from "@/features/credits/client";
 import {
   type CreditTransactionKind,
   formatUzs,
@@ -70,9 +67,7 @@ const creditDateFormatter = new Intl.DateTimeFormat("ru-RU", {
 export function CreditsGrid() {
   const router = useRouter();
   const creditsQuery = useQuery(
-    creditQueryOptions(({ signal }) =>
-      loadCredits<CreditsPayload>(signal),
-    ),
+    creditQueryOptions(({ signal }) => loadCredits<CreditsPayload>(signal)),
   );
   const createOrder = useMutation({
     mutationFn: async (packageCode: string) =>

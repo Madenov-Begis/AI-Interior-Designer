@@ -31,4 +31,3 @@ export const RENOA_DESIGN_SYSTEM = {
     mono: "Geist Mono",
   },
 } as const;
-

@@ -38,9 +38,7 @@ type ProjectsPayload = {
   nextCursor: string | null;
 };
 
-async function apiData<T>(
-  response: Response | Promise<Response>,
-): Promise<T> {
+async function apiData<T>(response: Response | Promise<Response>): Promise<T> {
   const resolved = await response;
   const payload = await resolved.json();
   if (!resolved.ok) {
@@ -77,16 +75,14 @@ export function ProjectsGrid() {
       apiData<ProjectItem>(
         fetch(`/api/v1/projects/${id}/duplicate`, { method: "POST" }),
       ),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["projects"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
   const removeProject = useMutation({
     mutationFn: (id: string) =>
       apiData<{ deleted: true }>(
         fetch(`/api/v1/projects/${id}`, { method: "DELETE" }),
       ),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["projects"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 
   const filteredProjects = useMemo(() => {

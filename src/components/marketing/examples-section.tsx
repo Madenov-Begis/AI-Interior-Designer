@@ -2,12 +2,36 @@ import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 
 const examples = [
-  { title: "Гостиная", style: "Джапанди", image: "/images/interior-styles/japandi.webp" },
-  { title: "Кухня", style: "Современный", image: "/images/interior-styles/modern.webp" },
-  { title: "Спальня", style: "Минимализм", image: "/images/interior-styles/minimalism.webp" },
-  { title: "Кабинет", style: "Лофт", image: "/images/interior-styles/loft.webp" },
-  { title: "Столовая", style: "Неоклассика", image: "/images/interior-styles/neoclassic.webp" },
-  { title: "Детская", style: "Скандинавский", image: "/images/interior-styles/scandinavian.webp" },
+  {
+    title: "Гостиная",
+    style: "Джапанди",
+    image: "/images/interior-styles/japandi.webp",
+  },
+  {
+    title: "Кухня",
+    style: "Современный",
+    image: "/images/interior-styles/modern.webp",
+  },
+  {
+    title: "Спальня",
+    style: "Минимализм",
+    image: "/images/interior-styles/minimalism.webp",
+  },
+  {
+    title: "Кабинет",
+    style: "Лофт",
+    image: "/images/interior-styles/loft.webp",
+  },
+  {
+    title: "Столовая",
+    style: "Неоклассика",
+    image: "/images/interior-styles/neoclassic.webp",
+  },
+  {
+    title: "Детская",
+    style: "Скандинавский",
+    image: "/images/interior-styles/scandinavian.webp",
+  },
 ];
 
 export function ExamplesSection() {
@@ -47,7 +71,9 @@ export function ExamplesSection() {
               <div className="flex items-center justify-between gap-3 p-4">
                 <div>
                   <h3 className="font-semibold">{example.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{example.style}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {example.style}
+                  </p>
                 </div>
                 <span className="grid size-10 place-items-center rounded-full border border-border bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                   <ArrowUpRight className="size-4" aria-hidden="true" />

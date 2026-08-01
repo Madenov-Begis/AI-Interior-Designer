@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
   });
 
   if (error || !data.url) {
-    return NextResponse.redirect(new URL("/login?error=oauth_start", request.nextUrl.origin));
+    return NextResponse.redirect(
+      new URL("/login?error=oauth_start", request.nextUrl.origin),
+    );
   }
 
   return NextResponse.redirect(data.url);

@@ -44,11 +44,8 @@ export function GenerationRefinementComposer({
   const [prompt, setPrompt] = useState(() =>
     typeof window === "undefined"
       ? ""
-      : (loadRefinementDraft(
-          window.localStorage,
-          userScope,
-          generationId,
-        )?.prompt ?? ""),
+      : (loadRefinementDraft(window.localStorage, userScope, generationId)
+          ?.prompt ?? ""),
   );
   const [referenceFileIds, setReferenceFileIds] = useState(
     initialReferenceFileIds,
@@ -147,10 +144,7 @@ export function GenerationRefinementComposer({
           <X size={17} aria-hidden="true" />
         </button>
       </div>
-      <label
-        htmlFor={`refinement-prompt-${generationId}`}
-        className="sr-only"
-      >
+      <label htmlFor={`refinement-prompt-${generationId}`} className="sr-only">
         Что изменить в этом варианте?
       </label>
       <textarea
@@ -163,7 +157,10 @@ export function GenerationRefinementComposer({
         placeholder="Например: сделай фасады темнее и добавь светильник из референса"
         className="mt-3 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-5 outline-none transition-colors focus:border-accent"
       />
-      <p className="-mt-7 mr-3 text-right text-xs text-muted" aria-live="polite">
+      <p
+        className="-mt-7 mr-3 text-right text-xs text-muted"
+        aria-live="polite"
+      >
         {prompt.length} / 4000
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -207,7 +204,9 @@ export function GenerationRefinementComposer({
         ))}
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <label className={buttonClassName("secondary", "cursor-pointer rounded-xl")}>
+        <label
+          className={buttonClassName("secondary", "cursor-pointer rounded-xl")}
+        >
           <ImagePlus size={17} />
           Референс
           <input

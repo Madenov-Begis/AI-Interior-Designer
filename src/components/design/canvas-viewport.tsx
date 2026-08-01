@@ -240,8 +240,7 @@ export const CanvasViewport = forwardRef<
           ...selectedGenerationPosition,
           width: CARD_WIDTH,
           height:
-            generations[selectedGenerationIndex]?.height ??
-            RESULT_CARD_HEIGHT,
+            generations[selectedGenerationIndex]?.height ?? RESULT_CARD_HEIGHT,
         },
         transform,
       })
@@ -401,11 +400,7 @@ export const CanvasViewport = forwardRef<
       const normalizedDelta = event.deltaY * modeMultiplier;
       const factor = Math.exp(-normalizedDelta * 0.0015);
 
-      zoomBy(
-        factor,
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-      );
+      zoomBy(factor, event.clientX - rect.left, event.clientY - rect.top);
     };
 
     viewport.addEventListener("wheel", handleWheel, { passive: false });
@@ -420,10 +415,7 @@ export const CanvasViewport = forwardRef<
       return;
     }
     const target = event.target;
-    if (
-      target instanceof Element &&
-      target.closest("[data-canvas-item]")
-    ) {
+    if (target instanceof Element && target.closest("[data-canvas-item]")) {
       return;
     }
 
@@ -500,9 +492,9 @@ export const CanvasViewport = forwardRef<
       onPointerCancel={finishPan}
     >
       <p id="canvas-viewport-instructions" className="sr-only">
-        Инструмент со стрелкой выбирает объекты и перемещает холст перетаскиванием
-        свободной области. Используйте кнопки масштаба, чтобы приблизить,
-        отдалить или вписать всё содержимое.
+        Инструмент со стрелкой выбирает объекты и перемещает холст
+        перетаскиванием свободной области. Используйте кнопки масштаба, чтобы
+        приблизить, отдалить или вписать всё содержимое.
       </p>
       <div
         className="canvas-world"
@@ -593,9 +585,7 @@ export const CanvasViewport = forwardRef<
               }`}
               data-canvas-item
               className={`canvas-item ${
-                selectedItemId === generation.id
-                  ? "canvas-item--selected"
-                  : ""
+                selectedItemId === generation.id ? "canvas-item--selected" : ""
               } ${
                 tool === "select" && generation.interactive
                   ? "canvas-item--interactive"
@@ -615,7 +605,7 @@ export const CanvasViewport = forwardRef<
                 if (
                   event.target === event.currentTarget &&
                   (event.key === "Enter" || event.key === " ")
-                  ) {
+                ) {
                   event.preventDefault();
                   selectItem(generation.id);
                 }
@@ -627,8 +617,7 @@ export const CanvasViewport = forwardRef<
         })}
       </div>
 
-      {selectedGenerationOverlay &&
-      selectedGenerationOverlayPosition ? (
+      {selectedGenerationOverlay && selectedGenerationOverlayPosition ? (
         <div
           className="canvas-generation-overlay"
           data-placement={selectedGenerationOverlayPosition.placement}

@@ -45,12 +45,7 @@ export function createPaymentOrder(userId: string, packageCode: string) {
 }
 
 export function getOwnedPaymentOrder(userId: string, orderId: string) {
-  return getOwnedPaymentOrderWithDatabase(
-    getDb(),
-    userId,
-    orderId,
-    new Date(),
-  );
+  return getOwnedPaymentOrderWithDatabase(getDb(), userId, orderId, new Date());
 }
 
 export function applyPaymentEvent(event: NormalizedPaymentEvent) {

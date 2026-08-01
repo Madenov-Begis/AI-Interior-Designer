@@ -82,13 +82,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
     }
     if (error instanceof VisualPromptProjectNotFoundError) {
-      return apiError("GENERATION_NOT_FOUND", "Результат не найден", requestId, 404);
+      return apiError(
+        "GENERATION_NOT_FOUND",
+        "Результат не найден",
+        requestId,
+        404,
+      );
     }
     if (error instanceof VisualPromptValidationError) {
       return apiError(error.code, error.message, requestId, 400);
     }
     if (error instanceof ZodError || error instanceof SyntaxError) {
-      return apiError("VALIDATION_ERROR", "Проверьте уточнение и референсы", requestId, 400);
+      return apiError(
+        "VALIDATION_ERROR",
+        "Проверьте уточнение и референсы",
+        requestId,
+        400,
+      );
     }
     return apiError(
       "REFINEMENT_CREATE_FAILED",

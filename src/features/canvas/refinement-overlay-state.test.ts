@@ -14,17 +14,15 @@ test("toggle opens and closes the refinement editor", () => {
     nextRefinementOverlayState({ editorOpen: false }, "toggle"),
     { editorOpen: true },
   );
-  assert.deepEqual(
-    nextRefinementOverlayState({ editorOpen: true }, "toggle"),
-    { editorOpen: false },
-  );
+  assert.deepEqual(nextRefinementOverlayState({ editorOpen: true }, "toggle"), {
+    editorOpen: false,
+  });
 });
 
 test("close and submit success close the refinement editor", () => {
-  assert.deepEqual(
-    nextRefinementOverlayState({ editorOpen: true }, "close"),
-    { editorOpen: false },
-  );
+  assert.deepEqual(nextRefinementOverlayState({ editorOpen: true }, "close"), {
+    editorOpen: false,
+  });
   assert.deepEqual(
     nextRefinementOverlayState({ editorOpen: true }, "submit-success"),
     { editorOpen: false },

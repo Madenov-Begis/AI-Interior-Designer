@@ -7,9 +7,12 @@ import {
 } from "./schema.ts";
 
 test("payment order input accepts only a server-known package code", () => {
-  assert.deepEqual(paymentOrderCreateSchema.parse({ packageCode: "standard" }), {
-    packageCode: "standard",
-  });
+  assert.deepEqual(
+    paymentOrderCreateSchema.parse({ packageCode: "standard" }),
+    {
+      packageCode: "standard",
+    },
+  );
   assert.equal(
     paymentOrderCreateSchema.safeParse({
       packageCode: "standard",

@@ -33,8 +33,8 @@ export default async function ProjectPage({
 
   let sourceUrl: string | null = null;
   if (project.sourceImage && project.sourcePreview) {
-    const signed = await getSupabaseAdmin().storage
-      .from(project.sourcePreview.bucket)
+    const signed = await getSupabaseAdmin()
+      .storage.from(project.sourcePreview.bucket)
       .createSignedUrl(project.sourcePreview.path, 600);
     if (signed.error || !signed.data.signedUrl) {
       throw new Error("Не удалось открыть изображение проекта");
@@ -44,8 +44,8 @@ export default async function ProjectPage({
 
   const referenceUrls = await Promise.all(
     project.references.map(async (reference) => {
-      const result = await getSupabaseAdmin().storage
-        .from(reference.file.bucket)
+      const result = await getSupabaseAdmin()
+        .storage.from(reference.file.bucket)
         .createSignedUrl(reference.file.path, 600);
       if (result.error || !result.data.signedUrl) {
         throw new Error("Не удалось открыть референс проекта");

@@ -147,7 +147,11 @@ export function WorkspaceToolbar({
       </div>
 
       {hasDrawingSettings && settingsOpen && (
-        <div className="workspace-toolbar__popover" role="dialog" aria-label="Параметры инструмента">
+        <div
+          className="workspace-toolbar__popover"
+          role="dialog"
+          aria-label="Параметры инструмента"
+        >
           <div>
             <p className="text-xs font-bold text-muted">Цвет</p>
             <div className="mt-2 flex items-center gap-2">
@@ -157,9 +161,7 @@ export function WorkspaceToolbar({
                   type="button"
                   aria-label={`Выбрать цвет ${preset}`}
                   title={`Цвет ${preset}`}
-                  aria-pressed={
-                    color.toLowerCase() === preset.toLowerCase()
-                  }
+                  aria-pressed={color.toLowerCase() === preset.toLowerCase()}
                   onClick={() => onColorChange(preset)}
                   className="grid size-11 shrink-0 place-items-center rounded-lg"
                 >

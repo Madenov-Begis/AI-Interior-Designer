@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  authEntry,
-  isProtectedPath,
-  safeReturnPath,
-} from "./route-policy.ts";
+import { authEntry, isProtectedPath, safeReturnPath } from "./route-policy.ts";
 
 test("classifies only app and admin route segments as private", () => {
   assert.equal(isProtectedPath("/app"), true);

@@ -1,9 +1,6 @@
 import { redirect } from "next/navigation";
 import { getOrCreateEntryProject } from "@/features/projects/service";
-import {
-  requireCurrentUser,
-  UnauthorizedError,
-} from "@/lib/auth/current-user";
+import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 

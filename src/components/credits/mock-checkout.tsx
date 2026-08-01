@@ -117,10 +117,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
   }
 
   const order = orderQuery.data.order;
-  const result = checkoutPresentation(
-    order.status,
-    orderQuery.data.balance,
-  );
+  const result = checkoutPresentation(order.status, orderQuery.data.balance);
   const reconciliationUnresolved =
     outcome.error instanceof CheckoutReconciliationError;
   const controlsDisabled = checkoutControlsDisabled(order.status, {
@@ -134,9 +131,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
       <CardHeader className="border-b border-border bg-secondary/35">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Badge variant="warning">Тестовый режим оплаты</Badge>
-          <Badge
-            variant={order.status === "PAID" ? "success" : "secondary"}
-          >
+          <Badge variant={order.status === "PAID" ? "success" : "secondary"}>
             {checkoutStatusLabels[order.status]}
           </Badge>
         </div>
@@ -211,9 +206,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
             </p>
           ) : null}
           {result.message ? (
-            <p
-              className={checkoutTerminalMessageClassName(order.status)}
-            >
+            <p className={checkoutTerminalMessageClassName(order.status)}>
               {result.message}
             </p>
           ) : null}

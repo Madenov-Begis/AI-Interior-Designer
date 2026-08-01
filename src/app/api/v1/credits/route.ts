@@ -1,8 +1,5 @@
 import type { NextRequest } from "next/server";
-import {
-  CREDIT_PACKAGES,
-  GENERATION_CREDIT_COST,
-} from "@/config/product";
+import { CREDIT_PACKAGES, GENERATION_CREDIT_COST } from "@/config/product";
 import { getCreditWallet } from "@/features/credits/service";
 import { paymentHttpError } from "@/features/payments/http";
 import { apiError, apiSuccess } from "@/lib/api/contracts";

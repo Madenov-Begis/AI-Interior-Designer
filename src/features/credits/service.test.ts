@@ -110,15 +110,12 @@ function mergeCreditState(
 ) {
   const addedTransactions = working.transactions.filter(
     (transaction) =>
-      !base.transactions.some(
-        (existing) => existing.id === transaction.id,
-      ),
+      !base.transactions.some((existing) => existing.id === transaction.id),
   );
   for (const transaction of addedTransactions) {
     if (
       committed.transactions.some(
-        (existing) =>
-          existing.idempotencyKey === transaction.idempotencyKey,
+        (existing) => existing.idempotencyKey === transaction.idempotencyKey,
       )
     ) {
       throw new Error("UNIQUE_CREDIT_TRANSACTION");
@@ -202,8 +199,7 @@ function createCreditHarness(seed?: Partial<CreditState>) {
         requireLock(data.userId);
         if (
           working.transactions.some(
-            (transaction) =>
-              transaction.idempotencyKey === data.idempotencyKey,
+            (transaction) => transaction.idempotencyKey === data.idempotencyKey,
           )
         ) {
           throw new Error("UNIQUE_CREDIT_TRANSACTION");
@@ -218,10 +214,7 @@ function createCreditHarness(seed?: Partial<CreditState>) {
       };
 
       const tx = {
-        $executeRaw: async (
-          _query: TemplateStringsArray,
-          userId: unknown,
-        ) => {
+        $executeRaw: async (_query: TemplateStringsArray, userId: unknown) => {
           if (typeof userId !== "string") {
             throw new Error("INVALID_LOCK_USER");
           }
@@ -287,9 +280,7 @@ function createCreditHarness(seed?: Partial<CreditState>) {
               | Array<Omit<TransactionRow, "id" | "createdAt">>;
             skipDuplicates?: boolean;
           }) => {
-            const entries = Array.isArray(args.data)
-              ? args.data
-              : [args.data];
+            const entries = Array.isArray(args.data) ? args.data : [args.data];
             let count = 0;
             for (const entry of entries) {
               const duplicate = working.transactions.some(
@@ -311,10 +302,7 @@ function createCreditHarness(seed?: Partial<CreditState>) {
             take: number;
           }) =>
             working.transactions
-              .filter(
-                (transaction) =>
-                  transaction.userId === args.where.userId,
-              )
+              .filter((transaction) => transaction.userId === args.where.userId)
               .sort(
                 (left, right) =>
                   right.createdAt.getTime() - left.createdAt.getTime(),
@@ -335,9 +323,7 @@ function createCreditHarness(seed?: Partial<CreditState>) {
               reason: string;
             };
           }) => {
-            const usageEvent = working.usageEvents.get(
-              args.where.generationId,
-            );
+            const usageEvent = working.usageEvents.get(args.where.generationId);
             if (!usageEvent || usageEvent.status !== args.where.status) {
               return { count: 0 };
             }
@@ -553,10 +539,7 @@ test("refuses to credit an order that is not paid", async () => {
   });
 
   await assert.rejects(
-    () =>
-      db.$transaction((tx) =>
-        creditPaidOrder(tx, { orderId: "order-1" }),
-      ),
+    () => db.$transaction((tx) => creditPaidOrder(tx, { orderId: "order-1" })),
     (error) =>
       error instanceof CreditBalanceError &&
       error.code === "PAYMENT_ORDER_NOT_PAID",
@@ -768,9 +751,7 @@ test("waits for the same user's advisory lock before crediting an order", async 
 
   let creditSettled = false;
   const credit = db
-    .$transaction((tx) =>
-      creditPaidOrder(tx, { orderId: "order-1" }),
-    )
+    .$transaction((tx) => creditPaidOrder(tx, { orderId: "order-1" }))
     .finally(() => {
       creditSettled = true;
     });

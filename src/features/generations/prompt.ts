@@ -12,8 +12,14 @@ export function buildFinalPrompt(input: {
     input.prompt.trim(),
   ];
   if (input.stylePrompt) parts.push(input.stylePrompt);
-  if (input.visualPromptUsed) parts.push("Учитывай цветную визуальную разметку как указание зон, которые требуется изменить.");
-  if (input.referenceCount > 0) parts.push(`Используй ${input.referenceCount} референсов в переданном порядке для стиля, материалов, мебели и декора.`);
+  if (input.visualPromptUsed)
+    parts.push(
+      "Учитывай цветную визуальную разметку как указание зон, которые требуется изменить.",
+    );
+  if (input.referenceCount > 0)
+    parts.push(
+      `Используй ${input.referenceCount} референсов в переданном порядке для стиля, материалов, мебели и декора.`,
+    );
   parts.push("Не добавляй текст, логотипы и водяные знаки в AI-изображение.");
   return parts.join("\n\n");
 }

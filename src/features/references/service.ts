@@ -22,25 +22,51 @@ async function getProjectCapacity(userId: string, projectId: string) {
   if (!project) throw new ReferenceProjectNotFoundError("Проект не найден");
   return {
     count: project._count.references,
-    limit: project.user.plan?.maxReferenceImages ?? REFERENCE_IMAGE_RULES.maxCount,
+    limit:
+      project.user.plan?.maxReferenceImages ?? REFERENCE_IMAGE_RULES.maxCount,
   };
 }
 
-export async function addReferenceFiles(userId: string, projectId: string, files: File[], sourceUrls?: Array<string | null>) {
+export async function addReferenceFiles(
+  userId: string,
+  projectId: string,
+  files: File[],
+  sourceUrls?: Array<string | null>,
+) {
   const capacity = await getProjectCapacity(userId, projectId);
-  if (files.length === 0) throw new ReferenceLimitError("Добавьте хотя бы один файл");
-  if (capacity.count + files.length > capacity.limit) throw new ReferenceLimitError(`Можно добавить не более ${capacity.limit} референсов`);
+  if (files.length === 0)
+    throw new ReferenceLimitError("Добавьте хотя бы один файл");
+  if (capacity.count + files.length > capacity.limit)
+    throw new ReferenceLimitError(
+      `Можно добавить не более ${capacity.limit} референсов`,
+    );
 
-  const storage = getSupabaseAdmin().storage.from(STORAGE_BUCKETS.referenceImages);
-  const uploaded: Array<{ path: string; id: string; image: Awaited<ReturnType<typeof validateReferenceImage>>; sourceUrl: string | null }> = [];
+  const storage = getSupabaseAdmin().storage.from(
+    STORAGE_BUCKETS.referenceImages,
+  );
+  const uploaded: Array<{
+    path: string;
+    id: string;
+    image: Awaited<ReturnType<typeof validateReferenceImage>>;
+    sourceUrl: string | null;
+  }> = [];
   try {
     for (const [index, file] of files.entries()) {
       const image = await validateReferenceImage(file);
       const id = randomUUID();
       const path = `users/${userId}/projects/${projectId}/references/${id}.webp`;
-      const result = await storage.upload(path, image.normalized, { contentType: image.mimeType, cacheControl: "3600", upsert: false });
+      const result = await storage.upload(path, image.normalized, {
+        contentType: image.mimeType,
+        cacheControl: "3600",
+        upsert: false,
+      });
       if (result.error) throw result.error;
-      uploaded.push({ path, id, image, sourceUrl: sourceUrls?.[index] ?? null });
+      uploaded.push({
+        path,
+        id,
+        image,
+        sourceUrl: sourceUrls?.[index] ?? null,
+      });
     }
 
     return await getDb().$transaction(async (tx) => {
@@ -63,20 +89,38 @@ export async function addReferenceFiles(userId: string, projectId: string, files
             type: "REFERENCE",
           },
         });
-        rows.push(await tx.projectReference.create({
-          data: { projectId, fileId: file.id, sourceUrl: item.sourceUrl, position: current + index },
-          select: { id: true, fileId: true, sourceUrl: true, position: true, createdAt: true },
-        }));
+        rows.push(
+          await tx.projectReference.create({
+            data: {
+              projectId,
+              fileId: file.id,
+              sourceUrl: item.sourceUrl,
+              position: current + index,
+            },
+            select: {
+              id: true,
+              fileId: true,
+              sourceUrl: true,
+              position: true,
+              createdAt: true,
+            },
+          }),
+        );
       }
       return rows;
     });
   } catch (error) {
-    if (uploaded.length) await storage.remove(uploaded.map((item) => item.path));
+    if (uploaded.length)
+      await storage.remove(uploaded.map((item) => item.path));
     throw error;
   }
 }
 
-export async function deleteReference(userId: string, projectId: string, referenceId: string) {
+export async function deleteReference(
+  userId: string,
+  projectId: string,
+  referenceId: string,
+) {
   const db = getDb();
   const reference = await db.projectReference.findFirst({
     where: { id: referenceId, projectId, project: { userId, deletedAt: null } },
@@ -86,13 +130,25 @@ export async function deleteReference(userId: string, projectId: string, referen
 
   await db.$transaction(async (tx) => {
     await tx.projectReference.delete({ where: { id: reference.id } });
-    await tx.mediaFile.update({ where: { id: reference.fileId }, data: { deletedAt: new Date() } });
-    const remaining = await tx.projectReference.findMany({ where: { projectId }, orderBy: { position: "asc" }, select: { id: true } });
+    await tx.mediaFile.update({
+      where: { id: reference.fileId },
+      data: { deletedAt: new Date() },
+    });
+    const remaining = await tx.projectReference.findMany({
+      where: { projectId },
+      orderBy: { position: "asc" },
+      select: { id: true },
+    });
     for (const [position, row] of remaining.entries()) {
-      await tx.projectReference.update({ where: { id: row.id }, data: { position } });
+      await tx.projectReference.update({
+        where: { id: row.id },
+        data: { position },
+      });
     }
   });
-  await getSupabaseAdmin().storage.from(reference.file.bucket).remove([reference.file.path]);
+  await getSupabaseAdmin()
+    .storage.from(reference.file.bucket)
+    .remove([reference.file.path]);
 }
 
 export async function clearReferences(userId: string, projectId: string) {
@@ -105,28 +161,46 @@ export async function clearReferences(userId: string, projectId: string) {
 
   await db.$transaction(async (tx) => {
     await tx.projectReference.deleteMany({ where: { projectId } });
-    if (project.references.length) await tx.mediaFile.updateMany({ where: { id: { in: project.references.map((item) => item.fileId) } }, data: { deletedAt: new Date() } });
+    if (project.references.length)
+      await tx.mediaFile.updateMany({
+        where: { id: { in: project.references.map((item) => item.fileId) } },
+        data: { deletedAt: new Date() },
+      });
   });
   const byBucket = Map.groupBy(project.references, (item) => item.file.bucket);
   for (const [bucket, items] of byBucket) {
-    await getSupabaseAdmin().storage.from(bucket).remove(items.map((item) => item.file.path));
+    await getSupabaseAdmin()
+      .storage.from(bucket)
+      .remove(items.map((item) => item.file.path));
   }
 }
 
-export async function reorderReferences(userId: string, projectId: string, referenceIds: string[]) {
+export async function reorderReferences(
+  userId: string,
+  projectId: string,
+  referenceIds: string[],
+) {
   const db = getDb();
   const existing = await db.projectReference.findMany({
     where: { projectId, project: { userId, deletedAt: null } },
     orderBy: { position: "asc" },
     select: { id: true },
   });
-  if (existing.length !== referenceIds.length || existing.some((row) => !referenceIds.includes(row.id))) {
-    throw new ReferenceNotFoundError("Список референсов изменился — обновите страницу");
+  if (
+    existing.length !== referenceIds.length ||
+    existing.some((row) => !referenceIds.includes(row.id))
+  ) {
+    throw new ReferenceNotFoundError(
+      "Список референсов изменился — обновите страницу",
+    );
   }
 
   await db.$transaction(async (tx) => {
     for (const [index, id] of referenceIds.entries()) {
-      await tx.projectReference.update({ where: { id }, data: { position: -(index + 1) } });
+      await tx.projectReference.update({
+        where: { id },
+        data: { position: -(index + 1) },
+      });
     }
     for (const [position, id] of referenceIds.entries()) {
       await tx.projectReference.update({ where: { id }, data: { position } });

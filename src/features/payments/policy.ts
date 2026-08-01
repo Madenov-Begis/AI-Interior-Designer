@@ -25,7 +25,9 @@ export function canTransitionPayment(from: PaymentStatus, to: PaymentStatus) {
   return ALLOWED_PAYMENT_TRANSITIONS[from].has(to);
 }
 
-export function snapshotCreditPackage(creditPackage: CreditPackageSnapshotSource) {
+export function snapshotCreditPackage(
+  creditPackage: CreditPackageSnapshotSource,
+) {
   return {
     packageCode: creditPackage.code,
     packageName: creditPackage.name,

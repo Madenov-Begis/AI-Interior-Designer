@@ -36,10 +36,7 @@ export function EmptySourceWorkspace({
         className="min-h-0 flex-1 overflow-hidden bg-background"
         aria-label="Загрузка фотографии помещения"
       >
-        <SourceUpload
-          projectId={projectId}
-          initialProjectName={projectName}
-        />
+        <SourceUpload projectId={projectId} initialProjectName={projectName} />
       </section>
     </div>
   );

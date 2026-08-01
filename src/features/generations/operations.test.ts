@@ -440,10 +440,7 @@ test("root reservation ignores exhausted daily quota and debits four credits", a
 
   assert.equal(state.wallets.get("user-1"), 6);
   assert.equal(state.generations.get("generation-root")?.estimatedCost, 0);
-  assert.equal(
-    state.usageEvents.get("generation-root")?.creditAmount,
-    4,
-  );
+  assert.equal(state.usageEvents.get("generation-root")?.creditAmount, 4);
   assert.deepEqual(
     state.journals.map(({ kind, amount, generationId }) => ({
       kind,
@@ -509,15 +506,21 @@ test("refinement ignores exhausted daily quota and debits four credits", async (
     state.generations.get("generation-refinement")?.estimatedCost,
     0,
   );
-  assert.equal(
-    state.usageEvents.get("generation-refinement")?.creditAmount,
-    4,
-  );
+  assert.equal(state.usageEvents.get("generation-refinement")?.creditAmount, 4);
 });
 
 test("refinement uses the current fixed configuration", async () => {
   const { db, state } = createGenerationHarness();
-  await reserveRefinementWithDependencies(reservationDependencies(db, "generation-refinement"), { userId: "user-1", parentGenerationId: "generation-parent", prompt: "refine", referenceFileIds: [], idempotencyKey: "refinement-key" });
+  await reserveRefinementWithDependencies(
+    reservationDependencies(db, "generation-refinement"),
+    {
+      userId: "user-1",
+      parentGenerationId: "generation-parent",
+      prompt: "refine",
+      referenceFileIds: [],
+      idempotencyKey: "refinement-key",
+    },
+  );
   assert.equal(state.wallets.get("user-1"), 6);
   assert.equal(state.generations.size, 1);
 });
@@ -547,12 +550,8 @@ test("idempotent reservation repeat returns the original without a second debit"
 });
 
 test("root reservation rechecks idempotency after waiting for the user lock", async () => {
-  const {
-    db,
-    state,
-    beginUserLock,
-    waitForLockWaiter,
-  } = createGenerationHarness();
+  const { db, state, beginUserLock, waitForLockWaiter } =
+    createGenerationHarness();
   const holder = await beginUserLock("user-1");
   const reservation = reserveRootGenerationWithDependencies(
     reservationDependencies(db, "generation-loser"),
@@ -634,8 +633,7 @@ test("concurrent transport replay with one retry key creates and debits once", a
         projectId: "project-1",
         prompt: "redesign",
         aspectRatio: "RATIO_16_9",
-        idempotencyKey:
-          "retry:generation-failed:client-attempt-1234567890",
+        idempotencyKey: "retry:generation-failed:client-attempt-1234567890",
       },
     );
 
