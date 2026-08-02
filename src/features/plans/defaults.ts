@@ -13,15 +13,16 @@ export async function ensureSystemDefaults() {
       create: {
         code: "FREE",
         name: "Обычный",
-        description: "10 генераций в сутки",
-        dailyGenerationLimit: 10,
+        description: "Генерации оплачиваются кредитами",
         maxParallelGenerations: 1,
         maxReferenceImages: 10,
         maxReferenceUrls: 10,
         watermarkRequired: true,
         sortOrder: 0,
       },
-      update: {},
+      update: {
+        description: "Генерации оплачиваются кредитами",
+      },
     });
     const vipPlan = await tx.plan.upsert({
       where: { code: "VIP" },
@@ -29,7 +30,6 @@ export async function ensureSystemDefaults() {
         code: "VIP",
         name: "VIP",
         description: "Расширенные лимиты без водяного знака",
-        dailyGenerationLimit: 100,
         maxParallelGenerations: 3,
         maxReferenceImages: 10,
         maxReferenceUrls: 10,

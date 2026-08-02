@@ -7,6 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Settings2, X } from "lucide-react";
+import type { AxiosRequestConfig } from "axios";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport } from "@/components/design/canvas-viewport";
 import { DesignInspector } from "@/components/design/design-inspector";
@@ -16,25 +17,28 @@ import { GenerationContextOverlay } from "@/components/design/generation-context
 import { GenerationRefinementComposer } from "@/components/design/generation-refinement-composer";
 import { ResultActions } from "@/components/design/result-actions";
 import { SourceReplaceControl } from "@/components/design/source-replace-control";
-import { WorkspaceHeader } from "@/components/design/workspace-header";
 import { WorkspaceToolbar } from "@/components/design/workspace-toolbar";
+import { RenoaAppHeader } from "@/components/design-system/app-header";
 import type {
   DesignWorkspaceProps,
   WorkspaceGeneration,
+  WorkspaceGenerationList,
   WorkspaceGenerationStatus,
 } from "@/components/design/workspace-types";
 import { nextRefinementOverlayState } from "@/features/canvas/refinement-overlay-state";
-import { creditQueryOptions, loadCredits } from "@/features/credits/client";
+import {
+  CREDITS_QUERY_KEY,
+  creditQueryOptions,
+  loadCredits,
+} from "@/features/credits/client";
 import {
   ApiResponseError,
-  buildRetryGenerationRequest,
   type CreditsLifecycleEvent,
   type GenerationWallet,
   type RetryGenerationAttempt,
   generationCanvasActionErrorPresentation,
   generationWalletPresentation,
   pruneTrackedGenerationIds,
-  readApiData,
   reconcileTerminalCredits,
   refreshCreditsAfterLifecycle,
   RetryAttemptRegistry,
@@ -45,20 +49,48 @@ import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt/types";
-
-type GenerationList = {
-  items: WorkspaceGeneration[];
-  nextCursor: string | null;
-  total: number;
-};
-
-type Style = { code: string; name: string; imageUrl: string };
+import { ApiClientError, apiData as axiosApiData } from "@/lib/api/client";
 
 const DEFAULT_PROMPT =
   "Сделай современный ремонт. Используй предметы интерьера из референсов. Не меняй ракурс, пропорции и геометрию помещения.";
 
 function isActiveGeneration(status: WorkspaceGenerationStatus) {
   return status === "QUEUED" || status === "PROCESSING";
+}
+
+type GenerationClientPayload = {
+  generation: WorkspaceGeneration;
+  wallet: GenerationWallet | null;
+};
+
+async function requestApiData<T>(config: AxiosRequestConfig) {
+  try {
+    return await axiosApiData<T>(config);
+  } catch (error) {
+    if (error instanceof ApiClientError) {
+      throw new ApiResponseError(error.code, error.message, error.status);
+    }
+    throw error;
+  }
+}
+
+function upsertGeneration(
+  current: WorkspaceGenerationList | undefined,
+  generation: WorkspaceGeneration,
+): WorkspaceGenerationList {
+  if (!current) {
+    return { items: [generation], nextCursor: null, total: 1 };
+  }
+  const exists = current.items.some((item) => item.id === generation.id);
+  return {
+    ...current,
+    items: exists
+      ? current.items.map((item) =>
+          item.id === generation.id ? generation : item,
+        )
+      : [generation, ...current.items],
+    total: exists ? current.total : current.total + 1,
+  };
 }
 
 type ReadyDesignWorkspaceProps = Omit<DesignWorkspaceProps, "project"> & {
@@ -72,7 +104,6 @@ export function DesignWorkspace(props: DesignWorkspaceProps) {
     return (
       <EmptySourceWorkspace
         projectId={props.project.id}
-        projectName={props.project.name}
         user={props.user}
         creditBalance={props.creditBalance}
       />
@@ -85,6 +116,8 @@ export function DesignWorkspace(props: DesignWorkspaceProps) {
       initialReferences={props.initialReferences}
       user={props.user}
       creditBalance={props.creditBalance}
+      initialWallet={props.initialWallet}
+      initialGenerations={props.initialGenerations}
     />
   );
 }
@@ -94,12 +127,20 @@ function ReadyDesignWorkspace({
   initialReferences,
   user,
   creditBalance,
+  initialWallet,
+  initialGenerations,
 }: ReadyDesignWorkspaceProps) {
   const source = project.source;
   const queryClient = useQueryClient();
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const refinementPromptRef = useRef<VisualPromptEditorHandle | null>(null);
-  const observedTerminalIdsRef = useRef(new Set<string>());
+  const observedTerminalIdsRef = useRef(
+    new Set(
+      initialGenerations.items
+        .filter((generation) => !isActiveGeneration(generation.status))
+        .map((generation) => generation.id),
+    ),
+  );
   const inspectorDialogRef = useRef<HTMLDialogElement>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -136,14 +177,20 @@ function ReadyDesignWorkspace({
 
   const generationsQuery = useQuery({
     queryKey: ["generations", project.id],
-    queryFn: async () =>
-      readApiData<GenerationList>(
-        await fetch(`/api/v1/generations?projectId=${project.id}&limit=20`),
-      ),
+    queryFn: () =>
+      requestApiData<WorkspaceGenerationList>({
+        url: "/generations",
+        method: "GET",
+        params: { projectId: project.id, limit: 20 },
+      }),
+    initialData: initialGenerations,
   });
-  const creditsQuery = useQuery(
-    creditQueryOptions(({ signal }) => loadCredits<GenerationWallet>(signal)),
-  );
+  const creditsQuery = useQuery({
+    ...creditQueryOptions(({ signal }) =>
+      loadCredits<GenerationWallet>(signal),
+    ),
+    initialData: initialWallet,
+  });
 
   const invalidateCredits = useCallback(
     (event: CreditsLifecycleEvent) =>
@@ -161,6 +208,29 @@ function ReadyDesignWorkspace({
       }
     },
     [invalidateCredits],
+  );
+
+  const applyGenerationPayload = useCallback(
+    ({ generation, wallet }: GenerationClientPayload) => {
+      if (wallet) queryClient.setQueryData(CREDITS_QUERY_KEY, wallet);
+      queryClient.setQueryData<WorkspaceGenerationList>(
+        ["generations", project.id],
+        (current) => upsertGeneration(current, generation),
+      );
+      if (isActiveGeneration(generation.status)) {
+        setTrackedGenerationIds((current) =>
+          current.includes(generation.id)
+            ? current
+            : [...current, generation.id],
+        );
+      } else {
+        observedTerminalIdsRef.current.add(generation.id);
+        setTrackedGenerationIds((current) =>
+          current.filter((generationId) => generationId !== generation.id),
+        );
+      }
+    },
+    [project.id, queryClient],
   );
 
   useEffect(() => {
@@ -185,65 +255,41 @@ function ReadyDesignWorkspace({
       throw new Error("Редактор разметки ещё не готов");
     }
 
-    await visualPromptRef.current.persist();
+    const visualPrompt = await visualPromptRef.current.snapshot();
+    const body = new FormData();
+    body.set("prompt", prompt);
+    body.set("aspectRatio", aspectRatio);
+    if (styleCode) body.set("styleCode", styleCode);
+    if (visualPrompt) {
+      body.set("visualPromptAction", "replace");
+      body.set("overlay", visualPrompt.overlay, "visual-prompt.png");
+      body.set("canvasState", JSON.stringify(visualPrompt.state));
+    } else {
+      body.set("visualPromptAction", "clear");
+    }
 
-    return readApiData<{ id: string }>(
-      await fetch("/api/v1/generations", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "idempotency-key": idempotencyKey,
-        },
-        body: JSON.stringify({
-          projectId: project.id,
-          prompt,
-          aspectRatio,
-          styleCode,
-        }),
-      }),
-    );
+    const result = await requestApiData<GenerationClientPayload>({
+      url: `/projects/${project.id}/generations`,
+      method: "POST",
+      headers: { "idempotency-key": idempotencyKey },
+      data: body,
+    });
+    visualPromptRef.current.markPersisted(Boolean(visualPrompt));
+    return result;
   }
 
   const createGeneration = useMutation({
     mutationFn: () => reserveCurrentGeneration(),
-    onSuccess: async (data: { id: string }) => {
-      setTrackedGenerationIds((current) =>
-        current.includes(data.id) ? current : [...current, data.id],
-      );
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["generations", project.id],
-        }),
-        invalidateCredits("reservation"),
-      ]);
-    },
+    onSuccess: applyGenerationPayload,
     onError: reconcileInsufficientCredits,
   });
   const cancelGeneration = useMutation({
     mutationFn: async (generationId: string) =>
-      readApiData<{ id: string; status: "CANCELLED" }>(
-        await fetch(`/api/v1/generations/${generationId}/cancel`, {
-          method: "POST",
-        }),
-      ),
-    onSuccess: async (data: { id: string; status: "CANCELLED" }) => {
-      const reconciliation = reconcileTerminalCredits(
-        observedTerminalIdsRef.current,
-        [data],
-      );
-      observedTerminalIdsRef.current = reconciliation.observedTerminalIds;
-      setTrackedGenerationIds((current) =>
-        current.filter((generationId) => generationId !== data.id),
-      );
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["generations", project.id],
-        }),
-        reconciliation.queryKey
-          ? invalidateCredits("cancellation-refund")
-          : Promise.resolve(),
-      ]);
-    },
+      requestApiData<GenerationClientPayload>({
+        url: `/generations/${generationId}/cancel`,
+        method: "POST",
+      }),
+    onSuccess: applyGenerationPayload,
   });
   const retryGeneration = useMutation({
     mutationFn: async (
@@ -259,25 +305,18 @@ function ReadyDesignWorkspace({
 
       await visualPromptRef.current.persist();
 
-      const retryRequest = buildRetryGenerationRequest(attempt);
-      return readApiData<{ id: string }>(
-        await fetch(retryRequest.url, retryRequest.init),
-      );
+      return requestApiData<GenerationClientPayload>({
+        url: `/generations/${generation.id}/retry`,
+        method: "POST",
+        headers: { "idempotency-key": attempt.idempotencyKey },
+      });
     },
-    onSuccess: async (
-      data: { id: string },
+    onSuccess: (
+      data: GenerationClientPayload,
       attempt: RetryGenerationAttempt<WorkspaceGeneration>,
     ) => {
       retryAttempts.recordSuccess(attempt.generation.id);
-      setTrackedGenerationIds((current) =>
-        current.includes(data.id) ? current : [...current, data.id],
-      );
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["generations", project.id],
-        }),
-        invalidateCredits("reservation"),
-      ]);
+      applyGenerationPayload(data);
     },
     onError: (error, attempt: RetryGenerationAttempt<WorkspaceGeneration>) => {
       retryAttempts.recordFailure(attempt.generation.id, error);
@@ -299,55 +338,56 @@ function ReadyDesignWorkspace({
   const activeGenerationQueries = useQueries({
     queries: activeGenerationIds.map((generationId) => ({
       queryKey: ["generation", generationId],
-      queryFn: async () =>
-        readApiData<WorkspaceGeneration>(
-          await fetch(`/api/v1/generations/${generationId}`),
-        ),
-      refetchInterval: (query: { state: { data?: WorkspaceGeneration } }) =>
-        query.state.data && !isActiveGeneration(query.state.data.status)
+      queryFn: () =>
+        requestApiData<GenerationClientPayload>({
+          url: `/generations/${generationId}`,
+          method: "GET",
+        }),
+      refetchInterval: (query: {
+        state: { data?: GenerationClientPayload };
+      }) =>
+        query.state.data &&
+        !isActiveGeneration(query.state.data.generation.status)
           ? false
-          : 1500,
+          : 2000,
     })),
   });
 
   useEffect(() => {
-    const terminalGenerations: WorkspaceGeneration[] = [];
+    const terminalPayloads: GenerationClientPayload[] = [];
     for (const query of activeGenerationQueries) {
-      const generation = query.data;
-      if (generation && !isActiveGeneration(generation.status)) {
-        terminalGenerations.push(generation);
+      const payload = query.data;
+      if (payload && !isActiveGeneration(payload.generation.status)) {
+        terminalPayloads.push(payload);
       }
     }
-    if (terminalGenerations.length === 0) return;
-
-    const reconciliation = reconcileTerminalCredits(
-      observedTerminalIdsRef.current,
-      terminalGenerations,
+    const unseen = terminalPayloads.filter(
+      ({ generation }) => !observedTerminalIdsRef.current.has(generation.id),
     );
-    observedTerminalIdsRef.current = reconciliation.observedTerminalIds;
-    const reconciliationTask = reconciliation.queryKey
-      ? Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ["generations", project.id],
-          }),
-          invalidateCredits("terminal"),
-        ])
-      : Promise.resolve();
-    let superseded = false;
-    void reconciliationTask.then(() => {
-      if (!superseded) {
-        setTrackedGenerationIds((current) =>
-          pruneTrackedGenerationIds(
-            current,
-            terminalGenerations.map((generation) => generation.id),
-          ),
-        );
-      }
-    });
-    return () => {
-      superseded = true;
-    };
-  }, [activeGenerationQueries, invalidateCredits, project.id, queryClient]);
+    if (unseen.length === 0) return;
+
+    unseen.forEach(({ generation }) =>
+      observedTerminalIdsRef.current.add(generation.id),
+    );
+    const terminalWallet = unseen.findLast(({ wallet }) => wallet)?.wallet;
+    if (terminalWallet) {
+      queryClient.setQueryData(CREDITS_QUERY_KEY, terminalWallet);
+    }
+    queryClient.setQueryData<WorkspaceGenerationList>(
+      ["generations", project.id],
+      (current) =>
+        unseen.reduce(
+          (next, { generation }) => upsertGeneration(next, generation),
+          current ?? { items: [], nextCursor: null, total: 0 },
+        ),
+    );
+    setTrackedGenerationIds((current) =>
+      pruneTrackedGenerationIds(
+        current,
+        unseen.map(({ generation }) => generation.id),
+      ),
+    );
+  }, [activeGenerationQueries, project.id, queryClient]);
   const createRefinement = useMutation({
     mutationFn: async (input: {
       generationId: string;
@@ -359,14 +399,13 @@ function ReadyDesignWorkspace({
       if (input.files.length) {
         const uploadBody = new FormData();
         input.files.forEach((file) => uploadBody.append("files", file));
-        const uploaded = await readApiData<{
+        const uploaded = await requestApiData<{
           references: Array<{ fileId: string }>;
-        }>(
-          await fetch(
-            `/api/v1/generations/${input.generationId}/refinement-references`,
-            { method: "POST", body: uploadBody },
-          ),
-        );
+        }>({
+          url: `/generations/${input.generationId}/refinement-references`,
+          method: "POST",
+          data: uploadBody,
+        });
         referenceFileIds = [
           ...referenceFileIds,
           ...uploaded.references.map((item: { fileId: string }) => item.fileId),
@@ -381,25 +420,14 @@ function ReadyDesignWorkspace({
         body.set("overlay", visualPrompt.overlay, "visual-prompt.png");
         body.set("canvasState", JSON.stringify(visualPrompt.state));
       }
-      return readApiData<{ id: string }>(
-        await fetch(`/api/v1/generations/${input.generationId}/refinements`, {
-          method: "POST",
-          headers: { "idempotency-key": crypto.randomUUID() },
-          body,
-        }),
-      );
+      return requestApiData<GenerationClientPayload>({
+        url: `/generations/${input.generationId}/refinements`,
+        method: "POST",
+        headers: { "idempotency-key": crypto.randomUUID() },
+        data: body,
+      });
     },
-    onSuccess: async (data: { id: string }) => {
-      setTrackedGenerationIds((current) =>
-        current.includes(data.id) ? current : [...current, data.id],
-      );
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["generations", project.id],
-        }),
-        invalidateCredits("reservation"),
-      ]);
-    },
+    onSuccess: applyGenerationPayload,
     onError: reconcileInsufficientCredits,
   });
   const indexedGenerations = useMemo(() => {
@@ -696,27 +724,9 @@ function ReadyDesignWorkspace({
 
   return (
     <div className="canvas-workspace flex h-full min-h-0 flex-col">
-      <WorkspaceHeader
-        projectId={project.id}
-        initialName={project.name}
+      <RenoaAppHeader
         user={user}
         creditBalance={creditsQuery.data?.balance ?? creditBalance}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={() =>
-          void (
-            selectedCanvasItem === "source"
-              ? visualPromptRef.current
-              : refinementPromptRef.current
-          )?.undo()
-        }
-        onRedo={() =>
-          void (
-            selectedCanvasItem === "source"
-              ? visualPromptRef.current
-              : refinementPromptRef.current
-          )?.redo()
-        }
       />
       <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
         <section
@@ -742,6 +752,8 @@ function ReadyDesignWorkspace({
               imageUrl: source.url,
               width: source.width,
               height: source.height,
+              sourceWidth: source.sourceWidth,
+              sourceHeight: source.sourceHeight,
               initialState: source.initialCanvasState,
             }}
             generations={canvasGenerations}

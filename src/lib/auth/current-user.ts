@@ -26,7 +26,8 @@ export async function requireCurrentUser(): Promise<CurrentUser> {
     where: { id: user.id },
     select: { status: true },
   });
-  if (profile && profile.status !== "ACTIVE")
+  if (!profile) throw new UnauthorizedError("Профиль не настроен");
+  if (profile.status !== "ACTIVE")
     throw new UnauthorizedError("Аккаунт заблокирован");
   return user;
 }
@@ -64,7 +65,8 @@ export async function requireCurrentUserFromBearer(
     where: { id: data.user.id },
     select: { status: true },
   });
-  if (profile && profile.status !== "ACTIVE")
+  if (!profile) throw new UnauthorizedError("Профиль не настроен");
+  if (profile.status !== "ACTIVE")
     throw new UnauthorizedError("Аккаунт заблокирован");
 
   return {

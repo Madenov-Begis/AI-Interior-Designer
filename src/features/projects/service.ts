@@ -1,6 +1,8 @@
 import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
+import { getOrCreateEntryProjectWithDatabase } from "@/features/projects/entry-operations";
+import { DEFAULT_PROJECT_NAME } from "@/features/projects/naming";
 import { getDb } from "@/lib/db";
 
 const projectSummarySelect = {
@@ -45,24 +47,37 @@ export function createProject(userId: string, name: string) {
 }
 
 export async function getOrCreateEntryProject(userId: string) {
-  const existing = await getDb().project.findFirst({
-    where: {
-      userId,
-      status: "DRAFT",
-      deletedAt: null,
-      sourceImageId: null,
-      sourcePreviewId: null,
+  const db = getDb();
+  return getOrCreateEntryProjectWithDatabase(
+    {
+      transaction: (callback) =>
+        db.$transaction((tx) =>
+          callback({
+            lockUserEntry: async (lockedUserId) => {
+              await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`project-entry:${lockedUserId}`}, 0))`;
+            },
+            findEmptyDraft: (entryUserId) =>
+              tx.project.findFirst({
+                where: {
+                  userId: entryUserId,
+                  status: "DRAFT",
+                  deletedAt: null,
+                  sourceImageId: null,
+                  sourcePreviewId: null,
+                },
+                orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                select: { id: true },
+              }),
+            createEmptyDraft: (entryUserId) =>
+              tx.project.create({
+                data: { userId: entryUserId, name: DEFAULT_PROJECT_NAME },
+                select: { id: true },
+              }),
+          }),
+        ),
     },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: { id: true },
-  });
-
-  if (existing) return existing;
-
-  return getDb().project.create({
-    data: { userId, name: "Новый интерьер" },
-    select: { id: true },
-  });
+    userId,
+  );
 }
 
 export async function listProjects(
@@ -94,62 +109,10 @@ export function findOwnedProject(userId: string, id: string) {
   });
 }
 
-export async function updateOwnedProject(
-  userId: string,
-  id: string,
-  data: {
-    name?: string;
-    prompt?: string | null;
-    aspectRatio?:
-      "RATIO_1_1" | "RATIO_16_9" | "RATIO_9_16" | "RATIO_4_3" | "RATIO_3_4";
-    status?: "DRAFT" | "READY" | "ARCHIVED";
-  },
-) {
-  const found = await getDb().project.findFirst({
-    where: { id, userId, deletedAt: null },
-    select: { id: true },
-  });
-  if (!found) return null;
-  return getDb().project.update({
-    where: { id },
-    data,
-    select: projectSummarySelect,
-  });
-}
-
 export async function archiveOwnedProject(userId: string, id: string) {
   const result = await getDb().project.updateMany({
     where: { id, userId, deletedAt: null },
     data: { status: "ARCHIVED", deletedAt: new Date() },
   });
   return result.count > 0;
-}
-
-export async function duplicateOwnedProject(userId: string, id: string) {
-  const source = await getDb().project.findFirst({
-    where: { id, userId, deletedAt: null },
-    include: { references: { orderBy: { position: "asc" } } },
-  });
-  if (!source) return null;
-  return getDb().project.create({
-    data: {
-      userId,
-      name: `${source.name} — копия`.slice(0, 120),
-      prompt: source.prompt,
-      aspectRatio: source.aspectRatio,
-      sourceImageId: source.sourceImageId,
-      sourcePreviewId: source.sourcePreviewId,
-      visualPromptId: source.visualPromptId,
-      canvasState: source.canvasState ?? undefined,
-      visualPromptUsed: source.visualPromptUsed,
-      references: {
-        create: source.references.map((reference) => ({
-          fileId: reference.fileId,
-          sourceUrl: reference.sourceUrl,
-          position: reference.position,
-        })),
-      },
-    },
-    select: projectSummarySelect,
-  });
 }

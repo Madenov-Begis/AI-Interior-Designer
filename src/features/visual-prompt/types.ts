@@ -13,6 +13,7 @@ export type VisualPromptTool = "select" | "pen" | "marker" | "rectangle";
 
 export type VisualPromptEditorHandle = {
   persist(): Promise<void>;
+  markPersisted(used: boolean): void;
   snapshot(): Promise<{
     state: VisualPromptCanvasState;
     overlay: Blob;

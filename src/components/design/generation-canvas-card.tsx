@@ -19,6 +19,7 @@ import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt/types";
+import { apiData } from "@/lib/api/client";
 
 type GenerationCanvasCardProps = {
   generation: WorkspaceGeneration;
@@ -40,12 +41,11 @@ type GenerationCanvasCardProps = {
 };
 
 async function readSignedResultUrl(fileId: string) {
-  const response = await fetch(`/api/v1/media/${fileId}/signed-url`);
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Не удалось открыть результат");
-  }
-  return payload.data.url as string;
+  const payload = await apiData<{ url: string }>({
+    url: `/media/${fileId}/signed-url`,
+    method: "GET",
+  });
+  return payload.url;
 }
 
 const statusLabels: Record<WorkspaceGeneration["status"], string> = {
@@ -152,6 +152,7 @@ export function GenerationCanvasCard({
     queryFn: () => readSignedResultUrl(generation.resultUserId!),
     enabled:
       generation.status === "SUCCEEDED" && Boolean(generation.resultUserId),
+    initialData: generation.resultUrl ?? undefined,
     staleTime: 8 * 60_000,
     refetchInterval: 8 * 60_000,
   });

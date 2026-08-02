@@ -13,7 +13,6 @@ const ROOT_RESERVATION_STATUS: Record<string, number> = {
   MODEL_NOT_FOUND: 404,
   MODEL_NOT_ALLOWED: 403,
   GENERATION_ALREADY_RUNNING: 409,
-  GENERATION_LIMIT_EXCEEDED: 429,
   INSUFFICIENT_CREDITS: 402,
 };
 
@@ -25,7 +24,6 @@ const REFINEMENT_RESERVATION_STATUS: Record<string, number> = {
   REFERENCE_LIMIT_EXCEEDED: 400,
   VISUAL_PROMPT_NOT_FOUND: 400,
   GENERATION_ALREADY_RUNNING: 409,
-  GENERATION_LIMIT_EXCEEDED: 429,
   INSUFFICIENT_CREDITS: 402,
 };
 
@@ -39,7 +37,6 @@ export function refinementReservationHttpStatus(code: string) {
 
 export function retryReservationHttpStatus(code: string) {
   if (code === "INSUFFICIENT_CREDITS") return 402;
-  if (code === "GENERATION_LIMIT_EXCEEDED") return 429;
   return 409;
 }
 

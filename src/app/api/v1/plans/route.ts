@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
         code: true,
         name: true,
         description: true,
-        dailyGenerationLimit: true,
         maxParallelGenerations: true,
         maxReferenceImages: true,
         maxReferenceUrls: true,

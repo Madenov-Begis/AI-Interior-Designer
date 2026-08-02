@@ -1,7 +1,13 @@
 import { after, type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
+import {
+  GenerationClientPayloadError,
+  getGenerationClientPayload,
+} from "@/features/generations/client-payload";
+import { GenerationReservationError } from "@/features/generations/operations";
 import { reserveRefinement } from "@/features/generations/reservation";
-import { handleRefinementGenerationReservation } from "@/features/generations/route-handlers";
+import { recoverExpiredGenerationReservations } from "@/features/generations/recovery";
+import { refinementReservationHttpStatus } from "@/features/generations/reservation-policy";
 import {
   createRefinementSchema,
   idempotencyKeySchema,
@@ -13,10 +19,11 @@ import {
   VisualPromptValidationError,
 } from "@/features/visual-prompt/schema";
 import {
+  discardUnattachedVisualPrompt,
   saveGenerationRefinementVisualPrompt,
   VisualPromptProjectNotFoundError,
 } from "@/features/visual-prompt/service";
-import { apiError } from "@/lib/api/contracts";
+import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
@@ -25,9 +32,13 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
+  let uploadOwnerId: string | null = null;
+  let unattachedVisualPromptId: string | null = null;
   try {
     enforceRateLimit(request, "generation-refinement", 10, 60_000);
     const user = await requireCurrentUser();
+    uploadOwnerId = user.id;
+    await recoverExpiredGenerationReservations(user.id);
     const parentGenerationId = z.uuid().parse((await context.params).id);
     const idempotencyKey = idempotencyKeySchema.parse(
       request.headers.get("idempotency-key"),
@@ -56,30 +67,66 @@ export async function POST(request: NextRequest, context: RouteContext) {
         state,
       );
       visualPromptImageId = visualPrompt.id;
+      unattachedVisualPromptId = visualPrompt.id;
     }
 
-    return await handleRefinementGenerationReservation(
+    const reserved = await reserveRefinement({
+      userId: user.id,
+      parentGenerationId,
+      prompt: input.prompt,
+      referenceFileIds: input.referenceFileIds,
+      visualPromptImageId,
+      idempotencyKey,
+    });
+    if (reserved.isExisting && unattachedVisualPromptId) {
+      await discardUnattachedVisualPrompt(user.id, unattachedVisualPromptId);
+    }
+    unattachedVisualPromptId = null;
+    if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
+      after(() => processGeneration(reserved.generation.id));
+    }
+    const payload = await getGenerationClientPayload(
+      user.id,
+      reserved.generation.id,
+      "always",
+    );
+    return apiSuccess(
       {
-        userId: user.id,
+        ...payload,
         parentGenerationId,
-        prompt: input.prompt,
-        referenceFileIds: input.referenceFileIds,
-        visualPromptImageId,
-        idempotencyKey,
+        isExisting: reserved.isExisting,
       },
       requestId,
-      {
-        reserve: reserveRefinement,
-        schedule: (generationId) =>
-          after(() => processGeneration(generationId)),
-      },
+      { status: reserved.isExisting ? 200 : 202 },
     );
   } catch (error) {
+    if (uploadOwnerId && unattachedVisualPromptId) {
+      await discardUnattachedVisualPrompt(
+        uploadOwnerId,
+        unattachedVisualPromptId,
+      ).catch(() => undefined);
+    }
     if (error instanceof RateLimitError) {
       return apiError("RATE_LIMITED", error.message, requestId, 429);
     }
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
+    }
+    if (error instanceof GenerationReservationError) {
+      return apiError(
+        error.code,
+        error.message,
+        requestId,
+        refinementReservationHttpStatus(error.code),
+      );
+    }
+    if (error instanceof GenerationClientPayloadError) {
+      return apiError(
+        error.code,
+        error.message,
+        requestId,
+        error.code === "GENERATION_NOT_FOUND" ? 404 : 502,
+      );
     }
     if (error instanceof VisualPromptProjectNotFoundError) {
       return apiError(

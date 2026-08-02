@@ -1,4 +1,4 @@
-import type { Generation, Prisma } from "../../generated/prisma/client.ts";
+import { Prisma, type Generation } from "../../generated/prisma/client.ts";
 import type { AspectRatio } from "../../generated/prisma/enums.ts";
 import { GENERATION_CREDIT_COST } from "../../config/product.ts";
 import {
@@ -8,12 +8,12 @@ import {
 } from "../credits/service-operations.ts";
 import { getInteriorStyle, type InteriorStyleCode } from "./interior-styles.ts";
 import { buildRefinementSnapshot } from "./refinement-policy.ts";
-import { resolveRequiredProvider } from "./reservation-policy.ts";
 import {
   getGenerationModelConfig,
   supportedGenerationAspectRatios,
 } from "./model-config.ts";
 import { resolveEffectivePlan } from "../plans/resolve-plan.ts";
+import type { VisualPromptCanvasState } from "../visual-prompt/types.ts";
 
 type GenerationDatabase = {
   $transaction<T>(
@@ -47,6 +47,8 @@ export type RootGenerationReservationInput = {
   prompt: string;
   aspectRatio: AspectRatio;
   styleCode?: InteriorStyleCode;
+  visualPromptImageId?: string | null;
+  visualPromptCanvasState?: VisualPromptCanvasState;
   idempotencyKey: string;
 };
 
@@ -251,6 +253,26 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
           );
         }
 
+        let visualPrompt = project.visualPrompt;
+        if (input.visualPromptImageId !== undefined) {
+          visualPrompt = input.visualPromptImageId
+            ? await tx.mediaFile.findFirst({
+                where: {
+                  id: input.visualPromptImageId,
+                  ownerId: input.userId,
+                  type: "VISUAL_PROMPT",
+                  deletedAt: null,
+                },
+              })
+            : null;
+          if (input.visualPromptImageId && !visualPrompt) {
+            throw new GenerationReservationError(
+              "VISUAL_PROMPT_NOT_FOUND",
+              "Разметка недоступна",
+            );
+          }
+        }
+
         const model = getGenerationModelConfig(dependencies.aiProvider);
         if (!supportedGenerationAspectRatios.includes(input.aspectRatio)) {
           throw new GenerationReservationError(
@@ -277,8 +299,7 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
         const style = getInteriorStyle(input.styleCode);
         const finalPrompt = dependencies.buildFinalPrompt({
           prompt: input.prompt,
-          visualPromptUsed:
-            project.visualPromptUsed && Boolean(project.visualPrompt),
+          visualPromptUsed: Boolean(visualPrompt),
           referenceCount: project.references.length,
           stylePrompt: style?.promptModifier,
         });
@@ -295,12 +316,9 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
             styleCode: input.styleCode ?? null,
             finalPrompt,
             aspectRatio: input.aspectRatio,
-            visualPromptUsed:
-              project.visualPromptUsed && Boolean(project.visualPrompt),
+            visualPromptUsed: Boolean(visualPrompt),
             sourceImageId: project.sourceImage.id,
-            visualPromptImageId: project.visualPromptUsed
-              ? (project.visualPrompt?.id ?? null)
-              : null,
+            visualPromptImageId: visualPrompt?.id ?? null,
             references: {
               create: project.references.map((reference) => ({
                 fileId: reference.fileId,
@@ -318,6 +336,17 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
           data: {
             prompt: input.prompt,
             aspectRatio: input.aspectRatio,
+            ...(input.visualPromptImageId !== undefined
+              ? {
+                  visualPromptId: visualPrompt?.id ?? null,
+                  visualPromptUsed: Boolean(visualPrompt),
+                  canvasState: visualPrompt
+                    ? input.visualPromptCanvasState
+                      ? (input.visualPromptCanvasState as Prisma.InputJsonValue)
+                      : Prisma.JsonNull
+                    : Prisma.JsonNull,
+                }
+              : {}),
           },
         });
         return generation;
@@ -506,8 +535,8 @@ export async function failGenerationWithDatabase<TDatabase>(
   },
 ) {
   const database = db as unknown as GenerationDatabase;
-  await database.$transaction(async (tx) => {
-    await tx.generation.updateMany({
+  return database.$transaction(async (tx) => {
+    const failed = await tx.generation.updateMany({
       where: {
         id: input.generationId,
         status: { in: ["QUEUED", "PROCESSING"] },
@@ -519,11 +548,13 @@ export async function failGenerationWithDatabase<TDatabase>(
         completedAt: new Date(),
       },
     });
+    if (failed.count === 0) return false;
     await refundReservedGeneration(tx, {
       generationId: input.generationId,
       kind: "TECHNICAL_REFUND",
       reason: input.code,
     });
+    return true;
   });
 }
 

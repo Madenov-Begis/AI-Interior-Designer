@@ -3,7 +3,6 @@ import test from "node:test";
 import {
   createLatestSourceUpload,
   isAcceptedSourceFile,
-  sourceProjectName,
   uploadProjectSource,
 } from "./source-upload-client.ts";
 
@@ -43,15 +42,6 @@ test("surfaces the API error message", async () => {
     }),
     /Изображение слишком маленькое/,
   );
-});
-
-test("derives a safe project name from the source filename", () => {
-  assert.equal(
-    sourceProjectName("  living-room.final.jpg  "),
-    "living-room.final",
-  );
-  assert.equal(sourceProjectName(".jpg"), "Новый интерьер");
-  assert.equal(sourceProjectName("x".repeat(140)), "x".repeat(120));
 });
 
 test("accepts only supported room image types within the size limit", () => {

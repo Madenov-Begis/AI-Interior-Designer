@@ -211,11 +211,9 @@ function createGenerationHarness(input?: {
           id: "user-1",
           status: "ACTIVE",
           timezone: "Asia/Tashkent",
-          dailyLimitOverride: 0,
           maxParallelOverride: null,
           plan: {
             id: "plan-1",
-            dailyGenerationLimit: 0,
             maxParallelGenerations: 2,
             maxReferenceImages: 10,
           },
@@ -227,7 +225,6 @@ function createGenerationHarness(input?: {
       async findUniqueOrThrow() {
         return {
           id: "plan-1",
-          dailyGenerationLimit: 0,
           maxParallelGenerations: 2,
           maxReferenceImages: 10,
         };
@@ -423,7 +420,7 @@ function reservationDependencies(
   };
 }
 
-test("root reservation ignores exhausted daily quota and debits four credits", async () => {
+test("root reservation uses the credit-only billing policy", async () => {
   const { db, state } = createGenerationHarness();
 
   await reserveRootGenerationWithDependencies(
@@ -483,7 +480,7 @@ test("insufficient root credits roll back generation and usage snapshots", async
   assert.equal(state.journals.length, 0);
 });
 
-test("refinement ignores exhausted daily quota and debits four credits", async () => {
+test("refinement uses the credit-only billing policy", async () => {
   const { db, state } = createGenerationHarness();
 
   await reserveRefinementWithDependencies(
@@ -670,17 +667,19 @@ test("worker failure refunds the stored amount exactly once", async () => {
     },
   });
 
-  await failGenerationWithDatabase(db, {
+  const firstFailure = await failGenerationWithDatabase(db, {
     generationId: "generation-1",
     code: "PROVIDER_TIMEOUT",
     message: "provider failed",
   });
-  await failGenerationWithDatabase(db, {
+  const repeatedFailure = await failGenerationWithDatabase(db, {
     generationId: "generation-1",
     code: "PROVIDER_TIMEOUT",
     message: "provider failed",
   });
 
+  assert.equal(firstFailure, true);
+  assert.equal(repeatedFailure, false);
   assert.equal(state.generations.get("generation-1")?.status, "FAILED");
   assert.equal(state.usageEvents.get("generation-1")?.status, "REFUNDED");
   assert.equal(state.wallets.get("user-1"), 10);

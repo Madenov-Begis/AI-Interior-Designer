@@ -5,6 +5,7 @@ import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 import { Prisma } from "@/generated/prisma/client";
 import { STORAGE_BUCKETS, VISUAL_PROMPT_RULES } from "@/config/storage";
+import { deleteMediaFileIfUnreferenced } from "@/features/media/cleanup";
 import { getDb } from "@/lib/db";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { VisualPromptCanvasState } from "@/features/visual-prompt/types";
@@ -59,11 +60,12 @@ export async function saveVisualPrompt(
   projectId: string,
   overlayFile: File,
   state: VisualPromptCanvasState,
+  options: { attachToProject?: boolean } = {},
 ) {
   const db = getDb();
   const project = await db.project.findFirst({
     where: { id: projectId, userId, deletedAt: null },
-    include: { sourceImage: true, visualPrompt: true },
+    include: { sourceImage: true },
   });
   if (!project?.sourceImage)
     throw new VisualPromptProjectNotFoundError(
@@ -131,33 +133,43 @@ export async function saveVisualPrompt(
         },
       });
 
-      await tx.project.update({
-        where: { id: projectId },
-        data: {
-          visualPromptId: media.id,
-          visualPromptUsed: true,
-          canvasState: state as Prisma.InputJsonValue,
-        },
-      });
-      if (project.visualPrompt) {
-        await tx.mediaFile.update({
-          where: { id: project.visualPrompt.id },
-          data: { deletedAt: new Date() },
+      if (options.attachToProject !== false) {
+        await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+        const current = await tx.project.findUnique({
+          where: { id: projectId },
+          select: { visualPromptId: true },
         });
+        await tx.project.update({
+          where: { id: projectId },
+          data: {
+            visualPromptId: media.id,
+            visualPromptUsed: true,
+            canvasState: state as Prisma.InputJsonValue,
+          },
+        });
+        return {
+          media,
+          replacedVisualPromptId: current?.visualPromptId ?? null,
+        };
       }
-      return media;
+      return { media, replacedVisualPromptId: null };
     });
-
-    if (project.visualPrompt) {
-      await storage.storage
-        .from(project.visualPrompt.bucket)
-        .remove([project.visualPrompt.path]);
-    }
-    return saved;
+    await deleteMediaFileIfUnreferenced(
+      userId,
+      saved.replacedVisualPromptId,
+    );
+    return saved.media;
   } catch (error) {
     await storage.storage.from(bucket).remove([path]);
     throw error;
   }
+}
+
+export async function discardUnattachedVisualPrompt(
+  userId: string,
+  fileId: string,
+) {
+  return deleteMediaFileIfUnreferenced(userId, fileId);
 }
 
 export async function saveGenerationRefinementVisualPrompt(
@@ -248,11 +260,16 @@ export async function removeVisualPrompt(userId: string, projectId: string) {
   const db = getDb();
   const project = await db.project.findFirst({
     where: { id: projectId, userId, deletedAt: null },
-    include: { visualPrompt: true },
+    select: { id: true },
   });
   if (!project) throw new VisualPromptProjectNotFoundError("Проект не найден");
 
-  await db.$transaction(async (tx) => {
+  const removedVisualPromptId = await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+    const current = await tx.project.findUniqueOrThrow({
+      where: { id: projectId },
+      select: { visualPromptId: true },
+    });
     await tx.project.update({
       where: { id: projectId },
       data: {
@@ -261,17 +278,7 @@ export async function removeVisualPrompt(userId: string, projectId: string) {
         canvasState: Prisma.JsonNull,
       },
     });
-    if (project.visualPrompt) {
-      await tx.mediaFile.update({
-        where: { id: project.visualPrompt.id },
-        data: { deletedAt: new Date() },
-      });
-    }
+    return current.visualPromptId;
   });
-
-  if (project.visualPrompt) {
-    await getSupabaseAdmin()
-      .storage.from(project.visualPrompt.bucket)
-      .remove([project.visualPrompt.path]);
-  }
+  await deleteMediaFileIfUnreferenced(userId, removedVisualPromptId);
 }

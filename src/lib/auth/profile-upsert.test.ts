@@ -14,7 +14,6 @@ type ProfileRow = {
   status: "ACTIVE" | "BLOCKED";
   planId: string | null;
   timezone: string;
-  dailyLimitOverride: number | null;
   maxParallelOverride: number | null;
   vipExpiresAt: Date | null;
   lastLoginAt: Date | null;
@@ -87,7 +86,6 @@ function createProfileHarness() {
           role: "USER",
           status: "ACTIVE",
           timezone: "Asia/Tashkent",
-          dailyLimitOverride: null,
           maxParallelOverride: null,
           vipExpiresAt: null,
           createdAt: now,

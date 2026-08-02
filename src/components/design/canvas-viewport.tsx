@@ -55,6 +55,8 @@ type Source = {
   imageUrl: string;
   width: number;
   height: number;
+  sourceWidth: number;
+  sourceHeight: number;
   initialState: VisualPromptCanvasState | null;
 };
 
@@ -562,8 +564,8 @@ export const CanvasViewport = forwardRef<
                 projectId={source.projectId}
                 editorWidth={source.width}
                 editorHeight={source.height}
-                sourceWidth={source.width}
-                sourceHeight={source.height}
+                sourceWidth={source.sourceWidth}
+                sourceHeight={source.sourceHeight}
                 initialState={source.initialState}
                 tool={tool}
                 color={color}

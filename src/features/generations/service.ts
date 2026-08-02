@@ -2,11 +2,13 @@ import "server-only";
 
 import { getRequiredPlan } from "@/features/plans/defaults";
 import { resolveEffectivePlan } from "@/features/plans/resolve-plan";
-import { cancelOwnedGenerationWithDatabase } from "@/features/generations/operations";
-import { usageDateInTimezone } from "@/features/generations/reservation";
+import {
+  cancelOwnedGenerationWithDatabase,
+  failGenerationWithDatabase,
+} from "@/features/generations/operations";
 import { getDb } from "@/lib/db";
 
-export async function getTodayUsage(userId: string) {
+export async function getGenerationUsage(userId: string) {
   const profile = await getDb().profile.findUnique({
     where: { id: userId },
     include: {
@@ -28,16 +30,11 @@ export async function getTodayUsage(userId: string) {
     profile.plan,
     () => getRequiredPlan("FREE"),
   );
-  const limit = profile.dailyLimitOverride ?? plan.dailyGenerationLimit;
-  const usageDate = usageDateInTimezone(profile.timezone);
   const used = await getDb().usageEvent.count({
-    where: { userId, usageDate, status: { in: ["RESERVED", "CONSUMED"] } },
+    where: { userId, status: "CONSUMED" },
   });
   return {
     used,
-    limit,
-    remaining: limit === null ? null : Math.max(0, limit - used),
-    timezone: profile.timezone,
     plan: {
       code: plan.code,
       name: plan.name,
@@ -46,32 +43,59 @@ export async function getTodayUsage(userId: string) {
   };
 }
 
-export function getOwnedGeneration(userId: string, id: string) {
-  return getDb().generation.findFirst({
-    where: { id, userId, deletedAt: null },
-    select: {
-      id: true,
-      projectId: true,
-      parentGenerationId: true,
-      status: true,
-      prompt: true,
-      finalPrompt: true,
-      aspectRatio: true,
-      visualPromptUsed: true,
-      resultUserId: true,
-      errorCode: true,
-      errorMessage: true,
-      queuedAt: true,
-      startedAt: true,
-      completedAt: true,
-      durationMs: true,
-      resultUser: { select: { width: true, height: true } },
-      references: {
-        orderBy: { position: "asc" },
-        select: { fileId: true, position: true },
+export async function getOwnedGeneration(userId: string, id: string) {
+  const db = getDb();
+  const readGeneration = () =>
+    db.generation.findFirst({
+      where: { id, userId, deletedAt: null },
+      select: {
+        id: true,
+        projectId: true,
+        parentGenerationId: true,
+        status: true,
+        prompt: true,
+        finalPrompt: true,
+        aspectRatio: true,
+        visualPromptUsed: true,
+        resultUserId: true,
+        errorCode: true,
+        errorMessage: true,
+        createdAt: true,
+        queuedAt: true,
+        startedAt: true,
+        completedAt: true,
+        durationMs: true,
+        usageEvent: { select: { status: true, expiresAt: true } },
+        resultUser: {
+          select: {
+            bucket: true,
+            path: true,
+            width: true,
+            height: true,
+          },
+        },
+        references: {
+          orderBy: { position: "asc" },
+          select: { fileId: true, position: true },
+        },
       },
-    },
-  });
+    });
+  const generation = await readGeneration();
+  if (
+    generation &&
+    (generation.status === "QUEUED" || generation.status === "PROCESSING") &&
+    generation.usageEvent?.status === "RESERVED" &&
+    generation.usageEvent.expiresAt &&
+    generation.usageEvent.expiresAt <= new Date()
+  ) {
+    await failGenerationWithDatabase(db, {
+      generationId: generation.id,
+      code: "GENERATION_EXPIRED",
+      message: "Генерация не завершилась вовремя. Кредиты возвращены.",
+    });
+    return readGeneration();
+  }
+  return generation;
 }
 
 export async function listOwnedGenerations(

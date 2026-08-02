@@ -25,6 +25,7 @@ import {
   presentWalletSummary,
 } from "@/features/credits/presentation";
 import { creditQueryOptions, loadCredits } from "@/features/credits/client";
+import { apiData } from "@/lib/api/client";
 
 type ProfilePayload = {
   profile: {
@@ -37,8 +38,6 @@ type ProfilePayload = {
   };
   usage: {
     used: number;
-    limit: number | null;
-    remaining: number | null;
     plan: {
       code: string;
       name: string;
@@ -56,15 +55,6 @@ type ProfileProject = {
   generationCount: number;
 };
 
-async function apiData<T>(response: Response | Promise<Response>): Promise<T> {
-  const resolved = await response;
-  const payload = await resolved.json();
-  if (!resolved.ok) {
-    throw new Error(payload.error?.message ?? "Запрос не выполнен");
-  }
-  return payload.data as T;
-}
-
 function ProfileLoading() {
   return (
     <div className="mx-auto max-w-[1080px] px-5 py-14">
@@ -81,15 +71,16 @@ export function ProfilePanel() {
   const queryClient = useQueryClient();
   const profile = useQuery({
     queryKey: ["profile"],
-    queryFn: () =>
-      apiData<ProfilePayload>(fetch("/api/v1/profile", { cache: "no-store" })),
+    queryFn: () => apiData<ProfilePayload>({ url: "/profile", method: "GET" }),
   });
   const projects = useQuery({
     queryKey: ["projects", "profile"],
     queryFn: () =>
-      apiData<{ items: ProfileProject[] }>(
-        fetch("/api/v1/projects?limit=4", { cache: "no-store" }),
-      ),
+      apiData<{ items: ProfileProject[] }>({
+        url: "/projects",
+        method: "GET",
+        params: { limit: 4 },
+      }),
   });
   const credits = useQuery(
     creditQueryOptions(
@@ -100,17 +91,19 @@ export function ProfilePanel() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const update = useMutation({
     mutationFn: () =>
-      apiData(
-        fetch("/api/v1/profile", {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            displayName: nameInputRef.current?.value.trim(),
-            timezone: "Asia/Tashkent",
-          }),
-        }),
-      ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
+      apiData<{ profile: ProfilePayload["profile"] }>({
+        url: "/profile",
+        method: "PATCH",
+        data: {
+          displayName: nameInputRef.current?.value.trim(),
+          timezone: "Asia/Tashkent",
+        },
+      }),
+    onSuccess: ({ profile: updatedProfile }) => {
+      queryClient.setQueryData<ProfilePayload>(["profile"], (current) =>
+        current ? { ...current, profile: updatedProfile } : current,
+      );
+    },
   });
 
   if (profile.isLoading) return <ProfileLoading />;
@@ -203,7 +196,7 @@ export function ProfilePanel() {
               ))}
             </div>
             <Link
-              href="/app/history"
+              href="/app/projects"
               className="mt-4 flex min-h-24 items-center gap-4 rounded-[18px] border border-border px-5 transition-colors hover:bg-secondary"
             >
               <FolderOpen className="size-7" />
@@ -333,7 +326,7 @@ export function ProfilePanel() {
               variant="ghost"
               className="justify-center text-muted-foreground hover:text-destructive"
               onClick={async () => {
-                await fetch("/api/v1/auth/logout", { method: "POST" });
+                await apiData({ url: "/auth/logout", method: "POST" });
                 window.location.href = "/";
               }}
             >

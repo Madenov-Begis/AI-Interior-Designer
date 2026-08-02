@@ -104,7 +104,6 @@ model Profile {
   status              UserStatus @default(ACTIVE)
   planId              String?    @db.Uuid
   timezone            String     @default("Asia/Tashkent")
-  dailyLimitOverride  Int?
   maxParallelOverride Int?
   vipExpiresAt        DateTime?
   lastLoginAt         DateTime?
@@ -131,7 +130,6 @@ model Plan {
   code                   String   @unique
   name                   String
   description            String?
-  dailyGenerationLimit   Int?
   maxParallelGenerations Int      @default(1)
   maxReferenceImages     Int      @default(10)
   maxReferenceUrls       Int      @default(10)

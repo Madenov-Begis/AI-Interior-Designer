@@ -13,6 +13,10 @@ import {
   X,
 } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
+import {
+  marketingCtaClassName,
+  marketingDarkCtaClassName,
+} from "@/components/marketing/cta-style";
 import { CREDIT_PACKAGES } from "@/config/product";
 import { authEntry } from "@/lib/auth/route-policy";
 
@@ -83,7 +87,11 @@ export function InteriorModesSection({
         </div>
         <Link
           href={entry.href}
-          className={buttonClassName("default", "mt-8 rounded-xl px-6", "lg")}
+          className={buttonClassName(
+            "default",
+            marketingCtaClassName("mt-8 rounded-2xl px-7"),
+            "lg",
+          )}
         >
           Создать свой интерьер
           <ArrowRight className="size-4" aria-hidden="true" />
@@ -131,9 +139,13 @@ export function WorkflowSection({ authenticated }: { authenticated: boolean }) {
           </div>
           <Link
             href={entry.href}
-            className={buttonClassName("default", "mt-7 rounded-xl", "lg")}
+            className={buttonClassName(
+              "default",
+              marketingCtaClassName("mt-7 rounded-2xl px-7"),
+              "lg",
+            )}
           >
-            Открыть холст
+            Создать дизайн комнаты
             <ArrowRight className="size-4" />
           </Link>
         </div>
@@ -241,7 +253,11 @@ export function ComparisonSection({
         <div className="mt-7 text-center">
           <Link
             href={entry.href}
-            className={buttonClassName("default", "rounded-xl px-6", "lg")}
+            className={buttonClassName(
+              "default",
+              marketingCtaClassName("rounded-2xl px-7"),
+              "lg",
+            )}
           >
             Попробовать сейчас
             <ArrowRight className="size-4" />
@@ -302,8 +318,10 @@ export function PricingSection({ authenticated }: { authenticated: boolean }) {
                 className={buttonClassName(
                   pack.popular ? "secondary" : "default",
                   pack.popular
-                    ? "mt-7 w-full rounded-xl !text-white"
-                    : "mt-7 w-full rounded-xl",
+                    ? marketingDarkCtaClassName(
+                        "mt-7 w-full rounded-2xl !bg-[#19191b] !text-white hover:!bg-[#29292c]",
+                      )
+                    : marketingCtaClassName("mt-7 w-full rounded-2xl"),
                   "lg",
                 )}
               >
@@ -322,7 +340,10 @@ export function PricingSection({ authenticated }: { authenticated: boolean }) {
           </div>
           <Link
             href={entry.href}
-            className={buttonClassName("outline", "rounded-xl")}
+            className={buttonClassName(
+              "default",
+              marketingCtaClassName("rounded-2xl px-6"),
+            )}
           >
             Давайте попробуем
           </Link>
@@ -463,11 +484,13 @@ export function FinalCtaSection({ authenticated }: { authenticated: boolean }) {
           href={entry.href}
           className={buttonClassName(
             "secondary",
-            "mt-8 rounded-xl bg-[#171719] px-7 !text-white hover:bg-[#27272a]",
+            marketingDarkCtaClassName(
+              "mt-8 rounded-2xl bg-[#171719] px-8 !text-white hover:bg-[#27272a]",
+            ),
             "lg",
           )}
         >
-          Открыть Renoa
+          Создать интерьер бесплатно
           <ArrowRight className="size-4" />
         </Link>
       </div>

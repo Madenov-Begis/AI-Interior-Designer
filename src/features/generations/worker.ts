@@ -190,8 +190,8 @@ export async function processGeneration(generationId: string) {
           },
         ],
       });
-      await tx.generation.update({
-        where: { id: generation.id },
+      const completed = await tx.generation.updateMany({
+        where: { id: generation.id, status: "PROCESSING" },
         data: {
           status: "SUCCEEDED",
           resultOriginalId: originalId,
@@ -203,6 +203,7 @@ export async function processGeneration(generationId: string) {
           errorMessage: null,
         },
       });
+      if (completed.count === 0) throw new Error("GENERATION_NOT_PROCESSING");
       await tx.usageEvent.updateMany({
         where: { generationId: generation.id, status: "RESERVED" },
         data: { status: "CONSUMED", consumedAt: new Date() },

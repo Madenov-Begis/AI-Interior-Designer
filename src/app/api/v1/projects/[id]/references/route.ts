@@ -5,6 +5,7 @@ import { ImageValidationError } from "@/features/media/image-validation";
 import { projectIdSchema } from "@/features/projects/schemas";
 import {
   addReferenceFiles,
+  attachReferencePreviewUrls,
   clearReferences,
   ReferenceLimitError,
   ReferenceProjectNotFoundError,
@@ -42,7 +43,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       projectIdSchema.parse(id),
       files,
     );
-    return apiSuccess({ references }, requestId, { status: 201 });
+    return apiSuccess(
+      { references: await attachReferencePreviewUrls(user.id, references) },
+      requestId,
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

@@ -1,10 +1,11 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { generationIdSchema } from "@/features/generations/schema";
 import {
-  getOwnedGeneration,
-  softDeleteOwnedGeneration,
-} from "@/features/generations/service";
+  GenerationClientPayloadError,
+  getGenerationClientPayload,
+} from "@/features/generations/client-payload";
+import { generationIdSchema } from "@/features/generations/schema";
+import { softDeleteOwnedGeneration } from "@/features/generations/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
@@ -17,18 +18,11 @@ export async function GET(
   try {
     const user = await requireCurrentUser();
     const { id } = await context.params;
-    const generation = await getOwnedGeneration(
-      user.id,
-      generationIdSchema.parse(id),
+    const generationId = generationIdSchema.parse(id);
+    return apiSuccess(
+      await getGenerationClientPayload(user.id, generationId, "terminal"),
+      requestId,
     );
-    return generation
-      ? apiSuccess(generation, requestId)
-      : apiError(
-          "GENERATION_NOT_FOUND",
-          "Генерация не найдена",
-          requestId,
-          404,
-        );
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
@@ -39,6 +33,14 @@ export async function GET(
         requestId,
         404,
       );
+    if (error instanceof GenerationClientPayloadError) {
+      return apiError(
+        error.code,
+        error.message,
+        requestId,
+        error.code === "GENERATION_NOT_FOUND" ? 404 : 502,
+      );
+    }
     return apiError(
       "GENERATION_READ_FAILED",
       "Не удалось получить генерацию",

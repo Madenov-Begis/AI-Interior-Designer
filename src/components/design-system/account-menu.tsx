@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CreditCard, LogOut, Sparkle, UserRound } from "lucide-react";
+import { apiData } from "@/lib/api/client";
 
 export type RenoaUserSummary = {
   name: string;
@@ -78,7 +79,7 @@ export function AccountMenu({
           type="button"
           className="flex min-h-14 w-full items-center gap-3 px-5 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"
           onClick={async () => {
-            await fetch("/api/v1/auth/logout", { method: "POST" });
+            await apiData({ url: "/auth/logout", method: "POST" });
             window.location.href = "/";
           }}
         >

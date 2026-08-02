@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { buttonClassName } from "@/components/ui/button";
+import { apiData } from "@/lib/api/client";
 
 export type ReferenceItem = {
   id: string;
@@ -26,14 +27,6 @@ type Props = {
   maxCount?: number;
   variant?: "section" | "compact";
 };
-
-async function getSignedUrl(fileId: string) {
-  const response = await fetch(`/api/v1/media/${fileId}/signed-url`);
-  const payload = await response.json();
-  if (!response.ok)
-    throw new Error(payload.error?.message ?? "Не удалось открыть изображение");
-  return payload.data.url as string;
-}
 
 export function ReferenceManager({
   projectId,
@@ -51,22 +44,6 @@ export function ReferenceManager({
     "Добавьте стиль, мебель, материалы или декор для будущего интерьера",
   );
 
-  async function hydrateRows(
-    rows: Array<{
-      id: string;
-      fileId: string;
-      position: number;
-      sourceUrl: string | null;
-    }>,
-  ) {
-    return Promise.all(
-      rows.map(async (row) => ({
-        ...row,
-        previewUrl: await getSignedUrl(row.fileId),
-      })),
-    );
-  }
-
   async function uploadFiles(files: FileList | null) {
     if (!files?.length || busy) return;
     if (references.length + files.length > maxCount)
@@ -78,16 +55,12 @@ export function ReferenceManager({
     try {
       const formData = new FormData();
       Array.from(files).forEach((file) => formData.append("files", file));
-      const response = await fetch(`/api/v1/projects/${projectId}/references`, {
+      const payload = await apiData<{ references: ReferenceItem[] }>({
+        url: `/projects/${projectId}/references`,
         method: "POST",
-        body: formData,
+        data: formData,
       });
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(
-          payload.error?.message ?? "Не удалось загрузить референсы",
-        );
-      const added = await hydrateRows(payload.data.references);
+      const added = payload.references;
       setReferences((current) => [...current, ...added]);
       setMessage(
         `Добавлено: ${added.length}. Всего ${references.length + added.length} из ${maxCount}`,
@@ -117,32 +90,39 @@ export function ReferenceManager({
     setBusy(true);
     setMessage("Безопасно проверяем и импортируем ссылки…");
     try {
-      const response = await fetch(
-        `/api/v1/projects/${projectId}/references/from-url`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ urls: values }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok && response.status !== 207)
-        throw new Error(
-          payload.error?.message ?? "Не удалось импортировать ссылки",
-        );
-      const successful = payload.data.results.filter(
+      const payload = await apiData<{
+        results: Array<
+          | {
+              url: string;
+              success: true;
+              referenceId: string;
+              fileId: string;
+              previewUrl: string;
+            }
+          | { url: string; success: false; message: string }
+        >;
+      }>({
+        url: `/projects/${projectId}/references/from-url`,
+        method: "POST",
+        data: { urls: values },
+      });
+      const successful = payload.results.filter(
         (item: { success: boolean }) => item.success,
-      ) as Array<{ url: string; referenceId: string; fileId: string }>;
-      const added = await hydrateRows(
-        successful.map((item, index) => ({
-          id: item.referenceId,
-          fileId: item.fileId,
-          sourceUrl: item.url,
-          position: references.length + index,
-        })),
-      );
+      ) as Array<{
+        url: string;
+        referenceId: string;
+        fileId: string;
+        previewUrl: string;
+      }>;
+      const added = successful.map((item, index) => ({
+        id: item.referenceId,
+        fileId: item.fileId,
+        sourceUrl: item.url,
+        previewUrl: item.previewUrl,
+        position: references.length + index,
+      }));
       setReferences((current) => [...current, ...added]);
-      const failed = payload.data.results.filter(
+      const failed = payload.results.filter(
         (item: { success: boolean }) => !item.success,
       ) as Array<{ url: string; message: string }>;
       setMessage(
@@ -168,19 +148,11 @@ export function ReferenceManager({
   ) {
     setReferences(next.map((item, position) => ({ ...item, position })));
     try {
-      const response = await fetch(
-        `/api/v1/projects/${projectId}/references/reorder`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ referenceIds: next.map((item) => item.id) }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(
-          payload.error?.message ?? "Не удалось изменить порядок",
-        );
+      await apiData({
+        url: `/projects/${projectId}/references/reorder`,
+        method: "PATCH",
+        data: { referenceIds: next.map((item) => item.id) },
+      });
       setMessage("Порядок референсов сохранён");
     } catch (error) {
       setReferences(previous);
@@ -203,15 +175,10 @@ export function ReferenceManager({
     if (busy) return;
     setBusy(true);
     try {
-      const response = await fetch(
-        `/api/v1/projects/${projectId}/references/${referenceId}`,
-        { method: "DELETE" },
-      );
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(
-          payload.error?.message ?? "Не удалось удалить референс",
-        );
+      await apiData({
+        url: `/projects/${projectId}/references/${referenceId}`,
+        method: "DELETE",
+      });
       setReferences((current) =>
         current
           .filter((item) => item.id !== referenceId)
@@ -231,12 +198,10 @@ export function ReferenceManager({
     if (!references.length || busy) return;
     setBusy(true);
     try {
-      const response = await fetch(`/api/v1/projects/${projectId}/references`, {
+      await apiData({
+        url: `/projects/${projectId}/references`,
         method: "DELETE",
       });
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(payload.error?.message ?? "Не удалось очистить список");
       setReferences([]);
       setMessage("Все референсы удалены");
     } catch (error) {

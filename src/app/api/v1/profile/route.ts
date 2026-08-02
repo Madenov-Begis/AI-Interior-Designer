@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { updateProfileSchema } from "@/features/profile/schema";
 import { GENERATION_CREDIT_COST } from "@/config/product";
 import { getCreditWallet } from "@/features/credits/service";
-import { getTodayUsage } from "@/features/generations/service";
+import { getGenerationUsage } from "@/features/generations/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         where: { id: user.id },
         select: profileSelect,
       }),
-      getTodayUsage(user.id),
+      getGenerationUsage(user.id),
       getCreditWallet(user.id, 0),
     ]);
     return apiSuccess(

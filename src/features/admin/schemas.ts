@@ -12,7 +12,6 @@ export const updateUserSchema = z
     role: z.enum(["USER", "ADMIN"]).optional(),
     status: z.enum(["ACTIVE", "BLOCKED", "DELETED"]).optional(),
     planId: z.uuid().nullable().optional(),
-    dailyLimitOverride: nullablePositiveInt.optional(),
     maxParallelOverride: nullablePositiveInt.optional(),
     vipExpiresAt: z.iso.datetime().nullable().optional(),
   })
@@ -22,7 +21,6 @@ export const planSchema = z.object({
   code: z.string().trim().min(2).max(40),
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(1000).nullable().optional(),
-  dailyGenerationLimit: nullablePositiveInt,
   maxParallelGenerations: z.number().int().min(1).max(20),
   maxReferenceImages: z.number().int().min(0).max(30),
   maxReferenceUrls: z.number().int().min(0).max(30),

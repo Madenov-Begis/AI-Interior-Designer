@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { apiData } from "../../lib/api/client.ts";
 
 export type CreditBalancePayload = {
   balance: number;
@@ -21,15 +22,7 @@ export function creditQueryOptions<TData extends CreditBalancePayload>(
 export async function loadCredits<TData extends CreditBalancePayload>(
   signal?: AbortSignal,
 ): Promise<TData> {
-  const response = await fetch("/api/v1/credits", { signal });
-  const payload = (await response.json()) as {
-    data?: TData;
-    error?: { message?: string };
-  };
-  if (!response.ok || !payload.data) {
-    throw new Error(payload.error?.message ?? "Не удалось загрузить кредиты");
-  }
-  return payload.data;
+  return apiData<TData>({ url: "/credits", method: "GET", signal });
 }
 
 export async function refreshCreditsQuery(queryClient: QueryClient) {

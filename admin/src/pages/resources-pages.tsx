@@ -38,12 +38,11 @@ function SimpleList({
 export const PlansPage = () => (
   <SimpleList
     title="Тарифы"
-    description="Лимиты, доступные модели и правила watermark"
+    description="Параллельность, доступные модели и правила watermark"
     path="/api/v1/admin/plans"
     columns={[
       ["Код", "code"],
       ["Название", "name"],
-      ["Лимит/день", "dailyGenerationLimit"],
       ["Пользователи", "_count"],
       ["Активен", "active"],
     ]}

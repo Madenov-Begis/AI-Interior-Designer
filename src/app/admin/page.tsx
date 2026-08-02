@@ -1,55 +1,71 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { requireAdmin, ForbiddenError } from "@/lib/auth/admin";
-import { UnauthorizedError } from "@/lib/auth/current-user";
-import { getDb } from "@/lib/db";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { ApiClientError, apiData } from "@/lib/api/client";
 
-export const dynamic = "force-dynamic";
+type AdminOverview = {
+  counts: {
+    users: number;
+    projects: number;
+    generations: number;
+    failed: number;
+  };
+  users: Array<{
+    id: string;
+    account: string;
+    role: string;
+    plan: string;
+    status: string;
+  }>;
+  generations: Array<{
+    id: string;
+    account: string;
+    status: string;
+    createdAt: string;
+  }>;
+  plans: Array<{
+    id: string;
+    code: string;
+    name: string;
+    users: number;
+  }>;
+};
 
-export default async function AdminPage() {
-  try {
-    await requireAdmin();
-  } catch (error) {
-    if (error instanceof UnauthorizedError) redirect("/login?next=/admin");
-    if (error instanceof ForbiddenError) redirect("/app");
-    throw error;
-  }
-  const [
-    usersCount,
-    projectsCount,
-    generationsCount,
-    failedCount,
-    users,
-    generations,
-    plans,
-  ] = await Promise.all([
-    getDb().profile.count({ where: { deletedAt: null } }),
-    getDb().project.count({ where: { deletedAt: null } }),
-    getDb().generation.count({ where: { deletedAt: null } }),
-    getDb().generation.count({ where: { status: "FAILED", deletedAt: null } }),
-    getDb().profile.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      include: { plan: true },
-    }),
-    getDb().generation.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      include: { user: { select: { email: true, phone: true } } },
-    }),
-    getDb().plan.findMany({
-      orderBy: { sortOrder: "asc" },
-      include: { _count: { select: { users: true } } },
-    }),
-  ]);
-  const cards = [
-    ["Пользователи", usersCount],
-    ["Проекты", projectsCount],
-    ["Все генерации", generationsCount],
-    ["Ошибки генераций", failedCount],
-  ] as const;
+export default function AdminPage() {
+  const router = useRouter();
+  const overview = useQuery({
+    queryKey: ["admin", "overview"],
+    queryFn: ({ signal }) =>
+      apiData<AdminOverview>({
+        url: "/admin/overview",
+        method: "GET",
+        signal,
+      }),
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (
+      overview.error instanceof ApiClientError &&
+      overview.error.status === 403
+    ) {
+      router.replace("/app");
+    }
+  }, [overview.error, router]);
+
+  const cards = overview.data
+    ? ([
+        ["Пользователи", overview.data.counts.users],
+        ["Проекты", overview.data.counts.projects],
+        ["Все генерации", overview.data.counts.generations],
+        ["Ошибки генераций", overview.data.counts.failed],
+      ] as const)
+    : [];
+
   return (
     <main className="min-h-screen bg-background p-4 text-foreground sm:p-7">
       <div className="mx-auto max-w-[1500px]">
@@ -67,51 +83,70 @@ export default async function AdminPage() {
             ← В приложение
           </Link>
         </header>
-        <section className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map(([label, value]) => (
-            <article
-              key={label}
-              className="rounded-2xl border border-border bg-surface p-5"
-            >
-              <p className="text-sm text-muted">{label}</p>
-              <p className="mt-3 text-3xl font-black">{value}</p>
-            </article>
-          ))}
-        </section>
-        <div className="mt-5 grid gap-5 xl:grid-cols-2">
-          <AdminTable
-            title="Пользователи"
-            headers={["Аккаунт", "Роль", "Тариф", "Статус"]}
-            rows={users.map((user) => [
-              user.displayName || user.email || user.phone || "—",
-              user.role,
-              user.plan?.name ?? "—",
-              user.status,
-            ])}
-          />
-          <AdminTable
-            title="Последние генерации"
-            headers={["Пользователь", "Статус", "Создана"]}
-            rows={generations.map((item) => [
-              item.user.email ?? item.user.phone ?? "—",
-              item.status,
-              item.createdAt.toLocaleString("ru-RU"),
-            ])}
-          />
-          <AdminTable
-            title="Тарифы"
-            headers={["Код", "Название", "Пользователи", "Лимит/день"]}
-            rows={plans.map((plan) => [
-              plan.code,
-              plan.name,
-              String(plan._count.users),
-              plan.dailyGenerationLimit?.toString() ?? "∞",
-            ])}
-          />
-        </div>
-        <p className="mt-6 text-sm text-muted">
-          Изменения доступны через защищённые API <code>/api/v1/admin/*</code>.
-        </p>
+
+        {overview.isLoading ? (
+          <p className="mt-8 text-sm text-muted">Загружаем данные…</p>
+        ) : null}
+        {overview.isError ? (
+          <div className="mt-8 rounded-2xl border border-destructive/30 bg-surface p-5">
+            <p className="text-sm text-destructive" role="alert">
+              {overview.error.message}
+            </p>
+            <Button className="mt-4" onClick={() => overview.refetch()}>
+              Повторить
+            </Button>
+          </div>
+        ) : null}
+
+        {overview.data ? (
+          <>
+            <section className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {cards.map(([label, value]) => (
+                <article
+                  key={label}
+                  className="rounded-2xl border border-border bg-surface p-5"
+                >
+                  <p className="text-sm text-muted">{label}</p>
+                  <p className="mt-3 text-3xl font-black">{value}</p>
+                </article>
+              ))}
+            </section>
+            <div className="mt-5 grid gap-5 xl:grid-cols-2">
+              <AdminTable
+                title="Пользователи"
+                headers={["Аккаунт", "Роль", "Тариф", "Статус"]}
+                rows={overview.data.users.map((user) => [
+                  user.account,
+                  user.role,
+                  user.plan,
+                  user.status,
+                ])}
+              />
+              <AdminTable
+                title="Последние генерации"
+                headers={["Пользователь", "Статус", "Создана"]}
+                rows={overview.data.generations.map((item) => [
+                  item.account,
+                  item.status,
+                  new Date(item.createdAt).toLocaleString("ru-RU"),
+                ])}
+              />
+              <AdminTable
+                title="Тарифы"
+                headers={["Код", "Название", "Пользователи"]}
+                rows={overview.data.plans.map((plan) => [
+                  plan.code,
+                  plan.name,
+                  String(plan.users),
+                ])}
+              />
+            </div>
+            <p className="mt-6 text-sm text-muted">
+              Изменения доступны через защищённые API{" "}
+              <code>/api/v1/admin/*</code>.
+            </p>
+          </>
+        ) : null}
       </div>
     </main>
   );

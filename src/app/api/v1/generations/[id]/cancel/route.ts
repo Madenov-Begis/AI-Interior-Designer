@@ -1,5 +1,9 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
+import {
+  GenerationClientPayloadError,
+  getGenerationClientPayload,
+} from "@/features/generations/client-payload";
 import { generationIdSchema } from "@/features/generations/schema";
 import { cancelOwnedGeneration } from "@/features/generations/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
@@ -18,14 +22,18 @@ export async function POST(
       user.id,
       generationIdSchema.parse(id),
     );
-    return cancelled
-      ? apiSuccess({ id, status: "CANCELLED" }, requestId)
-      : apiError(
-          "GENERATION_NOT_CANCELLABLE",
-          "Генерацию уже нельзя отменить",
-          requestId,
-          409,
-        );
+    if (!cancelled) {
+      return apiError(
+        "GENERATION_NOT_CANCELLABLE",
+        "Генерацию уже нельзя отменить",
+        requestId,
+        409,
+      );
+    }
+    return apiSuccess(
+      await getGenerationClientPayload(user.id, id, "always"),
+      requestId,
+    );
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
@@ -36,6 +44,14 @@ export async function POST(
         requestId,
         404,
       );
+    if (error instanceof GenerationClientPayloadError) {
+      return apiError(
+        error.code,
+        error.message,
+        requestId,
+        error.code === "GENERATION_NOT_FOUND" ? 404 : 502,
+      );
+    }
     return apiError(
       "GENERATION_CANCEL_FAILED",
       "Не удалось отменить генерацию",

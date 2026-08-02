@@ -11,6 +11,6 @@ export function getDb(): PrismaClient {
 
   const adapter = new PrismaPg({ connectionString: serverEnv().DATABASE_URL });
   const prisma = new PrismaClient({ adapter });
-  if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+  globalForPrisma.prisma = prisma;
   return prisma;
 }

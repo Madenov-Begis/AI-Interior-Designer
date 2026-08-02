@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {
+  type InfiniteData,
   useInfiniteQuery,
   useMutation,
   useQueryClient,
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiData } from "@/lib/api/client";
 
 type HistoryItem = {
   id: string;
@@ -55,13 +57,7 @@ const STATUS_COPY: Record<
   CANCELLED: { label: "Отменено", variant: "secondary" },
 };
 
-async function apiData(response: Response) {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Запрос не выполнен");
-  }
-  return payload.data;
-}
+type HistoryPage = { items: HistoryItem[]; nextCursor: string | null };
 
 export function HistoryGrid() {
   const queryClient = useQueryClient();
@@ -70,19 +66,39 @@ export function HistoryGrid() {
     queryKey: ["history", status],
     initialPageParam: "",
     queryFn: async ({ pageParam }) => {
-      const params = new URLSearchParams({ limit: "20" });
-      if (pageParam) params.set("cursor", pageParam);
-      if (status) params.set("status", status);
-      return (await apiData(
-        await fetch(`/api/v1/generations?${params}`),
-      )) as Promise<{ items: HistoryItem[]; nextCursor: string | null }>;
+      return apiData<HistoryPage>({
+        url: "/generations",
+        method: "GET",
+        params: {
+          limit: 20,
+          cursor: pageParam || undefined,
+          status: status || undefined,
+        },
+      });
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const remove = useMutation({
-    mutationFn: async (id: string) =>
-      apiData(await fetch(`/api/v1/generations/${id}`, { method: "DELETE" })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["history"] }),
+    mutationFn: (id: string) =>
+      apiData<{ id: string }>({
+        url: `/generations/${id}`,
+        method: "DELETE",
+      }),
+    onSuccess: (_data, id) => {
+      queryClient.setQueriesData<InfiniteData<HistoryPage>>(
+        { queryKey: ["history"] },
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: current.pages.map((page) => ({
+                  ...page,
+                  items: page.items.filter((item) => item.id !== id),
+                })),
+              }
+            : current,
+      );
+    },
   });
   const items = history.data?.pages.flatMap((page) => page.items) ?? [];
 

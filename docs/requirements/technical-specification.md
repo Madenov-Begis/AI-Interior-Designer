@@ -59,7 +59,7 @@ Renoa — веб-сервис AI-визуализации дизайна инт�
 
 Пользователь со статусом `ACTIVE` может:
 
-- создавать, переименовывать, архивировать и дублировать свои проекты;
+- создавать и архивировать свои проекты;
 - загружать или заменять фотографию помещения;
 - рисовать и сохранять визуальную разметку;
 - добавлять, удалять и переставлять референсы;
@@ -122,8 +122,6 @@ Renoa — веб-сервис AI-визуализации дизайна инт�
 | `/app/credits`               | Баланс, пакеты и операции            |
 | `/app/credits/checkout/[id]` | Локальный mock checkout              |
 | `/admin`                     | Встроенный административный overview |
-
-Старые `/app/design` и `/app/design/[id]` должны сохраняться только как совместимые redirect-маршруты.
 
 ### 5.2. Отдельная админ-панель
 
@@ -276,7 +274,7 @@ Storage сохраняет WebP; download endpoint конвертирует ег
 | FREE  |            10 |           1 | Да        | Нет       |
 | VIP   |           100 |           3 | Нет       | Да        |
 
-Индивидуальные `dailyLimitOverride` и `maxParallelOverride` имеют приоритет над тарифом.
+Индивидуальный `maxParallelOverride` имеет приоритет над тарифом. Количество генераций ограничивается балансом кредитов, а не дневной квотой.
 
 ### 8.2. Кредитный баланс
 
@@ -354,9 +352,7 @@ GET    /api/v1/credits
 POST   /api/v1/projects
 GET    /api/v1/projects
 GET    /api/v1/projects/:id
-PATCH  /api/v1/projects/:id
 DELETE /api/v1/projects/:id
-POST   /api/v1/projects/:id/duplicate
 POST   /api/v1/projects/:id/source
 PUT    /api/v1/projects/:id/visual-prompt
 DELETE /api/v1/projects/:id/visual-prompt

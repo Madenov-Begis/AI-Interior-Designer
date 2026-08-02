@@ -10,12 +10,24 @@ export type WorkspaceGeneration = {
   prompt: string;
   aspectRatio: string;
   resultUserId: string | null;
+  resultUrl: string | null;
   resultUser: { width: number | null; height: number | null } | null;
   references: Array<{ fileId: string; position: number }>;
   errorCode: string | null;
   errorMessage: string | null;
   createdAt: string;
   completedAt: string | null;
+};
+
+export type WorkspaceGenerationList = {
+  items: WorkspaceGeneration[];
+  nextCursor: string | null;
+  total: number;
+};
+
+export type WorkspaceWallet = {
+  balance: number;
+  generationCost: number;
 };
 
 export type WorkspaceReference = {
@@ -33,6 +45,8 @@ export type DesignWorkspaceProps = {
     avatarUrl?: string | null;
   };
   creditBalance: number;
+  initialWallet: WorkspaceWallet;
+  initialGenerations: WorkspaceGenerationList;
   project: {
     id: string;
     name: string;
@@ -42,6 +56,8 @@ export type DesignWorkspaceProps = {
       url: string;
       width: number;
       height: number;
+      sourceWidth: number;
+      sourceHeight: number;
       initialCanvasState: VisualPromptCanvasState | null;
     } | null;
   };

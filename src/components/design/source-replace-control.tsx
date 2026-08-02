@@ -2,7 +2,7 @@
 
 import { ImageUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createLatestSourceUpload,
   isAcceptedSourceFile,
@@ -11,7 +11,7 @@ import {
 type ReplaceState = "idle" | "uploading" | "error";
 
 export function SourceReplaceControl({ projectId }: { projectId: string }) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploader] = useState(() => createLatestSourceUpload());
   const [file, setFile] = useState<File | null>(null);
@@ -36,7 +36,9 @@ export function SourceReplaceControl({ projectId }: { projectId: string }) {
     try {
       await uploader.upload(projectId, nextFile);
       setState("idle");
-      router.refresh();
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace", projectId],
+      });
     } catch (uploadError) {
       if (
         uploadError instanceof DOMException &&

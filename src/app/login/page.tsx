@@ -1,26 +1,34 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { KeyRound, ShieldCheck, Sparkle } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
 import { APP_NAME } from "@/config/brand";
+import { apiData } from "@/lib/api/client";
 import { safeReturnPath } from "@/lib/auth/route-policy";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export const metadata = {
-  title: `Вход — ${APP_NAME}`,
-};
+function LoginContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeReturnPath(searchParams.get("next"));
+  const session = useQuery({
+    queryKey: ["auth", "me"],
+    queryFn: () =>
+      apiData<{ id: string }>({
+        url: "/auth/me",
+        method: "GET",
+        skipAuthRedirect: true,
+      }),
+    retry: false,
+  });
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string }>;
-}) {
-  const params = await searchParams;
-  const next = safeReturnPath(params.next ?? null);
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getClaims();
-  if (data?.claims?.sub) redirect(next);
+  useEffect(() => {
+    if (session.data?.id) router.replace(next);
+  }, [next, router, session.data?.id]);
 
   const googleLoginUrl = `/api/v1/auth/google?next=${encodeURIComponent(next)}`;
 
@@ -51,6 +59,7 @@ export default async function LoginPage({
         <CardContent className="px-6 pb-6 sm:px-8 sm:pb-8">
           <Link
             href={googleLoginUrl}
+            aria-disabled={session.isLoading}
             className={buttonClassName(
               "outline",
               "w-full justify-center",
@@ -58,7 +67,7 @@ export default async function LoginPage({
             )}
           >
             <KeyRound className="size-5" />
-            Продолжить с Google
+            {session.isLoading ? "Проверяем вход…" : "Продолжить с Google"}
           </Link>
           <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" />
@@ -73,5 +82,13 @@ export default async function LoginPage({
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }

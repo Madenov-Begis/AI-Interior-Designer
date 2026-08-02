@@ -25,6 +25,7 @@ import {
   CheckoutReconciliationError,
   reconcileCheckoutOutcome,
 } from "@/features/payments/checkout-reconciliation";
+import { apiData } from "@/lib/api/client";
 
 type PaymentOrder = {
   id: string;
@@ -46,21 +47,14 @@ type PaymentOrderPayload = {
 
 type MockOutcome = "PAID" | "FAILED" | "CANCELLED";
 
-async function apiData<T>(response: Response): Promise<T> {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Запрос не выполнен");
-  }
-  return payload.data as T;
-}
-
 const paymentOrderQueryKey = (orderId: string) =>
   ["payment-order", orderId] as const;
 
 async function loadOwnedPaymentOrder(orderId: string) {
-  return apiData<PaymentOrderPayload>(
-    await fetch(`/api/v1/payment-orders/${orderId}`),
-  );
+  return apiData<PaymentOrderPayload>({
+    url: `/payment-orders/${orderId}`,
+    method: "GET",
+  });
 }
 
 const checkoutStatusLabels: Record<CheckoutStatus, string> = {
@@ -82,13 +76,11 @@ export function MockCheckout({ orderId }: { orderId: string }) {
     mutationFn: async (selectedOutcome: MockOutcome) =>
       reconcileCheckoutOutcome({
         submitOutcome: async () =>
-          apiData(
-            await fetch(`/api/v1/payment-orders/${orderId}/mock-outcome`, {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ outcome: selectedOutcome }),
-            }),
-          ),
+          apiData({
+            url: `/payment-orders/${orderId}/mock-outcome`,
+            method: "POST",
+            data: { outcome: selectedOutcome },
+          }),
         readOwnedOrder: () =>
           queryClient.fetchQuery({
             queryKey,

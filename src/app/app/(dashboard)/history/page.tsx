@@ -1,7 +1,7 @@
-import { ProjectsGrid } from "@/components/projects/projects-grid";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { HistoryGrid } from "@/components/history/history-grid";
 
-export default async function HistoryPage() {
-  return <ProjectsGrid />;
+export default function HistoryPage() {
+  return <HistoryGrid />;
 }

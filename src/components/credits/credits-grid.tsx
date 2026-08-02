@@ -22,6 +22,7 @@ import {
   presentCreditTransaction,
 } from "@/features/credits/presentation";
 import { cn } from "@/lib/cn";
+import { apiData } from "@/lib/api/client";
 
 type CreditPackage = {
   code: string;
@@ -51,14 +52,6 @@ type PaymentOrderCreated = {
   checkoutUrl: string;
 };
 
-async function apiData<T>(response: Response): Promise<T> {
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Запрос не выполнен");
-  }
-  return payload.data as T;
-}
-
 const creditDateFormatter = new Intl.DateTimeFormat("ru-RU", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -71,13 +64,11 @@ export function CreditsGrid() {
   );
   const createOrder = useMutation({
     mutationFn: async (packageCode: string) =>
-      apiData<PaymentOrderCreated>(
-        await fetch("/api/v1/payment-orders", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ packageCode }),
-        }),
-      ),
+      apiData<PaymentOrderCreated>({
+        url: "/payment-orders",
+        method: "POST",
+        data: { packageCode },
+      }),
     onSuccess: ({ checkoutUrl }) => router.push(checkoutUrl),
   });
 

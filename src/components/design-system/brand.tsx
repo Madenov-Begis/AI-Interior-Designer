@@ -20,7 +20,9 @@ export function RenoaLogo({
         "inline-flex shrink-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
         className,
       )}
-      aria-label={`${APP_NAME} — открыть холст`}
+      aria-label={
+        href === "/" ? `${APP_NAME} — главная` : `${APP_NAME} — открыть холст`
+      }
     >
       <Sparkle
         className="size-[18px] fill-primary text-primary"

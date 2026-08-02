@@ -1,14 +1,20 @@
 import { after, type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
+import {
+  GenerationClientPayloadError,
+  getGenerationClientPayload,
+} from "@/features/generations/client-payload";
 import { isInteriorStyleCode } from "@/features/generations/interior-styles";
+import { GenerationReservationError } from "@/features/generations/operations";
 import { reserveRootGeneration } from "@/features/generations/reservation";
+import { retryReservationHttpStatus } from "@/features/generations/reservation-policy";
+import { recoverExpiredGenerationReservations } from "@/features/generations/recovery";
 import {
   namespaceRetryIdempotencyKey,
   parseRetryIdempotencyKey,
 } from "@/features/generations/retry-policy";
-import { handleRetryGenerationReservation } from "@/features/generations/route-handlers";
 import { processGeneration } from "@/features/generations/worker";
-import { apiError } from "@/lib/api/contracts";
+import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { getDb } from "@/lib/db";
@@ -21,6 +27,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     enforceRateLimit(request, "generation-retry", 10, 60_000);
     const user = await requireCurrentUser();
+    await recoverExpiredGenerationReservations(user.id);
     const id = z.uuid().parse((await context.params).id);
     const clientIdempotencyKey = parseRetryIdempotencyKey(
       request.headers.get("idempotency-key"),
@@ -59,22 +66,26 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const styleCode = isInteriorStyleCode(generation.styleCode)
       ? generation.styleCode
       : undefined;
-    return await handleRetryGenerationReservation(
-      {
-        userId: user.id,
-        projectId: generation.projectId,
-        prompt: generation.prompt,
-        aspectRatio: generation.aspectRatio,
-        styleCode,
-        idempotencyKey: namespaceRetryIdempotencyKey(id, clientIdempotencyKey),
-      },
-      id,
+    const reserved = await reserveRootGeneration({
+      userId: user.id,
+      projectId: generation.projectId,
+      prompt: generation.prompt,
+      aspectRatio: generation.aspectRatio,
+      styleCode,
+      idempotencyKey: namespaceRetryIdempotencyKey(id, clientIdempotencyKey),
+    });
+    if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
+      after(() => processGeneration(reserved.generation.id));
+    }
+    const payload = await getGenerationClientPayload(
+      user.id,
+      reserved.generation.id,
+      "always",
+    );
+    return apiSuccess(
+      { ...payload, retriedFromId: id, isExisting: reserved.isExisting },
       requestId,
-      {
-        reserve: reserveRootGeneration,
-        schedule: (generationId) =>
-          after(() => processGeneration(generationId)),
-      },
+      { status: reserved.isExisting ? 200 : 202 },
     );
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -82,6 +93,22 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     if (error instanceof RateLimitError) {
       return apiError("RATE_LIMITED", error.message, requestId, 429);
+    }
+    if (error instanceof GenerationReservationError) {
+      return apiError(
+        error.code,
+        error.message,
+        requestId,
+        retryReservationHttpStatus(error.code),
+      );
+    }
+    if (error instanceof GenerationClientPayloadError) {
+      return apiError(
+        error.code,
+        error.message,
+        requestId,
+        error.code === "GENERATION_NOT_FOUND" ? 404 : 502,
+      );
     }
     if (error instanceof ZodError) {
       return apiError(

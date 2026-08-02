@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
             new URL(safeNext, request.nextUrl.origin),
           );
         } catch {
+          await supabase.auth.signOut();
           return NextResponse.redirect(
             new URL("/login?error=profile_setup", request.nextUrl.origin),
           );

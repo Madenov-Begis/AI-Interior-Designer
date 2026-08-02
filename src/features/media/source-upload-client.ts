@@ -1,3 +1,5 @@
+import { apiData } from "../../lib/api/client.ts";
+
 type UploadProjectSourceInput = {
   projectId: string;
   file: File;
@@ -31,39 +33,36 @@ export async function uploadProjectSource({
   projectId,
   file,
   signal,
-  fetcher = fetch,
+  fetcher,
 }: UploadProjectSourceInput) {
   signal.throwIfAborted();
   const formData = new FormData();
   formData.set("file", file);
 
-  const response = await fetcher(`/api/v1/projects/${projectId}/source`, {
-    method: "POST",
-    body: formData,
-    signal,
-  });
-  const payload = (await response.json()) as SourceUploadPayload;
-
-  if (!response.ok) {
-    throw new Error(
-      payload.error?.message ?? "Не удалось загрузить фотографию",
-    );
+  if (fetcher) {
+    const response = await fetcher(`/api/v1/projects/${projectId}/source`, {
+      method: "POST",
+      body: formData,
+      signal,
+    });
+    const payload = (await response.json()) as SourceUploadPayload;
+    if (!response.ok) {
+      throw new Error(
+        payload.error?.message ?? "Не удалось загрузить фотографию",
+      );
+    }
+    return payload.data ?? {};
   }
 
-  return payload.data ?? {};
+  return apiData<Record<string, unknown>>({
+    url: `/projects/${projectId}/source`,
+    method: "POST",
+    data: formData,
+    signal,
+  });
 }
 
-export function sourceProjectName(fileName: string) {
-  return (
-    fileName
-      .trim()
-      .replace(/\.[^.]+$/, "")
-      .trim()
-      .slice(0, 120) || "Новый интерьер"
-  );
-}
-
-export function createLatestSourceUpload(fetcher: typeof fetch = fetch) {
+export function createLatestSourceUpload(fetcher?: typeof fetch) {
   let controller: AbortController | null = null;
 
   return {

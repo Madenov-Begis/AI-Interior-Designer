@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, LoaderCircle, UploadCloud } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
 import {
   isAcceptedSourceFile,
-  sourceProjectName,
   uploadProjectSource,
 } from "@/features/media/source-upload-client";
 
@@ -14,14 +13,10 @@ type UploadState = "idle" | "uploading" | "error";
 
 type SourceUploadProps = {
   projectId: string;
-  initialProjectName: string;
 };
 
-export function SourceUpload({
-  projectId,
-  initialProjectName,
-}: SourceUploadProps) {
-  const router = useRouter();
+export function SourceUpload({ projectId }: SourceUploadProps) {
+  const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
   const controllerRef = useRef<AbortController>(null);
@@ -54,20 +49,10 @@ export function SourceUpload({
 
       if (requestId !== requestIdRef.current) return;
 
-      const derivedName = sourceProjectName(nextFile.name);
-      if (
-        initialProjectName === "Новый интерьер" &&
-        derivedName !== initialProjectName
-      ) {
-        await fetch(`/api/v1/projects/${projectId}`, {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: derivedName }),
-        }).catch(() => undefined);
-      }
-
       if (requestId !== requestIdRef.current) return;
-      router.refresh();
+      await queryClient.invalidateQueries({
+        queryKey: ["workspace", projectId],
+      });
     } catch (error) {
       if (
         requestId !== requestIdRef.current ||

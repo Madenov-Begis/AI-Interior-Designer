@@ -1,6 +1,7 @@
 import { ArrowRight, ImagePlus, Sparkle } from "lucide-react";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
+import { marketingCtaClassName } from "@/components/marketing/cta-style";
 import { authEntry } from "@/lib/auth/route-policy";
 
 const ticker = [
@@ -31,12 +32,16 @@ export function Hero({ authenticated }: { authenticated: boolean }) {
               href={entry.href}
               className={buttonClassName(
                 "default",
-                "w-full rounded-xl px-7 sm:w-auto",
+                marketingCtaClassName(
+                  "h-14 w-full rounded-2xl px-8 text-base sm:w-auto",
+                ),
                 "lg",
               )}
             >
               <ImagePlus className="size-5" aria-hidden="true" />
-              {authenticated ? "Открыть холст" : "Попробовать бесплатно"}
+              {authenticated
+                ? "Создать новый интерьер"
+                : "Создать интерьер бесплатно"}
               <ArrowRight className="size-4" />
             </Link>
           </div>

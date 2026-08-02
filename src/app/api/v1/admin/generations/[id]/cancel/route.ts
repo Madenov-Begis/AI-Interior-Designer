@@ -13,7 +13,7 @@ export async function POST(
   const requestId = getRequestId(request.headers);
   try {
     await adminMutationLimit(request);
-    const { profile } = await requireAdmin(request);
+    await requireAdmin(request);
     const id = z.uuid().parse((await context.params).id);
     const cancelled = await cancelGenerationAsAdmin(id);
     if (!cancelled)

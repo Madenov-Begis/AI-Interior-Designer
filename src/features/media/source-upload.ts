@@ -2,6 +2,11 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { STORAGE_BUCKETS } from "@/config/storage";
+import { deleteMediaFileIfUnreferenced } from "@/features/media/cleanup";
+import {
+  DEFAULT_PROJECT_NAME,
+  projectNameFromSourceFile,
+} from "@/features/projects/naming";
 import { getDb } from "@/lib/db";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { validateSourceImage } from "@/features/media/image-validation";
@@ -45,7 +50,12 @@ export async function uploadProjectSource(
     if (previewUpload.error) throw previewUpload.error;
     uploaded.push(previewPath);
 
-    return await db.$transaction(async (tx) => {
+    const saved = await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+      const current = await tx.project.findUniqueOrThrow({
+        where: { id: projectId },
+        select: { name: true, sourceImageId: true, sourcePreviewId: true },
+      });
       const source = await tx.mediaFile.create({
         data: {
           id: sourceId,
@@ -81,13 +91,26 @@ export async function uploadProjectSource(
       await tx.project.update({
         where: { id: projectId },
         data: {
+          ...(current.name === DEFAULT_PROJECT_NAME
+            ? { name: projectNameFromSourceFile(image.originalName) }
+            : {}),
           sourceImageId: source.id,
           sourcePreviewId: preview.id,
           status: "READY",
         },
       });
-      return { source, preview };
+      return {
+        source,
+        preview,
+        replacedSourceImageId: current.sourceImageId,
+        replacedSourcePreviewId: current.sourcePreviewId,
+      };
     });
+    await Promise.all([
+      deleteMediaFileIfUnreferenced(userId, saved.replacedSourceImageId),
+      deleteMediaFileIfUnreferenced(userId, saved.replacedSourcePreviewId),
+    ]);
+    return { source: saved.source, preview: saved.preview };
   } catch (error) {
     if (uploaded.length) await storage.remove(uploaded);
     throw error;

@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { projectIdSchema } from "@/features/projects/schemas";
 import { importReferenceUrlsSchema } from "@/features/references/schema";
 import { importReferenceUrls } from "@/features/references/url-import";
+import { attachReferencePreviewUrls } from "@/features/references/service";
 import { apiError, apiSuccess } from "@/lib/api/contracts";
 import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
@@ -23,7 +24,17 @@ export async function POST(
       projectIdSchema.parse(id),
       urls,
     );
-    return apiSuccess({ results }, requestId, {
+    const successful = results.filter((result) => result.success);
+    const signed = await attachReferencePreviewUrls(user.id, successful);
+    const previewUrls = new Map(
+      signed.map((result) => [result.fileId, result.previewUrl]),
+    );
+    const clientResults = results.map((result) =>
+      result.success
+        ? { ...result, previewUrl: previewUrls.get(result.fileId)! }
+        : result,
+    );
+    return apiSuccess({ results: clientResults }, requestId, {
       status: results.some((result) => !result.success) ? 207 : 201,
     });
   } catch (error) {

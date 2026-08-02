@@ -3,6 +3,7 @@ import { ArrowUpRight, Sparkle } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
 import { APP_NAME } from "@/config/brand";
 import { authEntry } from "@/lib/auth/route-policy";
+import { marketingCtaClassName } from "@/components/marketing/cta-style";
 
 export function SiteHeader({ authenticated }: { authenticated: boolean }) {
   const entry = authEntry(authenticated);
@@ -45,9 +46,13 @@ export function SiteHeader({ authenticated }: { authenticated: boolean }) {
         </nav>
         <Link
           href={entry.href}
-          className={buttonClassName("default", "rounded-full px-5", "sm")}
+          className={buttonClassName(
+            "default",
+            marketingCtaClassName("h-10 rounded-full px-5"),
+            "sm",
+          )}
         >
-          {authenticated ? "Открыть холст" : entry.label}
+          {authenticated ? "Создать новый интерьер" : "Создать интерьер"}
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </Link>
       </div>

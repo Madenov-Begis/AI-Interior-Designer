@@ -13,7 +13,16 @@ import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt/types";
-import { dataUrlToBlob } from "@/lib/client/data-url";
+import { apiData } from "@/lib/api/client";
+
+function canvasToPngBlob(canvas: Canvas) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.getElement().toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Не удалось подготовить разметку"));
+    }, "image/png");
+  });
+}
 
 type Props = {
   projectId?: string;
@@ -28,15 +37,6 @@ type Props = {
   onHistoryStateChange(state: { canUndo: boolean; canRedo: boolean }): void;
   onPersistenceStateChange(message: string | null): void;
 };
-
-async function responseError(response: Response, fallback: string) {
-  try {
-    const payload = await response.json();
-    return payload.error?.message ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
   function VisualPromptEditor(props, ref) {
@@ -270,18 +270,10 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           if (canvas.getObjects().length === 0) {
             if (!hasSavedPromptRef.current) return;
 
-            const response = await fetch(
-              `/api/v1/projects/${props.projectId}/visual-prompt`,
-              { method: "DELETE" },
-            );
-            if (!response.ok) {
-              throw new Error(
-                await responseError(
-                  response,
-                  "Не удалось очистить сохранённую разметку",
-                ),
-              );
-            }
+            await apiData({
+              url: `/projects/${props.projectId}/visual-prompt`,
+              method: "DELETE",
+            });
             hasSavedPromptRef.current = false;
             persistenceStateCallbackRef.current(null);
             return;
@@ -297,22 +289,16 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             },
             fabric: canvas.toJSON() as Record<string, unknown>,
           };
-          const overlay = await dataUrlToBlob(
-            canvas.toDataURL({ format: "png", multiplier: 1 }),
-          );
+          const overlay = await canvasToPngBlob(canvas);
           const formData = new FormData();
           formData.set("overlay", overlay, "visual-prompt.png");
           formData.set("canvasState", JSON.stringify(state));
 
-          const response = await fetch(
-            `/api/v1/projects/${props.projectId!}/visual-prompt`,
-            { method: "PUT", body: formData },
-          );
-          if (!response.ok) {
-            throw new Error(
-              await responseError(response, "Не удалось сохранить разметку"),
-            );
-          }
+          await apiData({
+            url: `/projects/${props.projectId!}/visual-prompt`,
+            method: "PUT",
+            data: formData,
+          });
           hasSavedPromptRef.current = true;
           persistenceStateCallbackRef.current(null);
         }),
@@ -342,9 +328,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             },
             fabric: canvas.toJSON() as Record<string, unknown>,
           };
-          const overlay = await dataUrlToBlob(
-            canvas.toDataURL({ format: "png", multiplier: 1 }),
-          );
+          const overlay = await canvasToPngBlob(canvas);
           return { state, overlay };
         }),
       [
@@ -356,10 +340,23 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       ],
     );
 
+    const markPersisted = useCallback((used: boolean) => {
+      hasSavedPromptRef.current = used;
+      persistenceStateCallbackRef.current(null);
+    }, []);
+
     useImperativeHandle(
       ref,
-      () => ({ persist, snapshot, undo, redo, deleteSelected, clear }),
-      [clear, deleteSelected, persist, redo, snapshot, undo],
+      () => ({
+        persist,
+        markPersisted,
+        snapshot,
+        undo,
+        redo,
+        deleteSelected,
+        clear,
+      }),
+      [clear, deleteSelected, markPersisted, persist, redo, snapshot, undo],
     );
 
     useEffect(() => {

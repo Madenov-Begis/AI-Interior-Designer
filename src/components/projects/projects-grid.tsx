@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Copy,
   FolderOpen,
   Grid2X2,
   ImageIcon,
@@ -14,11 +13,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiData } from "@/lib/api/client";
+import { DEFAULT_PROJECT_NAME } from "@/features/projects/naming";
 
 type ProjectItem = {
   id: string;
@@ -38,60 +44,65 @@ type ProjectsPayload = {
   nextCursor: string | null;
 };
 
-async function apiData<T>(response: Response | Promise<Response>): Promise<T> {
-  const resolved = await response;
-  const payload = await resolved.json();
-  if (!resolved.ok) {
-    throw new Error(payload.error?.message ?? "Запрос не выполнен");
-  }
-  return payload.data as T;
-}
-
 export function ProjectsGrid() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
-  const projects = useQuery({
+  const projects = useInfiniteQuery({
     queryKey: ["projects"],
-    queryFn: () =>
-      apiData<ProjectsPayload>(
-        fetch("/api/v1/projects?limit=40", { cache: "no-store" }),
-      ),
+    initialPageParam: "",
+    queryFn: ({ pageParam }) =>
+      apiData<ProjectsPayload>({
+        url: "/projects",
+        method: "GET",
+        params: { limit: 40, cursor: pageParam || undefined },
+      }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const createProject = useMutation({
     mutationFn: () =>
-      apiData<ProjectItem>(
-        fetch("/api/v1/projects", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: "Новый интерьер" }),
-        }),
-      ),
+      apiData<ProjectItem>({
+        url: "/projects",
+        method: "POST",
+        data: { name: DEFAULT_PROJECT_NAME },
+      }),
     onSuccess: (project) => router.push(`/app/${project.id}`),
-  });
-  const duplicateProject = useMutation({
-    mutationFn: (id: string) =>
-      apiData<ProjectItem>(
-        fetch(`/api/v1/projects/${id}/duplicate`, { method: "POST" }),
-      ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
   const removeProject = useMutation({
     mutationFn: (id: string) =>
-      apiData<{ deleted: true }>(
-        fetch(`/api/v1/projects/${id}`, { method: "DELETE" }),
-      ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
+      apiData<{ deleted: true }>({
+        url: `/projects/${id}`,
+        method: "DELETE",
+      }),
+    onSuccess: (_data, id) => {
+      queryClient.setQueryData<InfiniteData<ProjectsPayload>>(
+        ["projects"],
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: current.pages.map((page) => ({
+                  ...page,
+                  items: page.items.filter((project) => project.id !== id),
+                })),
+              }
+            : current,
+      );
+    },
   });
 
+  const loadedProjects = useMemo(
+    () => projects.data?.pages.flatMap((page) => page.items) ?? [],
+    [projects.data?.pages],
+  );
   const filteredProjects = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("ru");
-    if (!query) return projects.data?.items ?? [];
-    return (projects.data?.items ?? []).filter((project) =>
+    if (!query) return loadedProjects;
+    return loadedProjects.filter((project) =>
       project.name.toLocaleLowerCase("ru").includes(query),
     );
-  }, [projects.data?.items, search]);
+  }, [loadedProjects, search]);
 
   return (
     <div className="grid min-h-[calc(100dvh-72px)] lg:grid-cols-[292px_minmax(0,1fr)]">
@@ -113,7 +124,7 @@ export function ProjectsGrid() {
           <FolderOpen className="size-5" />
           Все проекты
           <span className="ml-auto text-muted-foreground">
-            {projects.data?.items.length ?? 0}
+            {loadedProjects.length}
           </span>
         </div>
         <button
@@ -260,14 +271,6 @@ export function ProjectsGrid() {
                     <div className="absolute right-0 z-30 mt-2 w-44 rounded-xl border border-border bg-popover p-1.5 shadow-2xl">
                       <button
                         type="button"
-                        className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm hover:bg-secondary"
-                        onClick={() => duplicateProject.mutate(project.id)}
-                      >
-                        <Copy className="size-4" />
-                        Дублировать
-                      </button>
-                      <button
-                        type="button"
                         className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm text-destructive hover:bg-secondary"
                         onClick={() => removeProject.mutate(project.id)}
                       >
@@ -280,6 +283,17 @@ export function ProjectsGrid() {
               </article>
             ))}
           </div>
+          {projects.hasNextPage ? (
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="secondary"
+                onClick={() => projects.fetchNextPage()}
+                disabled={projects.isFetchingNextPage}
+              >
+                {projects.isFetchingNextPage ? "Загружаем…" : "Показать ещё"}
+              </Button>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
