@@ -5,6 +5,7 @@ import { getRequestId } from "@/lib/api/request-id";
 import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
 import { projectIdSchema } from "@/features/projects/schemas";
 import { ImageValidationError } from "@/features/media/image-validation";
+import { InteriorImageValidationUnavailableError } from "@/features/media/interior-image-validator";
 import {
   ProjectNotFoundError,
   uploadProjectSource,
@@ -54,6 +55,13 @@ export async function POST(
       return apiError("PROJECT_NOT_FOUND", "Проект не найден", requestId, 404);
     if (error instanceof ImageValidationError)
       return apiError(error.code, error.message, requestId, 400);
+    if (error instanceof InteriorImageValidationUnavailableError)
+      return apiError(
+        "IMAGE_VALIDATION_UNAVAILABLE",
+        error.message,
+        requestId,
+        503,
+      );
     return apiError(
       "UPLOAD_FAILED",
       "Не удалось сохранить фотографию",

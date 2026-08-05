@@ -10,6 +10,7 @@ import {
 import { getDb } from "@/lib/db";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { validateSourceImage } from "@/features/media/image-validation";
+import { validateInteriorSourceImage } from "@/features/media/interior-image-validator";
 
 export class ProjectNotFoundError extends Error {}
 
@@ -26,6 +27,7 @@ export async function uploadProjectSource(
   if (!project) throw new ProjectNotFoundError("Проект не найден");
 
   const image = await validateSourceImage(file);
+  await validateInteriorSourceImage(image);
   const sourceId = randomUUID();
   const previewId = randomUUID();
   const sourcePath = `users/${userId}/projects/${projectId}/source/${sourceId}.${image.extension}`;
