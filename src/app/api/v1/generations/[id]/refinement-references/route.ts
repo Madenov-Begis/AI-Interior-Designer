@@ -1,14 +1,14 @@
 import { type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
-import { REFERENCE_IMAGE_RULES } from "@/config/storage";
+import { REFERENCE_IMAGE_RULES } from "@/server/shared/config/storage";
 import {
   RefinementParentNotFoundError,
   uploadRefinementReferences,
-} from "@/features/generations/refinement";
-import { ImageValidationError } from "@/features/media/image-validation";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/generations/refinement";
+import { ImageValidationError } from "@/server/features/media/image-validation";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

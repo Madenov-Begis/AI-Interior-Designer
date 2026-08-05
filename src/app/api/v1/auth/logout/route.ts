@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { createSupabaseServerClient } from "@/server/shared/integrations/supabase/server";
 
 export async function POST(request: NextRequest) {
   const requestId = getRequestId(request.headers);

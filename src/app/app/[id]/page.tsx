@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { DesignWorkspace } from "@/components/design/design-workspace";
-import type { DesignWorkspaceProps } from "@/components/design/workspace-types";
-import { Button, buttonClassName } from "@/components/ui/button";
-import { ApiClientError, apiData } from "@/lib/api/client";
+import { DesignWorkspace } from "@/client/features/design/ui/design-workspace";
+import type { DesignWorkspaceProps } from "@/client/features/design/ui/workspace-types";
+import { Button, buttonClassName } from "@/client/shared/components/ui/button";
+import { ApiClientError, apiData } from "@/client/shared/api/client";
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();

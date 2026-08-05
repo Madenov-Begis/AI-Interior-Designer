@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { MockCheckout } from "@/components/credits/mock-checkout";
+import { MockCheckout } from "@/client/features/credits/ui/mock-checkout";
 
 export default function CreditCheckoutPage() {
   const { id } = useParams<{ id: string }>();

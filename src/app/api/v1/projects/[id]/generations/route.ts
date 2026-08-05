@@ -1,34 +1,34 @@
 import { after, type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
-import { VISUAL_PROMPT_RULES } from "@/config/storage";
+import { VISUAL_PROMPT_RULES } from "@/server/shared/config/storage";
 import {
   GenerationClientPayloadError,
   getGenerationClientPayload,
-} from "@/features/generations/client-payload";
-import { GenerationReservationError } from "@/features/generations/operations";
-import { rootReservationHttpStatus } from "@/features/generations/reservation-policy";
-import { reserveRootGeneration } from "@/features/generations/reservation";
-import { recoverExpiredGenerationReservations } from "@/features/generations/recovery";
+} from "@/server/features/generations/client-payload";
+import { GenerationReservationError } from "@/server/features/generations/operations";
+import { rootReservationHttpStatus } from "@/server/features/generations/reservation-policy";
+import { reserveRootGeneration } from "@/server/features/generations/reservation";
+import { recoverExpiredGenerationReservations } from "@/server/features/generations/recovery";
 import {
   createGenerationSchema,
   idempotencyKeySchema,
-} from "@/features/generations/schema";
-import { processGeneration } from "@/features/generations/worker";
-import { projectIdSchema } from "@/features/projects/schemas";
+} from "@/server/features/generations/schema";
+import { processGeneration } from "@/server/features/generations/worker";
+import { projectIdSchema } from "@/server/features/projects/schemas";
 import {
   parseVisualPromptCanvasState,
   VisualPromptValidationError,
-} from "@/features/visual-prompt/schema";
+} from "@/server/features/visual-prompt/schema";
 import {
   discardUnattachedVisualPrompt,
   saveVisualPrompt,
   VisualPromptProjectNotFoundError,
-} from "@/features/visual-prompt/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { getDb } from "@/lib/db";
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+} from "@/server/features/visual-prompt/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { getDb } from "@/server/shared/db/prisma";
+import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
 
 const visualPromptInputSchema = z
   .object({

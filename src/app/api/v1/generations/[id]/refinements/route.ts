@@ -3,30 +3,30 @@ import { z, ZodError } from "zod";
 import {
   GenerationClientPayloadError,
   getGenerationClientPayload,
-} from "@/features/generations/client-payload";
-import { GenerationReservationError } from "@/features/generations/operations";
-import { reserveRefinement } from "@/features/generations/reservation";
-import { recoverExpiredGenerationReservations } from "@/features/generations/recovery";
-import { refinementReservationHttpStatus } from "@/features/generations/reservation-policy";
+} from "@/server/features/generations/client-payload";
+import { GenerationReservationError } from "@/server/features/generations/operations";
+import { reserveRefinement } from "@/server/features/generations/reservation";
+import { recoverExpiredGenerationReservations } from "@/server/features/generations/recovery";
+import { refinementReservationHttpStatus } from "@/server/features/generations/reservation-policy";
 import {
   createRefinementSchema,
   idempotencyKeySchema,
   refinementVisualPromptPairSchema,
-} from "@/features/generations/schema";
-import { processGeneration } from "@/features/generations/worker";
+} from "@/server/features/generations/schema";
+import { processGeneration } from "@/server/features/generations/worker";
 import {
   parseVisualPromptCanvasState,
   VisualPromptValidationError,
-} from "@/features/visual-prompt/schema";
+} from "@/server/features/visual-prompt/schema";
 import {
   discardUnattachedVisualPrompt,
   saveGenerationRefinementVisualPrompt,
   VisualPromptProjectNotFoundError,
-} from "@/features/visual-prompt/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+} from "@/server/features/visual-prompt/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

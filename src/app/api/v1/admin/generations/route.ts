@@ -1,10 +1,10 @@
 import type { NextRequest } from "next/server";
-import { apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireAdmin } from "@/lib/auth/admin";
-import { getDb } from "@/lib/db";
-import { adminApiError } from "@/features/admin/http";
-import { adminListSchema } from "@/features/admin/schemas";
+import { apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireAdmin } from "@/server/features/auth/admin";
+import { getDb } from "@/server/shared/db/prisma";
+import { adminApiError } from "@/server/features/admin/http";
+import { adminListSchema } from "@/server/features/admin/schemas";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);

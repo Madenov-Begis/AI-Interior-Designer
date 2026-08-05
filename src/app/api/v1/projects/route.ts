@@ -1,14 +1,14 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { createProject, listProjects } from "@/features/projects/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { createProject, listProjects } from "@/server/features/projects/service";
 import {
   createProjectSchema,
   listProjectsSchema,
-} from "@/features/projects/schemas";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+} from "@/server/features/projects/schemas";
+import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 
 function routeError(error: unknown, requestId: string) {
   if (error instanceof UnauthorizedError)

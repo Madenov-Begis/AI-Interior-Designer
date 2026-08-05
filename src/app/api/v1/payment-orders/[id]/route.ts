@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
-import { getCreditWallet } from "@/features/credits/service";
-import { handlePaymentOrderGet } from "@/features/payments/route-handlers";
-import { getOwnedPaymentOrder } from "@/features/payments/service";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser } from "@/lib/auth/current-user";
+import { getCreditWallet } from "@/server/features/credits/service";
+import { handlePaymentOrderGet } from "@/server/features/payments/route-handlers";
+import { getOwnedPaymentOrder } from "@/server/features/payments/service";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser } from "@/server/features/auth/current-user";
 
 export async function GET(
   request: NextRequest,

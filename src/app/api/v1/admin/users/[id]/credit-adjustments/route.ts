@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireAdmin } from "@/lib/auth/admin";
-import { getDb } from "@/lib/db";
-import { adjustCreditBalance } from "@/features/credits/service";
-import { adminApiError, adminMutationLimit } from "@/features/admin/http";
-import { creditAdjustmentSchema } from "@/features/admin/schemas";
+import { apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireAdmin } from "@/server/features/auth/admin";
+import { getDb } from "@/server/shared/db/prisma";
+import { adjustCreditBalance } from "@/server/features/credits/service";
+import { adminApiError, adminMutationLimit } from "@/server/features/admin/http";
+import { creditAdjustmentSchema } from "@/server/features/admin/schemas";
 
 export async function POST(
   request: NextRequest,

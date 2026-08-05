@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { getDb } from "@/lib/db";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { getDb } from "@/server/shared/db/prisma";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);

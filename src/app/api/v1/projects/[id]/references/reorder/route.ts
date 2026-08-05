@@ -1,14 +1,14 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { projectIdSchema } from "@/features/projects/schemas";
-import { reorderReferencesSchema } from "@/features/references/schema";
+import { projectIdSchema } from "@/server/features/projects/schemas";
+import { reorderReferencesSchema } from "@/server/features/references/schema";
 import {
   ReferenceNotFoundError,
   reorderReferences,
-} from "@/features/references/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/references/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 export async function PATCH(
   request: NextRequest,

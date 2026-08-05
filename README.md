@@ -2,6 +2,40 @@
 
 Веб-сервис AI-визуализации дизайна интерьера по фотографии помещения.
 
+## Структура приложения
+
+Код разделён на три независимые зоны:
+
+- `src/client` — пользовательский frontend;
+- `src/server` — backend и серверная инфраструктура;
+- `admin/src` — отдельный admin frontend.
+
+У каждой зоны есть собственная папка `shared` для переиспользования только
+внутри этой зоны. Глобального `shared` между frontend и backend нет.
+
+`src/app` остаётся тонким слоем маршрутизации Next.js: страницы подключают
+модули из `src/client`, а Route Handlers — модули из `src/server`. Клиентские
+приложения взаимодействуют с backend только через HTTP API.
+
+```text
+src/
+├── app/       # Next.js routes и layouts
+├── client/
+│   ├── features/
+│   ├── shared/
+│   └── widgets/
+├── server/
+│   ├── features/
+│   └── shared/
+└── generated/
+
+admin/src/
+├── app/
+├── features/
+├── shared/
+└── widgets/
+```
+
 ## Работа с данными
 
 - Prisma — единственный слой доступа к PostgreSQL: модели, запросы, транзакции и миграции находятся в `prisma/` и серверных сервисах.

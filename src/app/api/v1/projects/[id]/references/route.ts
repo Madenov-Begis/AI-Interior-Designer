@@ -1,18 +1,18 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { REFERENCE_IMAGE_RULES } from "@/config/storage";
-import { ImageValidationError } from "@/features/media/image-validation";
-import { projectIdSchema } from "@/features/projects/schemas";
+import { REFERENCE_IMAGE_RULES } from "@/server/shared/config/storage";
+import { ImageValidationError } from "@/server/features/media/image-validation";
+import { projectIdSchema } from "@/server/features/projects/schemas";
 import {
   addReferenceFiles,
   attachReferencePreviewUrls,
   clearReferences,
   ReferenceLimitError,
   ReferenceProjectNotFoundError,
-} from "@/features/references/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/references/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

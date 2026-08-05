@@ -1,11 +1,11 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { getDb } from "@/lib/db";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { getDb } from "@/server/shared/db/prisma";
+import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
 
 export async function GET(
   request: NextRequest,

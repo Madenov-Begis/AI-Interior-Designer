@@ -3,12 +3,12 @@ import { ZodError } from "zod";
 import {
   GenerationClientPayloadError,
   getGenerationClientPayload,
-} from "@/features/generations/client-payload";
-import { generationIdSchema } from "@/features/generations/schema";
-import { cancelOwnedGeneration } from "@/features/generations/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/generations/client-payload";
+import { generationIdSchema } from "@/server/features/generations/schema";
+import { cancelOwnedGeneration } from "@/server/features/generations/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 export async function POST(
   request: NextRequest,

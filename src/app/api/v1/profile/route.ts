@@ -1,13 +1,13 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { updateProfileSchema } from "@/features/profile/schema";
-import { GENERATION_CREDIT_COST } from "@/config/product";
-import { getCreditWallet } from "@/features/credits/service";
-import { getGenerationUsage } from "@/features/generations/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { getDb } from "@/lib/db";
+import { updateProfileSchema } from "@/server/features/profile/schema";
+import { GENERATION_CREDIT_COST } from "@/server/shared/config/product";
+import { getCreditWallet } from "@/server/features/credits/service";
+import { getGenerationUsage } from "@/server/features/generations/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { getDb } from "@/server/shared/db/prisma";
 
 const profileSelect = {
   id: true,

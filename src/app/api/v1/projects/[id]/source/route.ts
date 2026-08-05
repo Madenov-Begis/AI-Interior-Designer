@@ -1,17 +1,17 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { projectIdSchema } from "@/features/projects/schemas";
-import { ImageValidationError } from "@/features/media/image-validation";
-import { InteriorImageValidationUnavailableError } from "@/features/media/interior-image-validator";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { projectIdSchema } from "@/server/features/projects/schemas";
+import { ImageValidationError } from "@/server/features/media/image-validation";
+import { InteriorImageValidationUnavailableError } from "@/server/features/media/interior-image-validator";
 import {
   ProjectNotFoundError,
   uploadProjectSource,
-} from "@/features/media/source-upload";
-import { SOURCE_IMAGE_RULES } from "@/config/storage";
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+} from "@/server/features/media/source-upload";
+import { SOURCE_IMAGE_RULES } from "@/server/shared/config/storage";
+import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
 
 export async function POST(
   request: NextRequest,

@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { ApiClientError, apiData } from "@/lib/api/client";
+import { Button } from "@/client/shared/components/ui/button";
+import { ApiClientError, apiData } from "@/client/shared/api/client";
 
 type AdminOverview = {
   counts: {

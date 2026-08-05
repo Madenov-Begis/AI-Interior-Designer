@@ -1,10 +1,10 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireAdmin } from "@/lib/auth/admin";
-import { cancelGenerationAsAdmin } from "@/features/generations/service";
-import { adminApiError, adminMutationLimit } from "@/features/admin/http";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireAdmin } from "@/server/features/auth/admin";
+import { cancelGenerationAsAdmin } from "@/server/features/generations/service";
+import { adminApiError, adminMutationLimit } from "@/server/features/admin/http";
 
 export async function POST(
   request: NextRequest,

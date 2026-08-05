@@ -1,19 +1,19 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { VISUAL_PROMPT_RULES } from "@/config/storage";
-import { projectIdSchema } from "@/features/projects/schemas";
+import { VISUAL_PROMPT_RULES } from "@/server/shared/config/storage";
+import { projectIdSchema } from "@/server/features/projects/schemas";
 import {
   parseVisualPromptCanvasState,
   VisualPromptValidationError,
-} from "@/features/visual-prompt/schema";
+} from "@/server/features/visual-prompt/schema";
 import {
   removeVisualPrompt,
   saveVisualPrompt,
   VisualPromptProjectNotFoundError,
-} from "@/features/visual-prompt/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/visual-prompt/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

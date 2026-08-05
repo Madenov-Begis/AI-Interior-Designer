@@ -25,19 +25,22 @@ canvas, project library, balance, and profile.
 The source of truth is split between:
 
 - `src/app/globals.css` — CSS and Tailwind theme tokens.
-- `src/config/design-system.ts` — typed token metadata.
+- `src/client/shared/config/design-system.ts` — typed token metadata.
 
 ## Components
 
 - `RenoaLogo` — the shared brand lockup.
 - `RenoaAppHeader` — global product navigation.
-- `AccountMenu` — balance, profile, credits, and sign-out menu.
+- `AccountMenu` — shadcn Dropdown Menu + Avatar for balance, profile, credits,
+  and sign-out actions.
 - `RenoaPage` — graph-grid page background.
-- `RenoaPanel` — standard product panel.
+- `RenoaPanel` — compatibility wrapper around the shadcn Card while older
+  screens are migrated to direct Card composition.
 - `RenoaSectionHeading` — dashboard page hierarchy.
 - `RenoaStepLabel` — numbered workflow sections.
-- `Button`, `Card`, `Input`, `Badge`, `Sheet`, `Textarea` — shadcn-based
-  application primitives using the same tokens.
+- `Alert`, `Avatar`, `Badge`, `Button`, `Card`, `DropdownMenu`, `Empty`,
+  `Field`, `InputGroup`, `Sheet`, `Textarea`, `ToggleGroup`, and `Tooltip` —
+  shadcn application primitives using the same semantic tokens.
 
 ## Product patterns
 

@@ -1,0 +1,293 @@
+"use client";
+
+import {
+  ArrowRight,
+  Download,
+  GitBranch,
+  ImageIcon,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/client/shared/components/ui/alert";
+import { Badge } from "@/client/shared/components/ui/badge";
+import { Button, buttonClassName } from "@/client/shared/components/ui/button";
+import { Card, CardContent } from "@/client/shared/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/client/shared/components/ui/empty";
+import { Skeleton } from "@/client/shared/components/ui/skeleton";
+import { apiData } from "@/client/shared/api/client";
+
+type HistoryItem = {
+  id: string;
+  projectId: string;
+  parentGenerationId: string | null;
+  status: string;
+  prompt: string;
+  aspectRatio: string;
+  resultUserId: string | null;
+  resultUrl: string | null;
+  queuedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  project: { name: string };
+  _count: { references: number };
+};
+
+const FILTERS = [
+  ["", "Все"],
+  ["SUCCEEDED", "Готовые"],
+  ["PROCESSING", "В работе"],
+  ["FAILED", "Ошибки"],
+] as const;
+
+const STATUS_COPY: Record<
+  string,
+  { label: string; variant: "secondary" | "success" | "warning" | "outline" }
+> = {
+  SUCCEEDED: { label: "Готово", variant: "success" },
+  PROCESSING: { label: "Создаём", variant: "warning" },
+  QUEUED: { label: "В очереди", variant: "warning" },
+  FAILED: { label: "Ошибка", variant: "outline" },
+  REJECTED: { label: "Отклонено", variant: "outline" },
+  CANCELLED: { label: "Отменено", variant: "secondary" },
+};
+
+type HistoryPage = { items: HistoryItem[]; nextCursor: string | null };
+
+export function HistoryGrid() {
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState("");
+  const history = useInfiniteQuery({
+    queryKey: ["history", status],
+    initialPageParam: "",
+    queryFn: async ({ pageParam }) => {
+      return apiData<HistoryPage>({
+        url: "/generations",
+        method: "GET",
+        params: {
+          limit: 20,
+          cursor: pageParam || undefined,
+          status: status || undefined,
+        },
+      });
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) =>
+      apiData<{ id: string }>({
+        url: `/generations/${id}`,
+        method: "DELETE",
+      }),
+    onSuccess: (_data, id) => {
+      queryClient.setQueriesData<InfiniteData<HistoryPage>>(
+        { queryKey: ["history"] },
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: current.pages.map((page) => ({
+                  ...page,
+                  items: page.items.filter((item) => item.id !== id),
+                })),
+              }
+            : current,
+      );
+    },
+  });
+  const items = history.data?.pages.flatMap((page) => page.items) ?? [];
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="tablist"
+          aria-label="Фильтр истории"
+        >
+          {FILTERS.map(([value, label]) => (
+            <Button
+              key={value}
+              variant={status === value ? "default" : "secondary"}
+              size="sm"
+              onClick={() => setStatus(value)}
+              role="tab"
+              aria-selected={status === value}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        <Link
+          href="/app"
+          className={buttonClassName("default", undefined, "sm")}
+        >
+          <Plus className="size-4" />
+          Новый интерьер
+        </Link>
+      </div>
+
+      {history.isLoading ? (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, index) => (
+            <Skeleton key={index} className="aspect-[4/3] min-h-72" />
+          ))}
+        </div>
+      ) : null}
+
+      {history.error ? (
+        <Alert variant="destructive" className="mt-6">
+          <AlertTitle>Не удалось загрузить историю</AlertTitle>
+          <AlertDescription>{history.error.message}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {!history.isLoading && items.length === 0 ? (
+        <Empty className="mt-6 min-h-72 border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <ImageIcon aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>История пока пуста</EmptyTitle>
+            <EmptyDescription>
+              Загрузите комнату и создайте первый вариант — он появится здесь
+              вместе со всеми следующими итерациями.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button asChild>
+              <Link href="/app">Создать интерьер</Link>
+            </Button>
+          </EmptyContent>
+        </Empty>
+      ) : null}
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {items.map((item) => {
+          const statusCopy = STATUS_COPY[item.status] ?? {
+            label: item.status,
+            variant: "secondary" as const,
+          };
+          return (
+            <Card
+              key={item.id}
+              className="group overflow-hidden transition-colors hover:border-muted-foreground/35"
+            >
+              <div className="relative">
+                {item.resultUrl ? (
+                  <div className="aspect-[4/3] overflow-hidden bg-black">
+                    {/* Private signed URL is short lived and cannot use a stable Next Image loader. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.resultUrl}
+                      alt={item.project.name}
+                      className="size-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid aspect-[4/3] place-items-center bg-secondary">
+                    <ImageIcon
+                      className="size-7 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </div>
+                )}
+                <Badge
+                  variant={statusCopy.variant}
+                  className="absolute left-3 top-3 shadow-lg shadow-black/20"
+                >
+                  {statusCopy.label}
+                </Badge>
+              </div>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate font-semibold">
+                      {item.project.name}
+                    </h2>
+                    <p className="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                      <GitBranch className="size-3" aria-hidden="true" />
+                      {item.parentGenerationId
+                        ? "Итерация"
+                        : "Основной вариант"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                    {new Date(item.queuedAt).toLocaleDateString("ru-RU")}
+                  </span>
+                </div>
+                <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
+                  {item.prompt}
+                </p>
+                <div className="mt-3 flex gap-2 font-mono text-[10px] text-muted-foreground">
+                  <span>
+                    {item.aspectRatio.replace("RATIO_", "").replace("_", ":")}
+                  </span>
+                  <span>·</span>
+                  <span>{item._count.references} реф.</span>
+                </div>
+                <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                  <Link
+                    href={`/app/${item.projectId}`}
+                    className={buttonClassName("secondary", "flex-1", "sm")}
+                  >
+                    Открыть
+                    <ArrowRight className="size-4" />
+                  </Link>
+                  {item.status === "SUCCEEDED" ? (
+                    <a
+                      href={`/api/v1/generations/${item.id}/download`}
+                      className={buttonClassName("ghost", undefined, "icon")}
+                      aria-label="Скачать JPG"
+                    >
+                      <Download className="size-4" />
+                    </a>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => remove.mutate(item.id)}
+                      disabled={
+                        remove.isPending ||
+                        ["QUEUED", "PROCESSING"].includes(item.status)
+                      }
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label="Удалить генерацию"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {history.hasNextPage ? (
+        <Button
+          variant="secondary"
+          onClick={() => history.fetchNextPage()}
+          disabled={history.isFetchingNextPage}
+          className="mt-6 w-full"
+        >
+          {history.isFetchingNextPage ? "Загружаем…" : "Показать ещё"}
+        </Button>
+      ) : null}
+    </div>
+  );
+}

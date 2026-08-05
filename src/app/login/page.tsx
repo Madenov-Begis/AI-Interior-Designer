@@ -1,35 +1,45 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { KeyRound, ShieldCheck, Sparkle } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { buttonClassName } from "@/components/ui/button";
-import { APP_NAME } from "@/config/brand";
-import { apiData } from "@/lib/api/client";
-import { safeReturnPath } from "@/lib/auth/route-policy";
+import { Card, CardContent, CardHeader } from "@/client/shared/components/ui/card";
+import { buttonClassName } from "@/client/shared/components/ui/button";
+import { APP_NAME } from "@/client/shared/config/brand";
+import { useCurrentAuthUser } from "@/client/features/auth/client";
+import { safeReturnPath } from "@/client/features/auth/route-policy";
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginCard next="/app" checkingSession />}>
+      <LoginContent />
+    </Suspense>
+  );
+}
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const auth = useCurrentAuthUser();
   const next = safeReturnPath(searchParams.get("next"));
-  const session = useQuery({
-    queryKey: ["auth", "me"],
-    queryFn: () =>
-      apiData<{ id: string }>({
-        url: "/auth/me",
-        method: "GET",
-        skipAuthRedirect: true,
-      }),
-    retry: false,
-  });
 
   useEffect(() => {
-    if (session.data?.id) router.replace(next);
-  }, [next, router, session.data?.id]);
+    if (auth.data) router.replace(next);
+  }, [auth.data, next, router]);
 
+  return (
+    <LoginCard next={next} checkingSession={auth.isPending || !!auth.data} />
+  );
+}
+
+function LoginCard({
+  next,
+  checkingSession,
+}: {
+  next: string;
+  checkingSession: boolean;
+}) {
   const googleLoginUrl = `/api/v1/auth/google?next=${encodeURIComponent(next)}`;
 
   return (
@@ -59,15 +69,16 @@ function LoginContent() {
         <CardContent className="px-6 pb-6 sm:px-8 sm:pb-8">
           <Link
             href={googleLoginUrl}
-            aria-disabled={session.isLoading}
+            aria-disabled={checkingSession}
+            tabIndex={checkingSession ? -1 : undefined}
             className={buttonClassName(
               "outline",
-              "w-full justify-center",
+              "w-full justify-center aria-disabled:pointer-events-none aria-disabled:opacity-50",
               "lg",
             )}
           >
             <KeyRound className="size-5" />
-            {session.isLoading ? "Проверяем вход…" : "Продолжить с Google"}
+            {checkingSession ? "Проверяем вход…" : "Продолжить с Google"}
           </Link>
           <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" />
@@ -82,13 +93,5 @@ function LoginContent() {
         </CardContent>
       </Card>
     </main>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginContent />
-    </Suspense>
   );
 }

@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
-import { handleMockOutcomePost } from "@/features/payments/route-handlers";
-import { submitMockPaymentOutcome } from "@/features/payments/service";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser } from "@/lib/auth/current-user";
+import { handleMockOutcomePost } from "@/server/features/payments/route-handlers";
+import { submitMockPaymentOutcome } from "@/server/features/payments/service";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser } from "@/server/features/auth/current-user";
 
 export async function POST(
   request: NextRequest,

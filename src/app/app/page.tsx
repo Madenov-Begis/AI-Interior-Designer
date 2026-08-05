@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { apiData } from "@/lib/api/client";
+import { Button } from "@/client/shared/components/ui/button";
+import { apiData } from "@/client/shared/api/client";
 
 export default function AppEntryPage() {
   const router = useRouter();

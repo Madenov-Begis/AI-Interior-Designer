@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
 function adminCors(request: NextRequest) {
   if (!request.nextUrl.pathname.startsWith("/api/v1/admin")) return null;
@@ -22,7 +21,7 @@ export async function proxy(request: NextRequest) {
   const cors = adminCors(request);
   if (request.method === "OPTIONS" && cors)
     return new NextResponse(null, { status: 204, headers: cors });
-  const response = await updateSupabaseSession(request);
+  const response = NextResponse.next({ request });
   cors?.forEach((value, key) => response.headers.set(key, value));
   return response;
 }

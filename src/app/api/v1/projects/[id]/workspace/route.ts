@@ -1,13 +1,13 @@
 import type { NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { projectIdSchema } from "@/features/projects/schemas";
+import { projectIdSchema } from "@/server/features/projects/schemas";
 import {
   getProjectWorkspace,
   ProjectWorkspaceNotFoundError,
-} from "@/features/projects/workspace";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/projects/workspace";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 export async function GET(
   request: NextRequest,

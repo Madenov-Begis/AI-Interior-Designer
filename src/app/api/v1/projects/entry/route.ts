@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
-import { getOrCreateEntryProject } from "@/features/projects/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+import { getOrCreateEntryProject } from "@/server/features/projects/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 export async function POST(request: NextRequest) {
   const requestId = getRequestId(request.headers);

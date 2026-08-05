@@ -1,12 +1,12 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { listGenerationsSchema } from "@/features/generations/schema";
-import { attachHistoryResultUrls } from "@/features/generations/history-media";
-import { listOwnedGenerations } from "@/features/generations/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { listGenerationsSchema } from "@/server/features/generations/schema";
+import { attachHistoryResultUrls } from "@/server/features/generations/history-media";
+import { listOwnedGenerations } from "@/server/features/generations/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);

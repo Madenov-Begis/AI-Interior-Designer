@@ -1,6 +1,6 @@
 "use client";
 
-import { HistoryGrid } from "@/components/history/history-grid";
+import { HistoryGrid } from "@/client/features/generations/ui/history-grid";
 
 export default function HistoryPage() {
   return <HistoryGrid />;

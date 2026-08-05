@@ -1,13 +1,13 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { projectIdSchema } from "@/features/projects/schemas";
-import { importReferenceUrlsSchema } from "@/features/references/schema";
-import { importReferenceUrls } from "@/features/references/url-import";
-import { attachReferencePreviewUrls } from "@/features/references/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+import { projectIdSchema } from "@/server/features/projects/schemas";
+import { importReferenceUrlsSchema } from "@/server/features/references/schema";
+import { importReferenceUrls } from "@/server/features/references/url-import";
+import { attachReferencePreviewUrls } from "@/server/features/references/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
 
 export async function POST(
   request: NextRequest,

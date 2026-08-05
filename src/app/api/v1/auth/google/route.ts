@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { safeReturnPath } from "@/lib/auth/route-policy";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { safeReturnPath } from "@/server/features/auth/route-policy";
+import { createSupabaseServerClient } from "@/server/shared/integrations/supabase/server";
 
 export async function GET(request: NextRequest) {
   const supabase = await createSupabaseServerClient();

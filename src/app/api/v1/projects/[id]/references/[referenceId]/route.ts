@@ -1,13 +1,13 @@
 import { type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
-import { projectIdSchema } from "@/features/projects/schemas";
+import { projectIdSchema } from "@/server/features/projects/schemas";
 import {
   deleteReference,
   ReferenceNotFoundError,
-} from "@/features/references/service";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/references/service";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 export async function DELETE(
   request: NextRequest,

@@ -1,10 +1,10 @@
 import type { NextRequest } from "next/server";
-import { CREDIT_PACKAGES, GENERATION_CREDIT_COST } from "@/config/product";
-import { getCreditWallet } from "@/features/credits/service";
-import { paymentHttpError } from "@/features/payments/http";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser } from "@/lib/auth/current-user";
+import { CREDIT_PACKAGES, GENERATION_CREDIT_COST } from "@/server/shared/config/product";
+import { getCreditWallet } from "@/server/features/credits/service";
+import { paymentHttpError } from "@/server/features/payments/http";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser } from "@/server/features/auth/current-user";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);

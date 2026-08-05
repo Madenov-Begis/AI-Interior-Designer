@@ -1,5 +1,7 @@
-import { ExamplesSection } from "@/components/marketing/examples-section";
-import { Hero } from "@/components/marketing/hero";
+"use client";
+
+import { ExamplesSection } from "@/client/widgets/marketing/examples-section";
+import { Hero } from "@/client/widgets/marketing/hero";
 import {
   ComparisonSection,
   FaqSection,
@@ -8,18 +10,15 @@ import {
   PricingSection,
   StoriesSection,
   WorkflowSection,
-} from "@/components/marketing/landing-sections";
-import { ProcessSection } from "@/components/marketing/process-section";
-import { SiteFooter } from "@/components/marketing/site-footer";
-import { SiteHeader } from "@/components/marketing/site-header";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+} from "@/client/widgets/marketing/landing-sections";
+import { ProcessSection } from "@/client/widgets/marketing/process-section";
+import { SiteFooter } from "@/client/widgets/marketing/site-footer";
+import { SiteHeader } from "@/client/widgets/marketing/site-header";
+import { useCurrentAuthUser } from "@/client/features/auth/client";
 
-export const dynamic = "force-dynamic";
-
-export default async function HomePage() {
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getClaims();
-  const authenticated = Boolean(data?.claims?.sub);
+export default function HomePage() {
+  const { data: user } = useCurrentAuthUser();
+  const authenticated = Boolean(user);
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">

@@ -3,22 +3,22 @@ import { z, ZodError } from "zod";
 import {
   GenerationClientPayloadError,
   getGenerationClientPayload,
-} from "@/features/generations/client-payload";
-import { isInteriorStyleCode } from "@/features/generations/interior-styles";
-import { GenerationReservationError } from "@/features/generations/operations";
-import { reserveRootGeneration } from "@/features/generations/reservation";
-import { retryReservationHttpStatus } from "@/features/generations/reservation-policy";
-import { recoverExpiredGenerationReservations } from "@/features/generations/recovery";
+} from "@/server/features/generations/client-payload";
+import { isInteriorStyleCode } from "@/server/features/generations/interior-styles";
+import { GenerationReservationError } from "@/server/features/generations/operations";
+import { reserveRootGeneration } from "@/server/features/generations/reservation";
+import { retryReservationHttpStatus } from "@/server/features/generations/reservation-policy";
+import { recoverExpiredGenerationReservations } from "@/server/features/generations/recovery";
 import {
   namespaceRetryIdempotencyKey,
   parseRetryIdempotencyKey,
-} from "@/features/generations/retry-policy";
-import { processGeneration } from "@/features/generations/worker";
-import { apiError, apiSuccess } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
-import { getDb } from "@/lib/db";
-import { enforceRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+} from "@/server/features/generations/retry-policy";
+import { processGeneration } from "@/server/features/generations/worker";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { getDb } from "@/server/shared/db/prisma";
+import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

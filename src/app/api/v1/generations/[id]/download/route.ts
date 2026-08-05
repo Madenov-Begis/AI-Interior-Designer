@@ -3,13 +3,13 @@ import { ZodError } from "zod";
 import {
   convertGenerationDownloadToJpeg,
   generationDownloadFilename,
-} from "@/features/generations/jpeg-download";
-import { generationIdSchema } from "@/features/generations/schema";
-import { getDb } from "@/lib/db";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { apiError } from "@/lib/api/contracts";
-import { getRequestId } from "@/lib/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/lib/auth/current-user";
+} from "@/server/features/generations/jpeg-download";
+import { generationIdSchema } from "@/server/features/generations/schema";
+import { getDb } from "@/server/shared/db/prisma";
+import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { apiError } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
+import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
 
 export async function GET(
   request: NextRequest,
