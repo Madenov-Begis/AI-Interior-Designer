@@ -18,7 +18,6 @@ import {
   marketingDarkCtaClassName,
 } from "@/client/widgets/marketing/cta-style";
 import { CREDIT_PACKAGES } from "@/client/shared/config/product";
-import { authEntry } from "@/client/features/auth/route-policy";
 
 const modes = [
   {
@@ -38,12 +37,7 @@ const modes = [
   },
 ];
 
-export function InteriorModesSection({
-  authenticated,
-}: {
-  authenticated: boolean;
-}) {
-  const entry = authEntry(authenticated);
+export function InteriorModesSection() {
   return (
     <section id="modes" className="border-b border-border bg-[#111113]">
       <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-28">
@@ -86,7 +80,7 @@ export function InteriorModesSection({
           ))}
         </div>
         <Link
-          href={entry.href}
+          href="/app"
           className={buttonClassName(
             "default",
             marketingCtaClassName("mt-8 rounded-2xl px-7"),
@@ -101,8 +95,7 @@ export function InteriorModesSection({
   );
 }
 
-export function WorkflowSection({ authenticated }: { authenticated: boolean }) {
-  const entry = authEntry(authenticated);
+export function WorkflowSection() {
   const items = [
     { icon: Upload, text: "Фото сразу появляется на холсте" },
     { icon: MousePointer2, text: "Все варианты остаются рядом" },
@@ -138,7 +131,7 @@ export function WorkflowSection({ authenticated }: { authenticated: boolean }) {
             ))}
           </div>
           <Link
-            href={entry.href}
+            href="/app"
             className={buttonClassName(
               "default",
               marketingCtaClassName("mt-7 rounded-2xl px-7"),
@@ -187,12 +180,7 @@ export function WorkflowSection({ authenticated }: { authenticated: boolean }) {
   );
 }
 
-export function ComparisonSection({
-  authenticated,
-}: {
-  authenticated: boolean;
-}) {
-  const entry = authEntry(authenticated);
+export function ComparisonSection() {
   const traditional = [
     "Поиск дизайнера и согласование",
     "Несколько дней на первый вариант",
@@ -252,7 +240,7 @@ export function ComparisonSection({
         </div>
         <div className="mt-7 text-center">
           <Link
-            href={entry.href}
+            href="/app"
             className={buttonClassName(
               "default",
               marketingCtaClassName("rounded-2xl px-7"),
@@ -268,9 +256,7 @@ export function ComparisonSection({
   );
 }
 
-export function PricingSection({ authenticated }: { authenticated: boolean }) {
-  const entry = authEntry(authenticated);
-
+export function PricingSection() {
   return (
     <section id="pricing" className="border-b border-border bg-[#111113]">
       <div className="mx-auto max-w-[1180px] px-5 py-20 sm:px-8 sm:py-28">
@@ -314,7 +300,7 @@ export function PricingSection({ authenticated }: { authenticated: boolean }) {
                 Хватит на {Math.floor(pack.credits / 4)} генераций
               </p>
               <Link
-                href={entry.href}
+                href="/app"
                 className={buttonClassName(
                   pack.popular ? "secondary" : "default",
                   pack.popular
@@ -339,7 +325,7 @@ export function PricingSection({ authenticated }: { authenticated: boolean }) {
             </p>
           </div>
           <Link
-            href={entry.href}
+            href="/app"
             className={buttonClassName(
               "default",
               marketingCtaClassName("rounded-2xl px-6"),
@@ -467,8 +453,7 @@ export function FaqSection() {
   );
 }
 
-export function FinalCtaSection({ authenticated }: { authenticated: boolean }) {
-  const entry = authEntry(authenticated);
+export function FinalCtaSection() {
   return (
     <section className="bg-primary text-primary-foreground">
       <div className="mx-auto max-w-[1180px] px-5 py-20 text-center sm:px-8 sm:py-28">
@@ -481,7 +466,7 @@ export function FinalCtaSection({ authenticated }: { authenticated: boolean }) {
           нужна.
         </p>
         <Link
-          href={entry.href}
+          href="/app"
           className={buttonClassName(
             "secondary",
             marketingDarkCtaClassName(

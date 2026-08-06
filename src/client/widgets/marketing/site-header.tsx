@@ -2,12 +2,9 @@ import Link from "next/link";
 import { ArrowUpRight, Sparkle } from "lucide-react";
 import { buttonClassName } from "@/client/shared/components/ui/button";
 import { APP_NAME } from "@/client/shared/config/brand";
-import { authEntry } from "@/client/features/auth/route-policy";
 import { marketingCtaClassName } from "@/client/widgets/marketing/cta-style";
 
-export function SiteHeader({ authenticated }: { authenticated: boolean }) {
-  const entry = authEntry(authenticated);
-
+export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 sm:px-8">
@@ -45,14 +42,14 @@ export function SiteHeader({ authenticated }: { authenticated: boolean }) {
           </a>
         </nav>
         <Link
-          href={entry.href}
+          href="/app"
           className={buttonClassName(
             "default",
             marketingCtaClassName("h-10 rounded-full px-5"),
             "sm",
           )}
         >
-          {authenticated ? "Создать новый интерьер" : "Создать интерьер"}
+          Создать интерьер
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </Link>
       </div>

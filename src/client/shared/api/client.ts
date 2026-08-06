@@ -6,17 +6,34 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 import type { ApiFailure, ApiSuccess } from "./types.ts";
-import { createSupabaseBrowserClient } from "../supabase/browser.ts";
+import {
+  clearAuthTokens,
+  getAccessToken,
+  getRefreshToken,
+  setAuthTokens,
+} from "../auth/tokens.ts";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
     skipAuthRedirect?: boolean;
+    skipAuthRefresh?: boolean;
+    authRetry?: boolean;
   }
 
   export interface InternalAxiosRequestConfig {
     skipAuthRedirect?: boolean;
+    skipAuthRefresh?: boolean;
+    authRetry?: boolean;
   }
 }
+
+type RefreshedSession = {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+};
+
+let refreshRequest: Promise<RefreshedSession> | null = null;
 
 export class ApiClientError extends Error {
   readonly code: string;
@@ -63,15 +80,40 @@ export const apiClient = axios.create({
   headers: { Accept: "application/json" },
 });
 
-apiClient.interceptors.request.use(async (config) => {
+async function refreshSession() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) throw new Error("Refresh token is missing");
+
+  refreshRequest ??= fetch("/api/v1/auth/refresh", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "x-request-id": requestId(),
+    },
+    body: JSON.stringify({ refreshToken }),
+  })
+    .then(async (response) => {
+      if (!response.ok) throw new Error("Session refresh failed");
+      const payload = (await response.json()) as ApiSuccess<RefreshedSession>;
+      setAuthTokens(payload.data);
+      return payload.data;
+    })
+    .finally(() => {
+      refreshRequest = null;
+    });
+
+  return refreshRequest;
+}
+
+apiClient.interceptors.request.use((config) => {
   if (!config.headers.has("x-request-id")) {
     config.headers.set("x-request-id", requestId());
   }
 
   if (!config.headers.has("Authorization")) {
-    const supabase = createSupabaseBrowserClient();
-    const { data } = await supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
+    const accessToken = getAccessToken();
     if (accessToken) {
       config.headers.set("Authorization", `Bearer ${accessToken}`);
     }
@@ -86,12 +128,27 @@ apiClient.interceptors.response.use(
     if (error.code === "ERR_CANCELED") return Promise.reject(error);
 
     const status = error.response?.status ?? null;
-    if (status === 401) {
+    const config = error.config;
+    if (
+      status === 401 &&
+      config &&
+      !config.skipAuthRefresh &&
+      !config.authRetry &&
+      getRefreshToken()
+    ) {
       try {
-        await createSupabaseBrowserClient().auth.signOut({ scope: "local" });
-      } finally {
-        redirectToLogin(error.config);
+        const session = await refreshSession();
+        config.authRetry = true;
+        config.headers.set("Authorization", `Bearer ${session.accessToken}`);
+        return apiClient.request(config);
+      } catch {
+        clearAuthTokens();
       }
+    }
+
+    if (status === 401) {
+      clearAuthTokens();
+      redirectToLogin(config);
     }
 
     const payload = error.response?.data;

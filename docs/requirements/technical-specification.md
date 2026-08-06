@@ -92,16 +92,16 @@ Renoa — веб-сервис AI-визуализации дизайна инт�
 
 ### 4.1. Основное приложение
 
-Основной пользовательский вход выполняется через Google OAuth и Supabase Auth. Сессия хранится в защищённых cookies, обновляется proxy-слоем и повторно проверяется в Server Components и Route Handlers.
+Основной пользовательский вход выполняется через Google OAuth и Supabase Auth. Серверный PKCE callback обменивает OAuth-код на сессию и сохраняет access/refresh token в отдельных non-HttpOnly cookies приложения. Browser Supabase client не используется.
 
-Клиентские claims не считаются достаточным основанием для доступа. Сервер проверяет подпись токена через Supabase и статус профиля через Prisma.
+Axios читает access token через `js-cookie` и отправляет его как Bearer token. После `401` интерцептор один раз вызывает `/api/v1/auth/refresh`, сохраняет ротированную пару токенов и повторяет исходный запрос. Клиентские данные не считаются достаточным основанием для доступа: Route Handlers проверяют подпись access token через Supabase и статус профиля через Prisma.
 
 ### 4.2. Административный доступ
 
 Поддерживаются два доверенных варианта:
 
-- cookie session основного Next.js-приложения;
-- Supabase Bearer token для отдельного доверенного frontend.
+- Supabase Bearer token основного Next.js-приложения;
+- Supabase Bearer token отдельного доверенного frontend.
 
 Локальная desktop-админка может отправлять `Authorization: AdminPhone +998XXXXXXXXX` только при `NODE_ENV != production`. Этот режим предназначен для локальной разработки и обязан отклоняться в production.
 

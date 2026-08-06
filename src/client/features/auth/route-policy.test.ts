@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { authEntry, isProtectedPath, safeReturnPath } from "./route-policy.ts";
+import { isProtectedPath, safeReturnPath } from "./route-policy.ts";
 
 test("classifies only app and admin route segments as private", () => {
   assert.equal(isProtectedPath("/app"), true);
@@ -25,17 +25,6 @@ test("accepts only local safe return paths", () => {
   assert.equal(safeReturnPath(null), "/app");
 });
 
-test("maps verified auth state to the correct application entry", () => {
-  assert.deepEqual(authEntry(true), {
-    href: "/app",
-    label: "Продолжить",
-  });
-  assert.deepEqual(authEntry(false), {
-    href: "/login",
-    label: "Войти",
-  });
-});
-
 test("protected routes use a client guard and axios sends the session token", async () => {
   const [
     authClient,
@@ -45,7 +34,8 @@ test("protected routes use a client guard and axios sends the session token", as
     loginPage,
     dashboardLayout,
     apiClient,
-    browserClient,
+    tokenCookies,
+    refreshRoute,
     proxy,
   ] = await Promise.all([
     readFile(new URL("./client.ts", import.meta.url), "utf8"),
@@ -58,20 +48,37 @@ test("protected routes use a client guard and axios sends the session token", as
       "utf8",
     ),
     readFile(new URL("../../shared/api/client.ts", import.meta.url), "utf8"),
-    readFile(new URL("../../shared/supabase/browser.ts", import.meta.url), "utf8"),
+    readFile(new URL("../../shared/auth/tokens.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL("../../../app/api/v1/auth/refresh/route.ts", import.meta.url),
+      "utf8",
+    ),
     readFile(new URL("../../../proxy.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(authClient, /auth\.getClaims\(\)/);
+  assert.match(authClient, /\/auth\/me/);
+  assert.doesNotMatch(authClient, /supabase|onAuthStateChange|getClaims/);
   assert.match(appLayout, /ProtectedRouteGuard/);
   assert.match(adminLayout, /ProtectedRouteGuard/);
-  assert.match(homePage, /useCurrentAuthUser/);
-  assert.doesNotMatch(homePage, /auth\.getClaims|createSupabaseServerClient/);
-  assert.match(apiClient, /auth\.getSession\(\)/);
+  assert.doesNotMatch(
+    homePage,
+    /useCurrentAuthUser|auth\.getClaims|createSupabaseServerClient/,
+  );
+  assert.match(homePage, /<SiteHeader \/>/);
+  assert.match(apiClient, /getAccessToken\(\)/);
+  assert.match(apiClient, /getRefreshToken\(\)/);
+  assert.match(apiClient, /\/auth\/refresh/);
   assert.match(apiClient, /Authorization/);
   assert.match(apiClient, /Bearer/);
-  assert.match(browserClient, /Cookies\.get\(\)/);
-  assert.match(browserClient, /Cookies\.set\(/);
+  assert.match(tokenCookies, /from "js-cookie"/);
+  assert.match(tokenCookies, /Cookies\.get/);
+  assert.match(tokenCookies, /Cookies\.set/);
+  assert.match(tokenCookies, /clearLegacySupabaseCookies/);
+  assert.match(refreshRoute, /auth\.refreshSession/);
+  assert.doesNotMatch(
+    apiClient,
+    /createBrowserClient|createSupabaseBrowserClient/,
+  );
   assert.doesNotMatch(proxy, /getClaims|updateSupabaseSession|isProtectedPath/);
   assert.doesNotMatch(loginPage, /\/auth\/me/);
   assert.doesNotMatch(dashboardLayout, /\/auth\/me/);

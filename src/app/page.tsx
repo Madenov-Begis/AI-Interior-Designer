@@ -1,5 +1,3 @@
-"use client";
-
 import { ExamplesSection } from "@/client/widgets/marketing/examples-section";
 import { Hero } from "@/client/widgets/marketing/hero";
 import {
@@ -14,25 +12,21 @@ import {
 import { ProcessSection } from "@/client/widgets/marketing/process-section";
 import { SiteFooter } from "@/client/widgets/marketing/site-footer";
 import { SiteHeader } from "@/client/widgets/marketing/site-header";
-import { useCurrentAuthUser } from "@/client/features/auth/client";
 
 export default function HomePage() {
-  const { data: user } = useCurrentAuthUser();
-  const authenticated = Boolean(user);
-
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
-      <SiteHeader authenticated={authenticated} />
-      <Hero authenticated={authenticated} />
+      <SiteHeader />
+      <Hero />
       <ProcessSection />
-      <InteriorModesSection authenticated={authenticated} />
-      <WorkflowSection authenticated={authenticated} />
+      <InteriorModesSection />
+      <WorkflowSection />
       <ExamplesSection />
-      <ComparisonSection authenticated={authenticated} />
-      <PricingSection authenticated={authenticated} />
+      <ComparisonSection />
+      <PricingSection />
       <StoriesSection />
       <FaqSection />
-      <FinalCtaSection authenticated={authenticated} />
+      <FinalCtaSection />
       <SiteFooter />
     </main>
   );

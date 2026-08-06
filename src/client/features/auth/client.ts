@@ -1,40 +1,32 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AuthChangeEvent } from "@supabase/supabase-js";
-import { useEffect } from "react";
-import { currentUserFromClaims } from "@/client/features/auth/claims";
-import { createSupabaseBrowserClient } from "@/client/shared/supabase/browser";
+import { useQuery } from "@tanstack/react-query";
+import {
+  currentUserFromAuthMe,
+  type AuthMePayload,
+} from "@/client/features/auth/current-user";
+import { apiData, ApiClientError } from "@/client/shared/api/client";
 
-export const currentAuthUserQueryKey = ["auth", "claims"] as const;
+export const currentAuthUserQueryKey = ["auth", "me"] as const;
 
 export function useCurrentAuthUser() {
-  const queryClient = useQueryClient();
-  const query = useQuery({
+  return useQuery({
     queryKey: currentAuthUserQueryKey,
     queryFn: async () => {
-      const { data, error } =
-        await createSupabaseBrowserClient().auth.getClaims();
-      if (error) return null;
-      return currentUserFromClaims(data?.claims);
+      try {
+        const payload = await apiData<AuthMePayload>({
+          url: "/auth/me",
+          method: "GET",
+          skipAuthRedirect: true,
+        });
+        return currentUserFromAuthMe(payload);
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status === 401)
+          return null;
+        throw error;
+      }
     },
     retry: false,
     staleTime: 30_000,
   });
-
-  useEffect(() => {
-    const { data } = createSupabaseBrowserClient().auth.onAuthStateChange(
-      (event: AuthChangeEvent) => {
-        if (event !== "INITIAL_SESSION") {
-          void queryClient.invalidateQueries({
-            queryKey: currentAuthUserQueryKey,
-          });
-        }
-      },
-    );
-
-    return () => data.subscription.unsubscribe();
-  }, [queryClient]);
-
-  return query;
 }

@@ -2,7 +2,6 @@ import { ArrowRight, ImagePlus, Sparkle } from "lucide-react";
 import Link from "next/link";
 import { buttonClassName } from "@/client/shared/components/ui/button";
 import { marketingCtaClassName } from "@/client/widgets/marketing/cta-style";
-import { authEntry } from "@/client/features/auth/route-policy";
 
 const ticker = [
   "AI-РЕДИЗАЙН",
@@ -12,9 +11,7 @@ const ticker = [
   "ФОТОРЕАЛИСТИЧНО",
 ];
 
-export function Hero({ authenticated }: { authenticated: boolean }) {
-  const entry = authEntry(authenticated);
-
+export function Hero() {
   return (
     <section className="page-grid border-b border-border">
       <div className="mx-auto max-w-[1440px] px-5 pb-4 pt-14 text-center sm:px-8 sm:pb-4 sm:pt-20 lg:pt-14">
@@ -29,7 +26,7 @@ export function Hero({ authenticated }: { authenticated: boolean }) {
           </p>
           <div className="mt-8 flex justify-center">
             <Link
-              href={entry.href}
+              href="/app"
               className={buttonClassName(
                 "default",
                 marketingCtaClassName(
@@ -39,9 +36,7 @@ export function Hero({ authenticated }: { authenticated: boolean }) {
               )}
             >
               <ImagePlus className="size-5" aria-hidden="true" />
-              {authenticated
-                ? "Создать новый интерьер"
-                : "Создать интерьер бесплатно"}
+              Создать интерьер бесплатно
               <ArrowRight className="size-4" />
             </Link>
           </div>
