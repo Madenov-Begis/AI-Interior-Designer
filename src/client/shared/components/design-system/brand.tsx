@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Sparkle } from "lucide-react";
-import { APP_NAME } from "@/client/shared/config/brand";
-import { cn } from "@/client/shared/lib/cn";
+import { APP_NAME } from "@/shared/config";
+import { cn } from "@/shared/lib";
 
 export function RenoaLogo({
   href = "/app",

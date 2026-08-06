@@ -347,8 +347,14 @@ GET    /api/v1/auth/me
 GET    /api/v1/profile
 PATCH  /api/v1/profile
 GET    /api/v1/plans
-GET    /api/v1/credits
+GET    /api/v1/credits/packages
+GET    /api/v1/credits/transactions
 ```
+
+`auth/me` — компактный bootstrap SPA: пользователь и текущий баланс. Профиль
+возвращает только подробности аккаунта и usage, packages — только доступные
+пакеты, transactions — только историю движения кредитов. Workspace не дублирует
+пользователя и баланс.
 
 ### 10.2. Проекты и медиа
 

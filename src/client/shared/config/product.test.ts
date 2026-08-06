@@ -49,10 +49,5 @@ test("keeps credit packages ordered from the smallest to the largest", () => {
 test("uses unique protected navigation routes", () => {
   const hrefs = APP_NAV_ITEMS.map((item) => item.href);
   assert.equal(new Set(hrefs).size, hrefs.length);
-  assert.deepEqual(hrefs, [
-    "/app",
-    "/app/history",
-    "/app/profile",
-    "/app/credits",
-  ]);
+  assert.deepEqual(hrefs, ["/app", "/app/profile", "/app/credits"]);
 });

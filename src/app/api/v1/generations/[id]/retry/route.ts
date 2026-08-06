@@ -16,9 +16,15 @@ import {
 import { processGeneration } from "@/server/features/generations/worker";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 import { getDb } from "@/server/shared/db/prisma";
-import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
+import {
+  enforceRateLimit,
+  RateLimitError,
+} from "@/server/shared/security/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -80,7 +86,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const payload = await getGenerationClientPayload(
       user.id,
       reserved.generation.id,
-      "always",
     );
     return apiSuccess(
       { ...payload, retriedFromId: id, isExisting: reserved.isExisting },

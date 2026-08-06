@@ -8,7 +8,10 @@ import { generationIdSchema } from "@/server/features/generations/schema";
 import { cancelOwnedGeneration } from "@/server/features/generations/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 
 export async function POST(
   request: NextRequest,
@@ -30,10 +33,7 @@ export async function POST(
         409,
       );
     }
-    return apiSuccess(
-      await getGenerationClientPayload(user.id, id, "always"),
-      requestId,
-    );
+    return apiSuccess(await getGenerationClientPayload(user.id, id), requestId);
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

@@ -1,7 +1,5 @@
 import "server-only";
 
-import { GENERATION_CREDIT_COST } from "@/server/shared/config/product";
-import { getCreditWallet } from "@/server/features/credits/service";
 import { getOwnedGeneration } from "@/server/features/generations/service";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 
@@ -14,12 +12,9 @@ export class GenerationClientPayloadError extends Error {
   }
 }
 
-type WalletMode = "always" | "terminal" | "never";
-
 export async function getGenerationClientPayload(
   userId: string,
   generationId: string,
-  walletMode: WalletMode = "always",
 ) {
   const generation = await getOwnedGeneration(userId, generationId);
   if (!generation) {
@@ -43,13 +38,6 @@ export async function getGenerationClientPayload(
     resultUrl = signed.data.signedUrl;
   }
 
-  const includeWallet =
-    walletMode === "always" ||
-    (walletMode === "terminal" &&
-      generation.status !== "QUEUED" &&
-      generation.status !== "PROCESSING");
-  const wallet = includeWallet ? await getCreditWallet(userId, 0) : null;
-
   return {
     generation: {
       id: generation.id,
@@ -71,11 +59,5 @@ export async function getGenerationClientPayload(
       createdAt: generation.createdAt.toISOString(),
       completedAt: generation.completedAt?.toISOString() ?? null,
     },
-    wallet: wallet
-      ? {
-          balance: wallet.balance,
-          generationCost: GENERATION_CREDIT_COST,
-        }
-      : null,
   };
 }

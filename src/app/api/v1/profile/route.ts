@@ -1,46 +1,38 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { updateProfileSchema } from "@/server/features/profile/schema";
-import { GENERATION_CREDIT_COST } from "@/server/shared/config/product";
-import { getCreditWallet } from "@/server/features/credits/service";
 import { getGenerationUsage } from "@/server/features/generations/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 import { getDb } from "@/server/shared/db/prisma";
 
 const profileSelect = {
-  id: true,
   email: true,
-  firstName: true,
-  lastName: true,
   displayName: true,
-  avatarUrl: true,
-  role: true,
-  status: true,
-  timezone: true,
-  createdAt: true,
 } as const;
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
     const user = await requireCurrentUser();
-    const [profile, usage, wallet] = await Promise.all([
+    const [profile, usage] = await Promise.all([
       getDb().profile.findUniqueOrThrow({
         where: { id: user.id },
         select: profileSelect,
       }),
       getGenerationUsage(user.id),
-      getCreditWallet(user.id, 0),
     ]);
+    if (!usage) throw new Error("PROFILE_NOT_FOUND");
     return apiSuccess(
       {
         profile,
-        usage,
-        wallet: {
-          balance: wallet.balance,
-          generationCost: GENERATION_CREDIT_COST,
+        usage: {
+          used: usage.used,
+          plan: { name: usage.plan.name },
         },
       },
       requestId,

@@ -1,4 +1,4 @@
-import { cn } from "@/client/shared/lib/cn";
+import { cn } from "@/shared/lib";
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (

@@ -1,8 +1,6 @@
 import "server-only";
 
 import type { DesignWorkspaceProps } from "@/server/features/projects/workspace-types";
-import { GENERATION_CREDIT_COST } from "@/server/shared/config/product";
-import { getCreditWallet } from "@/server/features/credits/service";
 import { attachHistoryResultUrls } from "@/server/features/generations/history-media";
 import { listOwnedGenerations } from "@/server/features/generations/service";
 import { findOwnedProject } from "@/server/features/projects/service";
@@ -29,26 +27,21 @@ export async function getProjectWorkspace(
   const project = await findOwnedProject(user.id, projectId);
   if (!project) throw new ProjectWorkspaceNotFoundError("Проект не найден");
 
-  const [wallet, generationPage, sourceUrl, initialReferences] =
-    await Promise.all([
-      getCreditWallet(user.id, 0),
-      listOwnedGenerations(user.id, { projectId, limit: 20 }),
-      project.sourceImage && project.sourcePreview
-        ? signFile(project.sourcePreview.bucket, project.sourcePreview.path)
-        : Promise.resolve(null),
-      Promise.all(
-        project.references.map(async (reference) => ({
-          id: reference.id,
-          fileId: reference.fileId,
-          position: reference.position,
-          sourceUrl: reference.sourceUrl,
-          previewUrl: await signFile(
-            reference.file.bucket,
-            reference.file.path,
-          ),
-        })),
-      ),
-    ]);
+  const [generationPage, sourceUrl, initialReferences] = await Promise.all([
+    listOwnedGenerations(user.id, { projectId, limit: 20 }),
+    project.sourceImage && project.sourcePreview
+      ? signFile(project.sourcePreview.bucket, project.sourcePreview.path)
+      : Promise.resolve(null),
+    Promise.all(
+      project.references.map(async (reference) => ({
+        id: reference.id,
+        fileId: reference.fileId,
+        position: reference.position,
+        sourceUrl: reference.sourceUrl,
+        previewUrl: await signFile(reference.file.bucket, reference.file.path),
+      })),
+    ),
+  ]);
 
   const generationsWithUrls = await attachHistoryResultUrls(
     generationPage.items,
@@ -79,29 +72,9 @@ export async function getProjectWorkspace(
             (project.canvasState as VisualPromptCanvasState | null) ?? null,
         }
       : null;
-  const name =
-    (typeof user.user_metadata.full_name === "string" &&
-      user.user_metadata.full_name) ||
-    user.email?.split("@")[0] ||
-    "Пользователь";
-
   return {
-    user: {
-      name,
-      email: user.email ?? "",
-      avatarUrl:
-        typeof user.user_metadata.avatar_url === "string"
-          ? user.user_metadata.avatar_url
-          : null,
-    },
-    creditBalance: wallet.balance,
-    initialWallet: {
-      balance: wallet.balance,
-      generationCost: GENERATION_CREDIT_COST,
-    },
     project: {
       id: project.id,
-      name: project.name,
       prompt: project.prompt,
       aspectRatio: project.aspectRatio,
       source,

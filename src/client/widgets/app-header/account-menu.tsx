@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { CreditCard, LogOut, Sparkle, UserRound } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/client/shared/components/ui/avatar";
-import { Button } from "@/client/shared/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui";
+import { Button } from "@/shared/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/client/shared/components/ui/dropdown-menu";
-import { apiData } from "@/client/shared/api/client";
+} from "@/shared/ui";
+import { apiData } from "@/shared/api";
 
 export type RenoaUserSummary = {
   name: string;

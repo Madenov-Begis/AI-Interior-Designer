@@ -1,0 +1,97 @@
+// Public UI API. Implementations stay in components/ during the migration.
+export {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "../components/ui/alert.tsx";
+export {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "../components/ui/avatar.tsx";
+export { Badge, badgeVariants } from "../components/ui/badge.tsx";
+export { Button, buttonClassName } from "../components/ui/button.tsx";
+export {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card.tsx";
+export {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu.tsx";
+export {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "../components/ui/empty.tsx";
+export {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+  FieldTitle,
+} from "../components/ui/field.tsx";
+export { Input } from "../components/ui/input.tsx";
+export {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+  InputGroupTextarea,
+} from "../components/ui/input-group.tsx";
+export { Label } from "../components/ui/label.tsx";
+export { Separator } from "../components/ui/separator.tsx";
+export {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "../components/ui/sheet.tsx";
+export { Skeleton } from "../components/ui/skeleton.tsx";
+export { Textarea } from "../components/ui/textarea.tsx";
+export { Toggle } from "../components/ui/toggle.tsx";
+export {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "../components/ui/toggle-group.tsx";
+export {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../components/ui/tooltip.tsx";
+export { RenoaLogo } from "../components/design-system/brand.tsx";
+export {
+  RenoaPage,
+  RenoaPanel,
+  RenoaSectionHeading,
+  RenoaStepLabel,
+} from "../components/design-system/surfaces.tsx";

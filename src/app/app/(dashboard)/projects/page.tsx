@@ -1,7 +1,1 @@
-"use client";
-
-import { ProjectsGrid } from "@/client/features/projects/ui/projects-grid";
-
-export default function ProjectsPage() {
-  return <ProjectsGrid />;
-}
+export { ProjectsListPage as default } from "@/pages/projects-list";

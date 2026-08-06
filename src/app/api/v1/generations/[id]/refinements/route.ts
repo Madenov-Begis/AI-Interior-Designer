@@ -25,8 +25,14 @@ import {
 } from "@/server/features/visual-prompt/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
-import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
+import {
+  enforceRateLimit,
+  RateLimitError,
+} from "@/server/shared/security/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -88,7 +94,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const payload = await getGenerationClientPayload(
       user.id,
       reserved.generation.id,
-      "always",
     );
     return apiSuccess(
       {

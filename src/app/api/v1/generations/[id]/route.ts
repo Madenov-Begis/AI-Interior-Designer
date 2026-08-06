@@ -8,7 +8,10 @@ import { generationIdSchema } from "@/server/features/generations/schema";
 import { softDeleteOwnedGeneration } from "@/server/features/generations/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 
 export async function GET(
   request: NextRequest,
@@ -20,7 +23,7 @@ export async function GET(
     const { id } = await context.params;
     const generationId = generationIdSchema.parse(id);
     return apiSuccess(
-      await getGenerationClientPayload(user.id, generationId, "terminal"),
+      await getGenerationClientPayload(user.id, generationId),
       requestId,
     );
   } catch (error) {

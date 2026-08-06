@@ -1,5 +1,4 @@
-import { RenoaAppHeader } from "@/client/widgets/app-header/app-header";
-import type { RenoaUserSummary } from "@/client/widgets/app-header/account-menu";
+import { RenoaAppHeader, type RenoaUserSummary } from "@/widgets/app-header";
 
 export type AppUserSummary = RenoaUserSummary;
 

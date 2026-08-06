@@ -20,6 +20,11 @@
       }
     ],
     "paths": {
+      "@/shared/*": ["./src/client/shared/*"],
+      "@/entities/*": ["./src/client/entities/*"],
+      "@/features/*": ["./src/client/features/*"],
+      "@/widgets/*": ["./src/client/widgets/*"],
+      "@/pages/*": ["./src/client/_pages/*"],
       "@/*": ["./src/*"]
     }
   },

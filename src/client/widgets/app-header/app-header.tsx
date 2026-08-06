@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { FolderOpen, Plus } from "lucide-react";
-import {
-  AccountMenu,
-  type RenoaUserSummary,
-} from "@/client/widgets/app-header/account-menu";
-import { RenoaLogo } from "@/client/shared/components/design-system/brand";
-import { Button } from "@/client/shared/components/ui/button";
+import { AccountMenu, type RenoaUserSummary } from "./account-menu";
+import { RenoaLogo } from "@/shared/ui";
+import { Button } from "@/shared/ui";
 
 export function RenoaAppHeader({
   user,

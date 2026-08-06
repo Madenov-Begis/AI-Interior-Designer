@@ -2,26 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  CreditCard,
-  History,
-  Sparkles,
-  UserRound,
-  type LucideIcon,
-} from "lucide-react";
-import { APP_NAV_ITEMS } from "@/client/shared/config/product";
-import { Button } from "@/client/shared/components/ui/button";
+import { CreditCard, Sparkles, UserRound, type LucideIcon } from "lucide-react";
+import { APP_NAV_ITEMS } from "@/shared/config";
+import { Button } from "@/shared/ui";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/client/shared/components/ui/tooltip";
-import { cn } from "@/client/shared/lib/cn";
+} from "@/shared/ui";
+import { cn } from "@/shared/lib";
 
 const ICONS: Record<(typeof APP_NAV_ITEMS)[number]["icon"], LucideIcon> = {
   sparkles: Sparkles,
-  history: History,
   user: UserRound,
   "credit-card": CreditCard,
 };

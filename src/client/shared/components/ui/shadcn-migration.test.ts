@@ -33,7 +33,10 @@ test("shared interactive patterns use shadcn primitives", async () => {
       "utf8",
     ),
     readFile(
-      new URL("../../../features/projects/ui/projects-grid.tsx", import.meta.url),
+      new URL(
+        "../../../features/manage-projects/ui/projects-grid.tsx",
+        import.meta.url,
+      ),
       "utf8",
     ),
   ]);

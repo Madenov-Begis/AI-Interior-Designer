@@ -25,11 +25,6 @@ export type WorkspaceGenerationList = {
   total: number;
 };
 
-export type WorkspaceWallet = {
-  balance: number;
-  generationCost: number;
-};
-
 export type WorkspaceReference = {
   id: string;
   fileId: string;
@@ -39,17 +34,9 @@ export type WorkspaceReference = {
 };
 
 export type DesignWorkspaceProps = {
-  user: {
-    name: string;
-    email: string;
-    avatarUrl?: string | null;
-  };
-  creditBalance: number;
-  initialWallet: WorkspaceWallet;
   initialGenerations: WorkspaceGenerationList;
   project: {
     id: string;
-    name: string;
     prompt: string | null;
     aspectRatio: string;
     source: {

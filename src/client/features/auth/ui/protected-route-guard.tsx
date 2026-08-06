@@ -4,12 +4,13 @@ import { LoaderCircle } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { useCurrentAuthUser } from "@/client/features/auth/client";
+import { useAppSessionQuery } from "../api/client";
+import { AppSessionProvider } from "../model/context";
 
 export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const auth = useCurrentAuthUser();
+  const auth = useAppSessionQuery();
 
   useEffect(() => {
     if (auth.isPending || auth.data) return;
@@ -35,5 +36,7 @@ export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  return children;
+  return (
+    <AppSessionProvider session={auth.data}>{children}</AppSessionProvider>
+  );
 }

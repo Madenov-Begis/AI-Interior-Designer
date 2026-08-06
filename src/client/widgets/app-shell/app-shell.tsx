@@ -1,8 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  AppTopbar,
-  type AppUserSummary,
-} from "@/client/widgets/app-shell/app-topbar";
+import { AppTopbar, type AppUserSummary } from "./app-topbar";
 
 export type { AppUserSummary };
 

@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { Card } from "@/client/shared/components/ui/card";
-import { cn } from "@/client/shared/lib/cn";
+import { Card } from "../ui/card";
+import { cn } from "@/shared/lib";
 
 export function RenoaPage({
   className,
