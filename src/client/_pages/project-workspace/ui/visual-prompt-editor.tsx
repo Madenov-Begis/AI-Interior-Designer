@@ -14,15 +14,7 @@ import type {
   VisualPromptTool,
 } from "@/features/visual-prompt";
 import { apiData } from "@/shared/api";
-
-function canvasToPngBlob(canvas: Canvas) {
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.getElement().toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("Не удалось подготовить разметку"));
-    }, "image/png");
-  });
-}
+import { canvasToPngBlob } from "../model/visual-prompt-canvas-export";
 
 type Props = {
   projectId?: string;
