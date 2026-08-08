@@ -1,21 +1,21 @@
 import Link from "next/link";
 import { FolderOpen, Plus } from "lucide-react";
-import { AccountMenu, type RenoaUserSummary } from "./account-menu";
-import { RenoaLogo } from "@/shared/ui";
+import { AccountMenu, type RoovaUserSummary } from "./account-menu";
+import { RoovaLogo } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 
-export function RenoaAppHeader({
+export function RoovaAppHeader({
   user,
   creditBalance,
   middle,
 }: {
-  user: RenoaUserSummary;
+  user: RoovaUserSummary;
   creditBalance?: number | null;
   middle?: React.ReactNode;
 }) {
   return (
     <header className="relative z-50 flex h-[72px] shrink-0 items-center gap-4 border-b border-border bg-[#1b1b1d] px-4 sm:px-6 lg:px-10">
-      <RenoaLogo href="/" className="lg:min-w-48" />
+      <RoovaLogo href="/" className="lg:min-w-48" />
       {middle ? (
         <div className="min-w-0 flex-1">{middle}</div>
       ) : (

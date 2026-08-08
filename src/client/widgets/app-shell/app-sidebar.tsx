@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Sparkles, UserRound, type LucideIcon } from "lucide-react";
+import {
+  CreditCard,
+  ImagePlus,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { APP_NAV_ITEMS } from "@/shared/config";
 import { Button } from "@/shared/ui";
 import {
@@ -14,7 +19,7 @@ import {
 import { cn } from "@/shared/lib";
 
 const ICONS: Record<(typeof APP_NAV_ITEMS)[number]["icon"], LucideIcon> = {
-  sparkles: Sparkles,
+  "image-plus": ImagePlus,
   user: UserRound,
   "credit-card": CreditCard,
 };

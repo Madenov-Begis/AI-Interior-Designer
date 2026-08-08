@@ -25,7 +25,7 @@ export function getCreditPackage(code: string) {
 }
 
 export const APP_NAV_ITEMS = [
-  { href: "/app", label: "Создать", icon: "sparkles" },
+  { href: "/app", label: "Создать", icon: "image-plus" },
   { href: "/app/profile", label: "Профиль", icon: "user" },
   { href: "/app/credits", label: "Кредиты", icon: "credit-card" },
 ] as const;

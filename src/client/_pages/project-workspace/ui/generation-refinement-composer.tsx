@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, LoaderCircle, Sparkles, X } from "lucide-react";
+import { ImagePlus, LoaderCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -27,10 +27,7 @@ type Props = {
   error: string | null;
   errorCode: string | null;
   onClose(): void;
-  onSubmit(input: {
-    prompt: string;
-    files: File[];
-  }): Promise<void>;
+  onSubmit(input: { prompt: string; files: File[] }): Promise<void>;
 };
 
 export function GenerationRefinementComposer({
@@ -114,8 +111,8 @@ export function GenerationRefinementComposer({
         <DialogHeader className="pr-8">
           <DialogTitle>Опишите изменения</DialogTitle>
           <DialogDescription>
-            Изменится выбранный вариант. Добавятся только новая разметка и
-            новые референсы
+            Изменится выбранный вариант. Добавятся только новая разметка и новые
+            референсы
           </DialogDescription>
         </DialogHeader>
         <div
@@ -129,9 +126,7 @@ export function GenerationRefinementComposer({
               [
                 ...current,
                 ...Array.from(event.dataTransfer.files).filter((file) =>
-                  ["image/jpeg", "image/png", "image/webp"].includes(
-                    file.type,
-                  ),
+                  ["image/jpeg", "image/png", "image/webp"].includes(file.type),
                 ),
               ].slice(0, 10),
             );
@@ -218,7 +213,7 @@ export function GenerationRefinementComposer({
               {pending ? (
                 <LoaderCircle size={17} className="animate-spin" />
               ) : (
-                <Sparkles size={17} />
+                <ImagePlus size={17} />
               )}
               {pending ? "Создаём…" : walletPresentation.buttonLabel}
             </button>

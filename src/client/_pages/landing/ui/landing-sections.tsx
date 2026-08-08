@@ -2,24 +2,32 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
-  Check,
-  Clock3,
+  BriefcaseBusiness,
+  Building2,
+  CheckCircle2,
+  Home,
   Layers3,
   MessageSquareText,
   MousePointer2,
-  Sparkle,
+  Palette,
   Upload,
-  WandSparkles,
-  X,
 } from "lucide-react";
 import { buttonClassName } from "@/shared/ui";
-import { marketingCtaClassName, marketingDarkCtaClassName } from "./cta-style";
+import { marketingCtaClassName } from "./cta-style";
 import { CREDIT_PACKAGES } from "@/shared/config";
+
+const priceFormatter = new Intl.NumberFormat("ru-RU");
+
+const packageDescriptions = {
+  mini: "Для пробы сервиса",
+  standard: "Оптимально для ремонта",
+  pro: "Для нескольких проектов",
+} as const;
 
 const modes = [
   {
     title: "Сохранить геометрию",
-    copy: "Renoa оставляет стены, окна и ракурс на месте, меняя только интерьер.",
+    copy: "ROOVA оставляет стены, окна и ракурс на месте, меняя только интерьер.",
     image: "/images/interior-styles/japandi.webp",
   },
   {
@@ -101,18 +109,18 @@ export function WorkflowSection() {
   ];
 
   return (
-    <section className="page-grid border-b border-border">
+    <section className="border-b border-border bg-[#1a1c1f]">
       <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Один рабочий экран
           </p>
           <h2 className="mt-3 text-4xl font-black tracking-[-0.055em] sm:text-6xl">
-            Весь проект живёт на холсте
+            Не потеряйте удачный вариант
           </h2>
           <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-            Никаких мастеров настройки и переходов между экранами. Загрузите
-            фото, выберите стиль и продолжайте улучшать результат в одном месте.
+            Исходное фото, все варианты и дальнейшие правки остаются на одном
+            холсте. Можно сравнивать идеи и продолжать с любой версии.
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             {items.map(({ icon: Icon, text }) => (
@@ -135,14 +143,14 @@ export function WorkflowSection() {
               "lg",
             )}
           >
-            Создать дизайн комнаты
+            Загрузить фото бесплатно
             <ArrowRight className="size-4" />
           </Link>
         </div>
         <div className="rounded-[26px] border border-border bg-card p-3 shadow-2xl shadow-black/35">
           <div className="page-grid relative aspect-[16/10] overflow-hidden rounded-[18px] border border-border bg-background">
             <div className="absolute inset-x-6 top-6 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-              <span className="font-bold italic">Renoa</span>
+              <span className="font-bold italic">ROOVA</span>
               <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
                 10 кредитов
               </span>
@@ -165,10 +173,7 @@ export function WorkflowSection() {
                 height={420}
                 className="aspect-[4/3] w-full object-cover"
               />
-              <p className="flex items-center gap-2 p-3 text-xs font-semibold">
-                <Sparkle className="size-3.5 fill-primary text-primary" />
-                Вариант 01
-              </p>
+              <p className="p-3 text-xs font-semibold">Вариант 01</p>
             </div>
           </div>
         </div>
@@ -177,158 +182,108 @@ export function WorkflowSection() {
   );
 }
 
-export function ComparisonSection() {
-  const traditional = [
-    "Поиск дизайнера и согласование",
-    "Несколько дней на первый вариант",
-    "Каждая правка — новая итерация",
-  ];
-  const renoa = [
-    "Загрузка фото и выбор стиля",
-    "Первый результат за несколько минут",
-    "Новые варианты прямо на холсте",
-  ];
-
-  return (
-    <section className="page-grid border-b border-border">
-      <div className="mx-auto max-w-[1180px] px-5 py-20 sm:px-8 sm:py-28">
-        <div className="text-center">
-          <h2 className="text-4xl font-black tracking-[-0.055em] sm:text-6xl">
-            Профессиональный визуал за пару минут
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-            Быстрее традиционного процесса и понятнее сложных 3D‑редакторов.
-          </p>
-        </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-2">
-          <article className="rounded-[24px] border border-border bg-card p-7">
-            <p className="text-sm font-semibold text-muted-foreground">
-              Традиционный путь
-            </p>
-            <p className="mt-2 text-4xl font-black italic">3–7 дней</p>
-            <ul className="mt-8 grid gap-4">
-              {traditional.map((item) => (
-                <li
-                  key={item}
-                  className="flex gap-3 text-sm text-muted-foreground"
-                >
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-secondary">
-                    <X className="size-3.5" />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-          <article className="rounded-[24px] border border-primary/45 bg-primary p-7 text-primary-foreground">
-            <p className="text-sm font-semibold">Renoa</p>
-            <p className="mt-2 text-4xl font-black italic">~5 минут</p>
-            <ul className="mt-8 grid gap-4">
-              {renoa.map((item) => (
-                <li key={item} className="flex gap-3 text-sm font-medium">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-foreground text-primary">
-                    <Check className="size-3.5" />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-        </div>
-        <div className="mt-7 text-center">
-          <Link
-            href="/app"
-            className={buttonClassName(
-              "default",
-              marketingCtaClassName("rounded-2xl px-7"),
-              "lg",
-            )}
-          >
-            Попробовать сейчас
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function PricingSection() {
   return (
-    <section id="pricing" className="border-b border-border bg-[#111113]">
-      <div className="mx-auto max-w-[1180px] px-5 py-20 sm:px-8 sm:py-28">
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Тарифы
-          </p>
-          <h2 className="mt-3 text-4xl font-black tracking-[-0.055em] sm:text-6xl">
-            Кредиты на любой объём
+    <section
+      id="pricing"
+      className="page-grid border-b border-border bg-[#101719] text-white"
+    >
+      <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 sm:py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-4xl font-black tracking-[-0.055em] sm:text-5xl">
+            Пакеты кредитов
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-            4 кредита за одну генерацию. При технической ошибке они
-            автоматически возвращаются.
+          <p className="mt-4 text-base font-semibold text-white/70">
+            Кредиты — валюта ROOVA для генераций и правок
           </p>
         </div>
+
         <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {CREDIT_PACKAGES.map((pack) => (
-            <article
-              key={pack.code}
-              className={`relative rounded-[24px] border p-6 ${
-                pack.popular
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-[#ededeb] text-[#19191b]"
-              }`}
-            >
-              {pack.popular ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-success px-3 py-1 text-xs font-bold text-[#102217]">
-                  Выбирают чаще
-                </span>
-              ) : null}
-              <h3 className="text-3xl font-black italic">{pack.name}</h3>
-              <p className="mt-7 text-4xl font-black">
-                {new Intl.NumberFormat("ru-RU").format(pack.priceUzs)} сум
-              </p>
-              <p className="mt-3 flex items-center gap-2 text-lg font-bold">
-                <Sparkle className="size-5 fill-current" />
-                {pack.credits} кредитов
-              </p>
-              <div className="my-6 h-px bg-current opacity-10" />
-              <p className="text-sm font-semibold">
-                Хватит на {Math.floor(pack.credits / 4)} генераций
-              </p>
-              <Link
-                href="/app"
-                className={buttonClassName(
-                  pack.popular ? "secondary" : "default",
+          {CREDIT_PACKAGES.map((pack) => {
+            const generationCount = Math.floor(pack.credits / 4);
+
+            return (
+              <article
+                key={pack.code}
+                className={`relative flex min-h-[390px] flex-col rounded-[24px] border bg-[#f2f3f1] p-6 text-[#1b1d1f] shadow-[0_24px_60px_rgba(0,0,0,0.22)] ${
                   pack.popular
-                    ? marketingDarkCtaClassName(
-                        "mt-7 w-full rounded-2xl !bg-[#19191b] !text-white hover:!bg-[#29292c]",
-                      )
-                    : marketingCtaClassName("mt-7 w-full rounded-2xl"),
-                  "lg",
-                )}
+                    ? "border-primary ring-2 ring-primary"
+                    : "border-white/10"
+                }`}
               >
-                Выбрать
-                <ArrowRight className="size-4" />
-              </Link>
-            </article>
-          ))}
+                {pack.popular ? (
+                  <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-primary-foreground shadow-lg">
+                    Выбирают чаще
+                  </div>
+                ) : null}
+
+                <div>
+                  <h3 className="text-2xl font-black italic">{pack.name}</h3>
+                  <p className="mt-1 text-sm text-black/55">
+                    {packageDescriptions[pack.code]}
+                  </p>
+                </div>
+
+                <div className="mt-5">
+                  <p className="text-3xl font-black tracking-[-0.04em] tabular-nums">
+                    {priceFormatter.format(pack.priceUzs)} сум
+                  </p>
+                  <p className="mt-3 text-lg font-black">
+                    {pack.credits} кредитов
+                  </p>
+                </div>
+
+                <div className="my-5 h-px bg-black/8" />
+
+                <div>
+                  <p className="text-xs font-bold text-black/55">Хватит на</p>
+                  <p className="mt-3 flex items-center gap-2 text-sm font-semibold">
+                    <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
+                    {generationCount} генераций или правок
+                  </p>
+                  <p className="mt-3 flex items-center gap-2 text-sm text-black/60">
+                    <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
+                    Кредиты не сгорают
+                  </p>
+                </div>
+
+                <Link
+                  href="/app/credits"
+                  className={buttonClassName(
+                    pack.popular ? "default" : "secondary",
+                    pack.popular
+                      ? "mt-auto h-11 w-full rounded-xl px-5"
+                      : "mt-auto h-11 w-full rounded-xl bg-[#2b2c2f] px-5 text-white hover:bg-[#1d1e20] hover:text-white",
+                    "sm",
+                  )}
+                >
+                  Купить
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </article>
+            );
+          })}
         </div>
-        <div className="mt-4 flex flex-col items-start justify-between gap-4 rounded-[24px] border border-border bg-card p-6 sm:flex-row sm:items-center">
+
+        <div className="mt-8 flex flex-col gap-5 rounded-[24px] border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
-            <p className="text-2xl font-black italic">+10 кредитов</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Новым пользователям — чтобы проверить Renoa без оплаты.
-            </p>
+            <div>
+              <h3 className="font-bold">10 кредитов новым пользователям</h3>
+              <p className="mt-1 text-sm text-white/55">
+                Хватит на 2 варианта. Банковская карта не нужна.
+              </p>
+            </div>
           </div>
           <Link
             href="/app"
             className={buttonClassName(
-              "default",
-              marketingCtaClassName("rounded-2xl px-6"),
+              "outline",
+              "h-11 shrink-0 rounded-xl border-white bg-white px-6 text-[#1b1d1f] hover:bg-white/90 hover:text-[#1b1d1f]",
+              "sm",
             )}
           >
-            Давайте попробуем
+            Попробовать бесплатно
+            <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
       </div>
@@ -338,24 +293,24 @@ export function PricingSection() {
 
 const stories = [
   {
-    title: "Понятный старт",
-    text: "Загрузка фото находится прямо на холсте — не нужно сначала создавать и настраивать проект.",
-    icon: Upload,
+    title: "Планируете ремонт",
+    text: "Проверьте стиль, цвета и мебель до того, как заказывать материалы и начинать работы.",
+    icon: Home,
   },
   {
-    title: "Видимый процесс",
-    text: "Исходник, новые варианты и ветки правок остаются рядом и не теряются в списках.",
-    icon: Layers3,
+    title: "Работаете дизайнером",
+    text: "Быстро соберите несколько направлений для первой встречи и развивайте выбранную идею.",
+    icon: BriefcaseBusiness,
   },
   {
-    title: "Быстрые итерации",
-    text: "Выберите результат и продолжайте уточнять его обычными словами.",
-    icon: WandSparkles,
+    title: "Готовите объект к продаже",
+    text: "Покажите потенциал пустой или незавершённой комнаты без физического хоумстейджинга.",
+    icon: Building2,
   },
   {
-    title: "Безопасный баланс",
-    text: "Стоимость видна заранее, а при технической ошибке кредиты возвращаются.",
-    icon: Clock3,
+    title: "Обновляете одну комнату",
+    text: "Сравните несколько идей и поймите, какое направление действительно подходит вашему дому.",
+    icon: Palette,
   },
 ];
 
@@ -364,10 +319,10 @@ export function StoriesSection() {
     <section className="border-b border-border">
       <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-28">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-          Опыт работы
+          Для дома и работы
         </p>
         <h2 className="mt-3 text-4xl font-black tracking-[-0.055em] sm:text-6xl">
-          Всё важное — перед глазами
+          Подойдёт, если вы…
         </h2>
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stories.map(({ title, text, icon: Icon }) => (
@@ -394,7 +349,7 @@ const faqs = [
     "Снимите комнату ровно, при дневном свете и без сильного размытия. Поддерживаются JPG, PNG и WEBP до 15 МБ.",
   ],
   [
-    "Renoa сохранит окна и геометрию?",
+    "ROOVA сохранит окна и геометрию?",
     "Да. Базовая инструкция просит модель сохранять ракурс, пропорции и архитектурные элементы помещения.",
   ],
   [
@@ -413,11 +368,15 @@ const faqs = [
     "Нужны ли навыки дизайнера?",
     "Нет. Достаточно загрузить фото, выбрать стиль и написать пожелания обычным языком.",
   ],
+  [
+    "Нужно ли оплачивать сразу?",
+    "Нет. После регистрации вы получите 10 кредитов — этого хватит на две генерации. Банковская карта для старта не нужна.",
+  ],
 ];
 
 export function FaqSection() {
   return (
-    <section className="page-grid border-b border-border">
+    <section className="border-b border-border bg-[#151719]">
       <div className="mx-auto grid max-w-[1180px] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.7fr_1.3fr]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
@@ -452,29 +411,41 @@ export function FaqSection() {
 
 export function FinalCtaSection() {
   return (
-    <section className="bg-primary text-primary-foreground">
-      <div className="mx-auto max-w-[1180px] px-5 py-20 text-center sm:px-8 sm:py-28">
-        <Sparkle className="mx-auto size-9 fill-current" aria-hidden="true" />
-        <h2 className="mx-auto mt-5 max-w-4xl text-5xl font-black italic leading-[0.95] tracking-[-0.065em] sm:text-7xl">
-          Всё ещё не уверены?
-        </h2>
-        <p className="mx-auto mt-5 max-w-xl text-base font-medium opacity-75">
-          Загрузите комнату и создайте первые варианты бесплатно. Карта не
-          нужна.
-        </p>
-        <Link
-          href="/app"
-          className={buttonClassName(
-            "secondary",
-            marketingDarkCtaClassName(
-              "mt-8 rounded-2xl bg-[#171719] px-8 !text-white hover:bg-[#27272a]",
-            ),
-            "lg",
-          )}
-        >
-          Создать интерьер бесплатно
-          <ArrowRight className="size-4" />
-        </Link>
+    <section className="bg-[#111315] px-4 py-5 sm:px-6 sm:py-8">
+      <div className="relative mx-auto min-h-[500px] max-w-[1320px] overflow-hidden rounded-[34px]">
+        <Image
+          src="/images/interior-styles/neoclassic.webp"
+          alt="Светлый интерьер в неоклассическом стиле"
+          fill
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/10" />
+        <div className="relative flex min-h-[500px] max-w-2xl flex-col justify-end p-7 sm:p-12 lg:p-16">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+            Начните с одной комнаты
+          </p>
+          <h2 className="mt-4 text-4xl font-black leading-[0.98] tracking-[-0.06em] sm:text-6xl">
+            Начните с фотографии своей комнаты
+          </h2>
+          <p className="mt-5 max-w-lg text-base leading-7 text-white/65">
+            Получите два первых варианта бесплатно и решайте, стоит ли
+            продолжать, уже после результата.
+          </p>
+          <div className="mt-8">
+            <Link
+              href="/app"
+              className={buttonClassName(
+                "default",
+                marketingCtaClassName("rounded-full px-7 shadow-none"),
+                "lg",
+              )}
+            >
+              Загрузить фото бесплатно
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );

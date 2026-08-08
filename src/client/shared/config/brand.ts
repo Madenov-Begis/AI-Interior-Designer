@@ -1,4 +1,4 @@
-const DEFAULT_APP_NAME = "Renoa";
+const DEFAULT_APP_NAME = "ROOVA";
 
 export function resolveAppName(value: string | undefined): string {
   return value?.trim() || DEFAULT_APP_NAME;

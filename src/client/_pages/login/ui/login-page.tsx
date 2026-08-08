@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, ShieldCheck, Sparkle } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
@@ -46,11 +46,7 @@ function LoginCard({
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md rounded-[24px] shadow-2xl shadow-black/35">
         <CardHeader className="p-6 sm:p-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Sparkle
-              className="size-5 fill-primary text-primary"
-              aria-hidden="true"
-            />
+          <Link href="/">
             <span className="text-lg font-black italic tracking-[-0.045em]">
               {APP_NAME}
             </span>

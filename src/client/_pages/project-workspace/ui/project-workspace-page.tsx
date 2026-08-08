@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { DesignWorkspace } from "./design-workspace";
 import { Button, buttonClassName } from "@/shared/ui";
-import { Skeleton } from "@/shared/ui";
 import { ApiClientError } from "@/shared/api";
 import { projectsQueries } from "@/shared/api/projects";
 
@@ -25,7 +24,7 @@ export function ProjectWorkspacePage() {
     workspace.error instanceof ApiClientError && workspace.error.status === 404;
 
   return (
-    <main className="grid h-full place-items-center bg-background px-4 text-foreground">
+    <main className="relative grid h-full place-items-center bg-background px-4 text-foreground">
       <div className="grid max-w-md justify-items-center gap-4 text-center">
         {workspace.isError ? (
           <>
@@ -46,11 +45,15 @@ export function ProjectWorkspacePage() {
           </>
         ) : (
           <div
-            className="grid w-[min(720px,calc(100vw-2rem))] gap-4"
-            aria-label="Загружаем проект"
+            className="absolute inset-x-0 top-0 h-px overflow-hidden bg-border/30"
+            role="status"
+            aria-live="polite"
           >
-            <Skeleton className="h-12 w-64" />
-            <Skeleton className="h-[min(62vh,560px)] w-full rounded-3xl" />
+            <div
+              className="h-full w-full animate-pulse bg-primary/60"
+              aria-hidden="true"
+            />
+            <span className="sr-only">Открываем проект…</span>
           </div>
         )}
       </div>

@@ -1,38 +1,37 @@
 import Link from "next/link";
-import { ArrowUpRight, Sparkle } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { buttonClassName } from "@/shared/ui";
 import { APP_NAME } from "@/shared/config";
 import { marketingCtaClassName } from "./cta-style";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 sm:px-8">
+    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5">
+      <div className="mx-auto flex h-15 max-w-[1280px] items-center justify-between rounded-full border border-white/10 bg-[#17181a]/90 px-3 pl-4 shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:pl-5">
         <Link
           href="/"
-          className="flex items-center gap-2"
+          className="flex items-center"
           aria-label={`${APP_NAME} — главная`}
         >
-          <Sparkle
-            className="size-5 fill-primary text-primary"
-            aria-hidden="true"
-          />
-          <span className="text-xl font-black italic tracking-[-0.045em]">
+          <span className="text-lg font-black tracking-[-0.04em]">
             {APP_NAME}
           </span>
         </Link>
         <nav
-          className="hidden items-center gap-8 text-sm text-muted-foreground md:flex"
+          className="hidden items-center gap-7 text-sm text-white/55 md:flex"
           aria-label="Основная навигация"
         >
+          <a
+            className="transition-colors hover:text-foreground"
+            href="#examples"
+          >
+            Примеры
+          </a>
           <a
             className="transition-colors hover:text-foreground"
             href="#process"
           >
             Как это работает
-          </a>
-          <a className="transition-colors hover:text-foreground" href="#modes">
-            Возможности
           </a>
           <a
             className="transition-colors hover:text-foreground"
@@ -45,11 +44,12 @@ export function SiteHeader() {
           href="/app"
           className={buttonClassName(
             "default",
-            marketingCtaClassName("h-10 rounded-full px-5"),
+            marketingCtaClassName("h-10 rounded-full px-5 shadow-none"),
             "sm",
           )}
         >
-          Создать интерьер
+          <span className="hidden sm:inline">Загрузить фото бесплатно</span>
+          <span className="sm:hidden">Начать</span>
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </Link>
       </div>

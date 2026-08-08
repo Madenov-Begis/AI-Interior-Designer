@@ -1,7 +1,6 @@
 import {
   AppShell,
   Avatar,
-  Box,
   Burger,
   Group,
   NavLink,
@@ -12,7 +11,7 @@ import {
   IconChartBar,
   IconCoin,
   IconFileText,
-  IconSparkles,
+  IconPhoto,
   IconUsers,
 } from "@tabler/icons-react";
 import { NavLink as RouterLink, Outlet, useLocation } from "react-router-dom";
@@ -20,7 +19,7 @@ import { NavLink as RouterLink, Outlet, useLocation } from "react-router-dom";
 const nav = [
   ["/", "Обзор", IconChartBar],
   ["/users", "Пользователи", IconUsers],
-  ["/generations", "Генерации", IconSparkles],
+  ["/generations", "Генерации", IconPhoto],
   ["/finance", "Финансы", IconCoin],
   ["/plans", "Тарифы", IconFileText],
 ] as const;
@@ -37,16 +36,15 @@ export function AdminShell({ onLogout }: { onLogout: () => void }) {
       <AppShell.Header bg="#111113" withBorder>
         <Group justify="space-between" h="100%" px="xl">
           <Group gap="sm">
-            <Box bg="renoa.3" w={28} h={28} style={{ borderRadius: 9 }} />
             <Title order={3} fw={900} fs="italic">
-              RENOA
+              ROOVA
             </Title>
             <Text c="dimmed" size="sm">
               Администрирование
             </Text>
           </Group>
           <Group>
-            <Avatar color="renoa" radius="xl">
+            <Avatar color="roova" radius="xl">
               A
             </Avatar>
             <Text
@@ -77,7 +75,7 @@ export function AdminShell({ onLogout }: { onLogout: () => void }) {
                   ? location.pathname === "/"
                   : location.pathname.startsWith(to)
               }
-              color="renoa"
+              color="roova"
               variant="filled"
               mb={4}
             />

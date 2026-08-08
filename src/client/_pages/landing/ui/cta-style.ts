@@ -1,7 +1,7 @@
 import { cn } from "@/shared/lib";
 
 const interactionStyles =
-  "group border transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 active:translate-y-px [&_svg:last-child]:transition-transform [&_svg:last-child]:duration-200 hover:[&_svg:last-child]:translate-x-0.5";
+  "group border transition-[color,background-color,border-color,box-shadow] duration-200";
 
 export function marketingCtaClassName(className?: string) {
   return cn(

@@ -1,4 +1,3 @@
-import { Sparkle } from "lucide-react";
 import Link from "next/link";
 import { APP_NAME } from "@/shared/config";
 
@@ -6,12 +5,8 @@ export function SiteFooter() {
   return (
     <footer className="bg-[#111113]">
       <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.5fr_1fr_1fr]">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Sparkle
-            className="size-5 fill-primary text-primary"
-            aria-hidden="true"
-          />
-          <span className="text-xl font-black italic tracking-[-0.045em]">
+        <Link href="/" className="flex items-center">
+          <span className="text-xl font-black tracking-[-0.045em]">
             {APP_NAME}
           </span>
         </Link>

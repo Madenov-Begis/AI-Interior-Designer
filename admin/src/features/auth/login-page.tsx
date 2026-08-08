@@ -42,8 +42,8 @@ export function LoginPage({
         <Card withBorder shadow="xl" p="xl" bg="dark.8">
           <Stack gap="lg">
             <div>
-              <Text c="renoa.3" fw={800} fz="xs" tt="uppercase">
-                Renoa
+              <Text c="roova.3" fw={800} fz="xs" tt="uppercase">
+                ROOVA
               </Text>
               <Title order={1} mt={8}>
                 Администрирование
@@ -74,7 +74,7 @@ export function LoginPage({
                   key={form.key("phone")}
                   {...form.getInputProps("phone")}
                 />
-                <Button type="submit" color="renoa" fullWidth>
+                <Button type="submit" color="roova" fullWidth>
                   Войти
                 </Button>
               </Stack>

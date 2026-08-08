@@ -4,20 +4,20 @@
 
 :root {
   color-scheme: dark;
-  --renoa-canvas: #19191b;
-  --renoa-canvas-deep: #111113;
-  --renoa-surface: #232325;
-  --renoa-surface-raised: #2c2c2f;
-  --renoa-line: #343437;
-  --renoa-text: #f2f2ef;
-  --renoa-text-muted: #9a9a9f;
-  --renoa-lime: #a9ed32;
-  --renoa-lime-hover: #c0fb5c;
-  --renoa-radius-control: 0.625rem;
-  --renoa-radius-card: 1.125rem;
-  --renoa-radius-panel: 1.5rem;
-  --renoa-radius-modal: 1.875rem;
-  --renoa-header-height: 4.5rem;
+  --roova-canvas: #19191b;
+  --roova-canvas-deep: #111113;
+  --roova-surface: #232325;
+  --roova-surface-raised: #2c2c2f;
+  --roova-line: #343437;
+  --roova-text: #f2f2ef;
+  --roova-text-muted: #9a9a9f;
+  --roova-lime: #a9ed32;
+  --roova-lime-hover: #c0fb5c;
+  --roova-radius-control: 0.625rem;
+  --roova-radius-card: 1.125rem;
+  --roova-radius-panel: 1.5rem;
+  --roova-radius-modal: 1.875rem;
+  --roova-header-height: 4.5rem;
   --background: #19191b;
   --foreground: #f2f2ef;
   --card: #232325;
@@ -64,7 +64,7 @@ body {
   color: var(--primary-foreground);
 }
 
-.renoa-grid {
+.roova-grid {
   background-color: var(--background);
   background-image:
     linear-gradient(
@@ -79,7 +79,7 @@ body {
   background-size: 64px 64px;
 }
 
-.renoa-dot-grid {
+.roova-dot-grid {
   background-color: var(--background);
   background-image: radial-gradient(
     circle,
@@ -90,7 +90,7 @@ body {
   background-size: 18px 18px;
 }
 
-.renoa-panel-shadow {
+.roova-panel-shadow {
   box-shadow: 0 20px 64px rgb(0 0 0 / 28%);
 }
 
@@ -436,7 +436,6 @@ body {
   color: var(--foreground);
 }
 a {
-  color: inherit;
   text-decoration: none;
 }
 button,

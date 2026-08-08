@@ -1,6 +1,6 @@
-# Renoa Design System
+# ROOVA Design System
 
-Renoa uses one dark, high-contrast product system across the landing page,
+ROOVA uses one dark, high-contrast product system across the landing page,
 canvas, project library, balance, and profile.
 
 ## Foundations
@@ -29,15 +29,15 @@ The source of truth is split between:
 
 ## Components
 
-- `RenoaLogo` — the shared brand lockup.
-- `RenoaAppHeader` — global product navigation.
+- `RoovaLogo` — the shared brand lockup.
+- `RoovaAppHeader` — global product navigation.
 - `AccountMenu` — shadcn Dropdown Menu + Avatar for balance, profile, credits,
   and sign-out actions.
-- `RenoaPage` — graph-grid page background.
-- `RenoaPanel` — compatibility wrapper around the shadcn Card while older
+- `RoovaPage` — graph-grid page background.
+- `RoovaPanel` — compatibility wrapper around the shadcn Card while older
   screens are migrated to direct Card composition.
-- `RenoaSectionHeading` — dashboard page hierarchy.
-- `RenoaStepLabel` — numbered workflow sections.
+- `RoovaSectionHeading` — dashboard page hierarchy.
+- `RoovaStepLabel` — numbered workflow sections.
 - `Alert`, `Avatar`, `Badge`, `Button`, `Card`, `DropdownMenu`, `Empty`,
   `Field`, `InputGroup`, `Sheet`, `Textarea`, `ToggleGroup`, and `Tooltip` —
   shadcn application primitives using the same semantic tokens.

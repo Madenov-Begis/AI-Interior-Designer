@@ -1,10 +1,8 @@
 import { ExamplesSection } from "./examples-section";
 import { Hero } from "./hero";
 import {
-  ComparisonSection,
   FaqSection,
   FinalCtaSection,
-  InteriorModesSection,
   PricingSection,
   StoriesSection,
   WorkflowSection,
@@ -18,13 +16,11 @@ export function LandingPage() {
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
       <SiteHeader />
       <Hero />
-      <ProcessSection />
-      <InteriorModesSection />
-      <WorkflowSection />
       <ExamplesSection />
-      <ComparisonSection />
-      <PricingSection />
+      <ProcessSection />
       <StoriesSection />
+      <WorkflowSection />
+      <PricingSection />
       <FaqSection />
       <FinalCtaSection />
       <SiteFooter />

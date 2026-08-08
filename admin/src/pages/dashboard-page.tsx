@@ -36,13 +36,13 @@ export function DashboardPage() {
   return (
     <PageFrame
       title="Обзор"
-      description="Операционные показатели Renoa"
+      description="Операционные показатели ROOVA"
       actions={
         <Group>
           {["today", "7d", "30d"].map((value) => (
             <Text
               key={value}
-              c={period === value ? "renoa.3" : "dimmed"}
+              c={period === value ? "roova.3" : "dimmed"}
               fw={700}
               style={{ cursor: "pointer" }}
               onClick={() => setParams({ period: value })}
@@ -74,7 +74,7 @@ export function DashboardPage() {
             h={280}
             data={stats.dailyGenerations}
             dataKey="date"
-            series={[{ name: "count", color: "renoa.3" }]}
+            series={[{ name: "count", color: "roova.3" }]}
           />
         </Card>
         <Card withBorder bg="dark.8">
@@ -87,7 +87,7 @@ export function DashboardPage() {
                 {
                   name: "Успешно",
                   value: Math.max(stats.generations24h - stats.failed24h, 0),
-                  color: "renoa.3",
+                  color: "roova.3",
                 },
                 { name: "Ошибки", value: stats.failed24h, color: "red.6" },
               ]}

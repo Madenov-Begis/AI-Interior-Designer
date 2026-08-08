@@ -132,7 +132,7 @@ export function UsersPage() {
               key={form.key("reason")}
               {...form.getInputProps("reason")}
             />
-            <Button type="submit" loading={adjust.isPending} color="renoa">
+            <Button type="submit" loading={adjust.isPending} color="roova">
               Сохранить корректировку
             </Button>
           </Stack>

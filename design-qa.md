@@ -1,49 +1,51 @@
-# Design QA
+# Design QA — ROOVA Pricing
 
-- Source visual truth:
-  - `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_F6Bubu/Снимок экрана — 2026-08-08 в 21.46.42.png`
-  - `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_VBUYqc/Снимок экрана — 2026-08-08 в 21.47.09.png`
-- Source pixels: unavailable because macOS denied access to the temporary screenshot directory after the images were supplied in the conversation.
-- Intended CSS viewport: desktop workspace, matching the supplied captures.
-- Density normalization: unavailable; no rendered comparison artifact could be captured.
-- Target state: authenticated project workspace with source and generated cards visible, plus the responsive inspector drawer open over the canvas.
-- Implementation screenshot: unavailable. The in-app browser reached the app but redirected to `/login?next=%2Fapp`; it does not share the user's authenticated project session, and no connected external browser is available.
-- Implementation pixels/CSS size/device density: unavailable for the same reason.
+- Source visual truth: `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_0HXzhR/Снимок экрана — 2026-08-08 в 22.43.30.png`
+- Implementation screenshot: `/tmp/roova-current-qa-viewport.png`
+- Mobile implementation screenshot: `/tmp/roova-pricing-mobile-final-2.png`
+- Combined comparison: `/tmp/roova-pricing-comparison.png`
+- Desktop viewport: `1440 × 960` CSS px, device scale factor `1`
+- Mobile viewport: `390 × 844` CSS px, device scale factor `1`
+- Source pixels: `1972 × 1277`; pricing content normalized from a `1644 × 825` crop to `1440 × 723`
+- Implementation pixels: `1440 × 960`; pricing section occupies approximately `1440 × 857`
+- State: public landing page, pricing section, unauthenticated user
 
 ## Full-view comparison evidence
 
-The supplied captures show two objective issues: the source and result card headers use different height and horizontal padding, and the responsive inspector drawer remains open after pressing the dimmed canvas. The implementation could not be rendered in the verification browser, so no post-change screenshot comparison was performed from code or memory.
-
-## Focused region comparison evidence
-
-Blocked with the full-view comparison. The required focused regions are the source/result card headers and the drawer/backdrop boundary during an outside pointer interaction.
-
-## Findings
-
-- [P1] Browser-rendered verification is unavailable for the authenticated workspace.
-  - Evidence: the in-app browser reached `/app` and was redirected to `/login?next=%2Fapp`; the external Chrome browser is not connected.
-  - Impact: frame alignment and backdrop dismissal cannot be visually and interactively compared against the supplied screenshots in the same state.
-  - Fix: open the authenticated project in a connected browser and capture the workspace at the same desktop viewport, then press the backdrop and confirm the drawer closes.
+The normalized source and implementation are stacked in `/tmp/roova-pricing-comparison.png`. The implementation preserves the selected reference's hierarchy: centered heading and currency explanation, equal compact package cards, a floating popular badge, benefit rows, full-width purchase actions, and a separate free-start banner.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: unchanged by this patch; visual confirmation blocked.
-- Spacing and layout rhythm: source and result headers now share a 70 px height, 20 px horizontal padding, and centered vertical alignment; card and image dimensions remain driven by their own aspect ratios; visual confirmation blocked.
-- Colors and visual tokens: existing project tokens are retained; visual confirmation blocked.
-- Image quality and asset fidelity: image sizing and rendering behavior are unchanged by the corrected patch; visual confirmation blocked.
-- Copy and content: unchanged.
+- Fonts and typography: the italic package names, heavy prices, compact supporting copy, and centered section hierarchy follow the reference. ROOVA keeps its existing Geist-based typography rather than copying the source brand font.
+- Spacing and layout rhythm: three equal cards align on one desktop row with consistent padding, radii, dividers, CTA position, and banner spacing. Mobile stacks without horizontal overflow.
+- Colors and visual tokens: near-black ROOVA background, white cards, lime primary action, and mint confirmation icons preserve the reference contrast while remaining inside ROOVA's established palette.
+- Image quality and assets: the section contains no raster imagery. All interface icons come from the project's existing Lucide icon system; no placeholder, custom SVG, or handcrafted icon assets were introduced.
+- Copy and content: prices, credit counts, generation counts, and free-credit terms use ROOVA's real product configuration. Source-specific product terminology was not copied.
+
+## Findings
+
+No actionable P0, P1, or P2 differences remain.
+
+Intentional product constraints:
+
+- ROOVA has three real packages, so the implementation uses three cards rather than inventing a fourth.
+- The source's cyan gradient is replaced with ROOVA's dark grid surface to avoid brand imitation and remain consistent with the rest of the landing page.
+- Source prices, package names, and usage units are replaced with ROOVA's actual data.
+
+## Interaction and responsive checks
+
+- All three `Купить` links target `/app/credits`.
+- Unauthenticated click verified: `/login?next=%2Fapp%2Fcredits`.
+- Free-start CTA targets `/app`.
+- Desktop and `390 × 844` mobile layouts verified.
+- Browser console errors: none.
 
 ## Comparison history
 
-- Initial source finding: source and generated card headers had inconsistent height and padding; the drawer did not dismiss from its backdrop.
-- Fixes made: unified only the header height, padding, and vertical alignment; restored the original dynamic card/image sizing; retained coordinate-aware native-dialog backdrop dismissal that ignores presses inside the panel.
-- Post-fix visual evidence: unavailable because no verification browser can access the authenticated host-local state.
+- Pass 1: no P0/P1/P2 issues found. The compact card density, popular state, CTA hierarchy, and free-start banner match the selected composition closely enough while preserving ROOVA branding and real package data.
 
-## Automated evidence
+## Follow-up polish
 
-- 176 tests passed.
-- TypeScript passed.
-- Production build passed.
-- ESLint reported zero errors and seven pre-existing warnings in the separate admin workspace.
+- P3: an original ROOVA ambient background asset could add more depth later, but it is not required for clarity or fidelity of the pricing interaction.
 
-final result: blocked
+final result: passed

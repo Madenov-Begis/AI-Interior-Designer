@@ -5,14 +5,13 @@ import {
   CreditCard,
   ReceiptText,
   ShieldCheck,
-  Sparkle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui";
 import { Badge } from "@/shared/ui";
 import { Button } from "@/shared/ui";
-import { RenoaPanel } from "@/shared/ui";
+import { RoovaPanel } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 import {
   CREDIT_PACKAGES_QUERY_KEY,
@@ -62,14 +61,14 @@ export function CreditsGrid() {
 
   if (packagesQuery.isLoading) {
     return (
-      <div className="renoa-grid min-h-[calc(100dvh-72px)] p-5 sm:p-8">
+      <div className="roova-grid min-h-[calc(100dvh-72px)] p-5 sm:p-8">
         <Skeleton className="mx-auto h-[620px] max-w-[1280px] rounded-[30px]" />
       </div>
     );
   }
   if (packagesQuery.error || !packagesQuery.data) {
     return (
-      <div className="renoa-grid min-h-[calc(100dvh-72px)] p-8">
+      <div className="roova-grid min-h-[calc(100dvh-72px)] p-8">
         <Alert variant="destructive" className="mx-auto max-w-3xl">
           <AlertTitle>Не удалось загрузить кредиты</AlertTitle>
           <AlertDescription>
@@ -87,8 +86,8 @@ export function CreditsGrid() {
   const presentedBalance = presentCreditBalance(balance);
 
   return (
-    <div className="renoa-grid min-h-[calc(100dvh-72px)] p-4 sm:p-8">
-      <section className="renoa-panel-shadow mx-auto max-w-[1280px] overflow-hidden rounded-[30px] border border-border bg-card">
+    <div className="roova-grid min-h-[calc(100dvh-72px)] p-4 sm:p-8">
+      <section className="roova-panel-shadow mx-auto max-w-[1280px] overflow-hidden rounded-[30px] border border-border bg-card">
         <header className="flex flex-col gap-4 border-b border-border px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
@@ -98,8 +97,7 @@ export function CreditsGrid() {
               Выберите подходящий пакет
             </h1>
           </div>
-          <div className="flex items-center gap-3 rounded-full border border-border bg-background px-4 py-2">
-            <Sparkle className="size-5 fill-primary text-primary" />
+          <div className="rounded-full border border-border bg-background px-4 py-2">
             <span>
               <span className="block text-[11px] text-muted-foreground">
                 Ваш баланс
@@ -137,7 +135,6 @@ export function CreditsGrid() {
                     {formatUzs(item.priceUzs)}
                   </p>
                   <p className="mt-4 flex items-center gap-2 text-xl font-black">
-                    <Sparkle className="size-6 fill-primary text-primary" />
                     {item.credits} кредитов
                   </p>
                   <div className="my-6 h-px bg-black/8" />
@@ -197,7 +194,7 @@ export function CreditsGrid() {
         </div>
       </section>
 
-      <RenoaPanel className="mx-auto mt-6 max-w-[1280px] p-6">
+      <RoovaPanel className="mx-auto mt-6 max-w-[1280px] p-6">
         <h2 className="flex items-center gap-2 text-xl font-black italic">
           <ReceiptText className="size-5 text-primary" />
           Последние операции
@@ -255,7 +252,7 @@ export function CreditsGrid() {
             })}
           </ul>
         )}
-      </RenoaPanel>
+      </RoovaPanel>
     </div>
   );
 }

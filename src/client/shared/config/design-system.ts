@@ -1,4 +1,4 @@
-export const RENOA_DESIGN_SYSTEM = {
+export const ROOVA_DESIGN_SYSTEM = {
   colors: {
     canvas: "#19191b",
     canvasDeep: "#111113",

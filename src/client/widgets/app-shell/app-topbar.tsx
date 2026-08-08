@@ -1,6 +1,6 @@
-import { RenoaAppHeader, type RenoaUserSummary } from "@/widgets/app-header";
+import { RoovaAppHeader, type RoovaUserSummary } from "@/widgets/app-header";
 
-export type AppUserSummary = RenoaUserSummary;
+export type AppUserSummary = RoovaUserSummary;
 
 export function AppTopbar({
   title,
@@ -12,7 +12,7 @@ export function AppTopbar({
   creditBalance?: number | null;
 }) {
   return (
-    <RenoaAppHeader
+    <RoovaAppHeader
       user={user}
       creditBalance={creditBalance}
       middle={

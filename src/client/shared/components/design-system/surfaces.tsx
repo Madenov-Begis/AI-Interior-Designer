@@ -2,14 +2,14 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { Card } from "../ui/card";
 import { cn } from "@/shared/lib";
 
-export function RenoaPage({
+export function RoovaPage({
   className,
   children,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("renoa-grid min-h-full bg-background", className)}
+      className={cn("roova-grid min-h-full bg-background", className)}
       {...props}
     >
       {children}
@@ -17,7 +17,7 @@ export function RenoaPage({
   );
 }
 
-export function RenoaPanel({
+export function RoovaPanel({
   className,
   children,
   ...props
@@ -29,7 +29,7 @@ export function RenoaPanel({
   );
 }
 
-export function RenoaSectionHeading({
+export function RoovaSectionHeading({
   eyebrow,
   title,
   description,
@@ -69,7 +69,7 @@ export function RenoaSectionHeading({
   );
 }
 
-export function RenoaStepLabel({
+export function RoovaStepLabel({
   step,
   children,
   className,

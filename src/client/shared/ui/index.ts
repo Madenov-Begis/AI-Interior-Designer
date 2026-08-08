@@ -100,10 +100,10 @@ export {
   TooltipProvider,
   TooltipTrigger,
 } from "../components/ui/tooltip.tsx";
-export { RenoaLogo } from "../components/design-system/brand.tsx";
+export { RoovaLogo } from "../components/design-system/brand.tsx";
 export {
-  RenoaPage,
-  RenoaPanel,
-  RenoaSectionHeading,
-  RenoaStepLabel,
+  RoovaPage,
+  RoovaPanel,
+  RoovaSectionHeading,
+  RoovaStepLabel,
 } from "../components/design-system/surfaces.tsx";

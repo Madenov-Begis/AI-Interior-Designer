@@ -3,9 +3,9 @@
 import {
   AlertCircle,
   Coins,
+  ImagePlus,
   LoaderCircle,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { ReferenceManager } from "./reference-manager";
@@ -297,7 +297,7 @@ export function DesignInspector({
               aria-hidden="true"
             />
           ) : (
-            <Sparkles size={18} aria-hidden="true" />
+            <ImagePlus size={18} aria-hidden="true" />
           )}
           {generationPending ? "Запускаем…" : walletPresentation.buttonLabel}
         </Button>

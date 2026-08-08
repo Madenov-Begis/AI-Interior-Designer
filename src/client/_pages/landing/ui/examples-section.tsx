@@ -1,82 +1,76 @@
 import Image from "next/image";
-import { ArrowUpRight } from "lucide-react";
 
 const examples = [
   {
     title: "Гостиная",
     style: "Джапанди",
     image: "/images/interior-styles/japandi.webp",
+    className:
+      "sm:col-span-2 lg:col-span-2 lg:row-span-2 min-h-[440px] lg:min-h-[620px]",
   },
   {
     title: "Кухня",
     style: "Современный",
     image: "/images/interior-styles/modern.webp",
+    className: "min-h-[300px]",
   },
   {
     title: "Спальня",
     style: "Минимализм",
     image: "/images/interior-styles/minimalism.webp",
+    className: "min-h-[300px]",
   },
   {
     title: "Кабинет",
     style: "Лофт",
     image: "/images/interior-styles/loft.webp",
+    className: "min-h-[320px]",
   },
   {
     title: "Столовая",
     style: "Неоклассика",
     image: "/images/interior-styles/neoclassic.webp",
-  },
-  {
-    title: "Детская",
-    style: "Скандинавский",
-    image: "/images/interior-styles/scandinavian.webp",
+    className: "min-h-[320px]",
   },
 ];
 
 export function ExamplesSection() {
   return (
-    <section id="examples" className="border-b border-border bg-card/35">
+    <section id="examples" className="border-b border-border bg-[#111315]">
       <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-28">
-        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Примеры
-            </p>
-            <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.055em] sm:text-6xl">
-              Подходит для разных комнат
-            </h2>
-          </div>
-          <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            Покажите Renoa помещение — и получите чистую, реалистичную
-            визуализацию в нужном направлении.
+        <div className="grid gap-6 lg:grid-cols-[1fr_0.65fr] lg:items-end">
+          <h2 className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.06em] sm:text-6xl">
+            Посмотрите, каким
+            <br />
+            может стать интерьер
+          </h2>
+          <p className="max-w-lg text-base leading-7 text-muted-foreground">
+            Одна фотография превращается в несколько реалистичных направлений.
+            Сравните их до покупки мебели и начала ремонта.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {examples.map((example) => (
             <article
               key={`${example.title}-${example.style}`}
-              className="group overflow-hidden rounded-[22px] border border-border bg-card"
+              className={`group relative overflow-hidden rounded-[24px] bg-card ${example.className}`}
             >
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <Image
-                  src={example.image}
-                  alt={`${example.title} в стиле ${example.style}`}
-                  fill
-                  sizes="(min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
-                />
-              </div>
-              <div className="flex items-center justify-between gap-3 p-4">
+              <Image
+                src={example.image}
+                alt={`${example.title} в стиле ${example.style}`}
+                fill
+                sizes="(min-width: 1280px) 50vw, (min-width: 640px) 50vw, 100vw"
+                className="object-cover transition-transform duration-700 group-hover:scale-[1.035]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
                 <div>
-                  <h3 className="font-semibold">{example.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {example.style}
-                  </p>
+                  <h3 className="text-lg font-bold">{example.title}</h3>
+                  <p className="mt-1 text-sm text-white/65">{example.style}</p>
                 </div>
-                <span className="grid size-10 place-items-center rounded-full border border-border bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                <span className="rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white/75 backdrop-blur-md">
+                  AI-вариант
                 </span>
               </div>
             </article>

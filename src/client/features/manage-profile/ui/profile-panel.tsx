@@ -3,15 +3,11 @@
 import {
   ArrowRight,
   CheckCircle2,
-  Clock3,
-  Code2,
   Copy,
   FolderOpen,
   ImageIcon,
   LogOut,
   Plus,
-  Sparkle,
-  UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
@@ -22,7 +18,7 @@ import { Button, buttonClassName } from "@/shared/ui";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/shared/ui";
 import { Input } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
-import { RenoaPanel } from "@/shared/ui";
+import { RoovaPanel } from "@/shared/ui";
 import { presentWalletSummary } from "@/features/manage-credits";
 import { apiData } from "@/shared/api";
 import {
@@ -131,7 +127,7 @@ export function ProfilePanel() {
     .join("");
 
   return (
-    <div className="renoa-grid min-h-[calc(100dvh-72px)] px-5 py-12 sm:px-8">
+    <div className="roova-grid min-h-[calc(100dvh-72px)] px-5 py-12 sm:px-8">
       <div className="mx-auto max-w-[1080px]">
         <div className="text-center">
           <Avatar className="mx-auto size-28 text-5xl">
@@ -146,7 +142,7 @@ export function ProfilePanel() {
         </div>
 
         <div className="mt-12 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
-          <RenoaPanel className="p-6">
+          <RoovaPanel className="p-6">
             <h2 className="text-2xl font-black italic">Проекты</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Link
@@ -208,15 +204,12 @@ export function ProfilePanel() {
               </span>
               <ArrowRight className="ml-auto size-5 text-muted-foreground" />
             </Link>
-          </RenoaPanel>
+          </RoovaPanel>
 
           <div className="grid gap-5">
             <div className="grid grid-cols-2 gap-4">
-              <RenoaPanel className="border-primary bg-primary p-6 text-primary-foreground">
-                <Sparkle className="size-5 fill-current" />
-                <p className="mt-5 text-4xl font-black italic">
-                  {wallet.balance}
-                </p>
+              <RoovaPanel className="border-primary bg-primary p-6 text-primary-foreground">
+                <p className="text-4xl font-black italic">{wallet.balance}</p>
                 <p className="mt-2 text-sm font-bold">Баланс кредитов</p>
                 <Link
                   href="/app/credits"
@@ -229,39 +222,18 @@ export function ProfilePanel() {
                   <Plus className="size-4" />
                   Пополнить
                 </Link>
-              </RenoaPanel>
-              <RenoaPanel className="p-6">
-                <Sparkle className="size-5 text-primary" />
+              </RoovaPanel>
+              <RoovaPanel className="p-6">
+                <ImageIcon className="size-5 text-primary" />
                 <p className="mt-5 text-4xl font-black italic">{usage.used}</p>
                 <p className="mt-2 text-sm font-bold">Сгенерировано</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Всего изображений
                 </p>
-              </RenoaPanel>
+              </RoovaPanel>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                [Clock3, "История баланса", "/app/credits"],
-                [Code2, "Кабинет API", "/app/profile"],
-                [UsersRound, "Кредиты за друзей", "/app/profile"],
-                [UsersRound, "Общий баланс", "/app/profile"],
-              ].map(([Icon, label, href]) => {
-                const ItemIcon = Icon as typeof Clock3;
-                return (
-                  <Link key={label as string} href={href as string}>
-                    <RenoaPanel className="grid min-h-32 place-items-center p-4 text-center transition-colors hover:bg-secondary">
-                      <span>
-                        <ItemIcon className="mx-auto size-5 text-muted-foreground" />
-                        <b className="mt-3 block text-sm">{label as string}</b>
-                      </span>
-                    </RenoaPanel>
-                  </Link>
-                );
-              })}
-            </div>
-
-            <RenoaPanel className="p-6">
+            <RoovaPanel className="p-6">
               <h2 className="text-xl font-black italic">Данные аккаунта</h2>
               <FieldGroup className="mt-5 gap-4">
                 <Field data-invalid={Boolean(update.error)}>
@@ -313,7 +285,7 @@ export function ProfilePanel() {
                   Копировать email
                 </Button>
               </div>
-            </RenoaPanel>
+            </RoovaPanel>
 
             <p className="px-2 text-xs leading-5 text-muted-foreground">
               {walletSummary.availableGenerationsText} · {usage.plan.name}

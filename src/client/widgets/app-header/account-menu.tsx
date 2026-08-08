@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, LogOut, Sparkle, UserRound } from "lucide-react";
+import { CreditCard, LogOut, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/shared/ui";
 import { apiData } from "@/shared/api";
 
-export type RenoaUserSummary = {
+export type RoovaUserSummary = {
   name: string;
   email: string;
   avatarUrl?: string | null;
@@ -25,7 +25,7 @@ export function AccountMenu({
   user,
   creditBalance,
 }: {
-  user: RenoaUserSummary;
+  user: RoovaUserSummary;
   creditBalance?: number | null;
 }) {
   const initials =
@@ -49,7 +49,6 @@ export function AccountMenu({
             className="inline-flex items-center gap-1.5 font-bold"
             aria-label={`Баланс: ${creditBalance ?? 0} кредитов`}
           >
-            <Sparkle data-icon="inline-start" />
             {creditBalance ?? 0}
           </span>
           <Avatar size="lg">
@@ -71,9 +70,8 @@ export function AccountMenu({
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/app/credits" prefetch={false}>
-              <Sparkle />
+              <CreditCard />
               Пополнить баланс
-              <CreditCard className="ml-auto" />
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
