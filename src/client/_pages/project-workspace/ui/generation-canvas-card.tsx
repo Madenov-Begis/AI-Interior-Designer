@@ -37,7 +37,6 @@ type GenerationCanvasCardProps = {
   onEditorError(message: string | null): void;
   onCancel(): void;
   onRetry(): void;
-  onRemove(): void;
   onOpenResult(resultUrl: string): void;
 };
 
@@ -148,7 +147,6 @@ export function GenerationCanvasCard({
   onEditorError,
   onCancel,
   onRetry,
-  onRemove,
   onOpenResult,
 }: GenerationCanvasCardProps) {
   const resultQuery = useQuery({
@@ -343,19 +341,6 @@ export function GenerationCanvasCard({
         >
           <button
             type="button"
-            aria-label={`Убрать вариант ${variantNumber} с холста`}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-            className={buttonClassName("secondary", "mt-2 rounded-xl")}
-          >
-            <X size={16} aria-hidden="true" />
-            Убрать с холста
-          </button>
-          <button
-            type="button"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -392,19 +377,6 @@ export function GenerationCanvasCard({
         >
           <button
             type="button"
-            aria-label={`Убрать вариант ${variantNumber} с холста`}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-            className={buttonClassName("secondary", "mt-2 rounded-xl")}
-          >
-            <X size={16} aria-hidden="true" />
-            Убрать с холста
-          </button>
-          <button
-            type="button"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
@@ -429,21 +401,7 @@ export function GenerationCanvasCard({
           icon={<X size={30} className="text-muted" aria-hidden="true" />}
           title="Генерация отменена"
           message="Этот вариант не был запущен."
-        >
-          <button
-            type="button"
-            aria-label={`Убрать вариант ${variantNumber} с холста`}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-            className={buttonClassName("secondary", "mt-2 rounded-xl")}
-          >
-            <X size={16} aria-hidden="true" />
-            Убрать с холста
-          </button>
-        </StatusPanel>
+        />
       );
       break;
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { SquarePen, Trash2 } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 
 type Props = {
@@ -8,7 +8,6 @@ type Props = {
   composer: ReactNode;
   onToggleEditor(): void;
   onDismiss(): void;
-  onRemove(): void;
 };
 
 export function GenerationContextOverlay({
@@ -16,7 +15,6 @@ export function GenerationContextOverlay({
   composer,
   onToggleEditor,
   onDismiss,
-  onRemove,
 }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -71,17 +69,6 @@ export function GenerationContextOverlay({
         >
           <SquarePen size={16} aria-hidden="true" />
           Доработать
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm("Убрать этот вариант с холста?")) {
-              onRemove();
-            }
-          }}
-        >
-          <Trash2 size={16} aria-hidden="true" />
-          Удалить
         </button>
       </div>
       {editorOpen ? composer : null}

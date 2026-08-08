@@ -36,7 +36,13 @@ const projectSummarySelect = {
       },
     },
   },
-  _count: { select: { generations: true } },
+  _count: {
+    select: {
+      generations: {
+        where: { status: "SUCCEEDED", resultOriginalId: { not: null } },
+      },
+    },
+  },
 } satisfies Prisma.ProjectSelect;
 
 export function createProject(userId: string, name: string) {
@@ -84,18 +90,43 @@ export async function listProjects(
   userId: string,
   limit: number,
   cursor?: string,
+  page = 1,
+  search?: string,
 ) {
-  const rows = await getDb().project.findMany({
-    where: { userId, deletedAt: null },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit + 1,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: projectSummarySelect,
-  });
+  const db = getDb();
+  const normalizedSearch = search?.trim();
+  const where: Prisma.ProjectWhereInput = {
+    userId,
+    deletedAt: null,
+    generations: {
+      some: { status: "SUCCEEDED", resultOriginalId: { not: null } },
+    },
+    ...(normalizedSearch
+      ? { name: { contains: normalizedSearch, mode: "insensitive" } }
+      : {}),
+  };
+  const [rows, total] = await db.$transaction([
+    db.project.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(cursor
+        ? { cursor: { id: cursor }, skip: 1 }
+        : { skip: (page - 1) * limit }),
+      select: projectSummarySelect,
+    }),
+    db.project.count({ where }),
+  ]);
 
   const hasMore = rows.length > limit;
   const items = hasMore ? rows.slice(0, limit) : rows;
-  return { items, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null };
+  return {
+    items,
+    nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+    page,
+    pageCount: Math.ceil(total / limit),
+    total,
+  };
 }
 
 export function findOwnedProject(userId: string, id: string) {

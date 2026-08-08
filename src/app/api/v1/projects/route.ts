@@ -55,7 +55,13 @@ export async function GET(request: NextRequest) {
     const query = listProjectsSchema.parse(
       Object.fromEntries(request.nextUrl.searchParams),
     );
-    const projects = await listProjects(user.id, query.limit, query.cursor);
+    const projects = await listProjects(
+      user.id,
+      query.limit,
+      query.cursor,
+      query.page,
+      query.search,
+    );
     const items = await Promise.all(
       projects.items.map(async (project) => {
         const media =
@@ -81,7 +87,16 @@ export async function GET(request: NextRequest) {
         };
       }),
     );
-    return apiSuccess({ items, nextCursor: projects.nextCursor }, requestId);
+    return apiSuccess(
+      {
+        items,
+        nextCursor: projects.nextCursor,
+        page: projects.page,
+        pageCount: projects.pageCount,
+        total: projects.total,
+      },
+      requestId,
+    );
   } catch (error) {
     return routeError(error, requestId);
   }

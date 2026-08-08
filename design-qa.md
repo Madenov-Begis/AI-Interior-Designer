@@ -1,51 +1,46 @@
-# Design QA — ROOVA Pricing
+# Design QA
 
-- Source visual truth: `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_0HXzhR/Снимок экрана — 2026-08-08 в 22.43.30.png`
-- Implementation screenshot: `/tmp/roova-current-qa-viewport.png`
-- Mobile implementation screenshot: `/tmp/roova-pricing-mobile-final-2.png`
-- Combined comparison: `/tmp/roova-pricing-comparison.png`
-- Desktop viewport: `1440 × 960` CSS px, device scale factor `1`
-- Mobile viewport: `390 × 844` CSS px, device scale factor `1`
-- Source pixels: `1972 × 1277`; pricing content normalized from a `1644 × 825` crop to `1440 × 723`
-- Implementation pixels: `1440 × 960`; pricing section occupies approximately `1440 × 857`
-- State: public landing page, pricing section, unauthenticated user
-
-## Full-view comparison evidence
-
-The normalized source and implementation are stacked in `/tmp/roova-pricing-comparison.png`. The implementation preserves the selected reference's hierarchy: centered heading and currency explanation, equal compact package cards, a floating popular badge, benefit rows, full-width purchase actions, and a separate free-start banner.
-
-## Required fidelity surfaces
-
-- Fonts and typography: the italic package names, heavy prices, compact supporting copy, and centered section hierarchy follow the reference. ROOVA keeps its existing Geist-based typography rather than copying the source brand font.
-- Spacing and layout rhythm: three equal cards align on one desktop row with consistent padding, radii, dividers, CTA position, and banner spacing. Mobile stacks without horizontal overflow.
-- Colors and visual tokens: near-black ROOVA background, white cards, lime primary action, and mint confirmation icons preserve the reference contrast while remaining inside ROOVA's established palette.
-- Image quality and assets: the section contains no raster imagery. All interface icons come from the project's existing Lucide icon system; no placeholder, custom SVG, or handcrafted icon assets were introduced.
-- Copy and content: prices, credit counts, generation counts, and free-credit terms use ROOVA's real product configuration. Source-specific product terminology was not copied.
+- Source visual truth path: `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_jpFMpL/Снимок экрана — 2026-08-09 в 01.03.30.png`
+- Implementation screenshot path: unavailable; the protected route redirected the in-app browser to `/login?next=%2Fapp%2Fprojects`.
+- Target viewport: desktop, approximately 1970 × 1248 px from the supplied screenshot.
+- Source pixels: 1970 × 1248 px.
+- Implementation pixels/CSS size/density: unavailable because the authenticated projects screen could not be rendered.
+- State: source is the authenticated projects grid; available browser state is logged out.
 
 ## Findings
 
-No actionable P0, P1, or P2 differences remain.
+- [P0] Visual comparison is blocked by authentication.
+  - Location: `/app/projects`.
+  - Evidence: the supplied source shows the projects grid, while the in-app browser redirects to the login screen. The available Chrome session could not be connected.
+  - Impact: sidebar spacing, typography, responsive layout, colors, image treatment, and final copy cannot be compared against the rendered implementation.
+  - Fix: open the local projects route in an authenticated controllable browser session and capture the same desktop viewport.
 
-Intentional product constraints:
+## Required fidelity surfaces
 
-- ROOVA has three real packages, so the implementation uses three cards rather than inventing a fourth.
-- The source's cyan gradient is replaced with ROOVA's dark grid surface to avoid brand imitation and remain consistent with the rest of the landing page.
-- Source prices, package names, and usage units are replaced with ROOVA's actual data.
+- Fonts and typography: blocked; implementation screen unavailable.
+- Spacing and layout rhythm: blocked; implementation screen unavailable.
+- Colors and visual tokens: blocked; implementation screen unavailable.
+- Image quality and asset fidelity: blocked; implementation screen unavailable.
+- Copy and content: verified in code only; visual wrapping remains blocked.
 
-## Interaction and responsive checks
+## Full-view comparison evidence
 
-- All three `Купить` links target `/app/credits`.
-- Unauthenticated click verified: `/login?next=%2Fapp%2Fcredits`.
-- Free-start CTA targets `/app`.
-- Desktop and `390 × 844` mobile layouts verified.
-- Browser console errors: none.
+The source attachment was provided in the task, but its temporary filesystem path is not readable by the verification process. The implementation route was opened at `http://localhost:3000/app/projects` and redirected to the login page, so the two matching authenticated views could not be placed into one comparison.
+
+## Focused region comparison evidence
+
+Not performed because the updated sidebar and project cards were not available in the browser-rendered authenticated state.
 
 ## Comparison history
 
-- Pass 1: no P0/P1/P2 issues found. The compact card density, popular state, CTA hierarchy, and free-start banner match the selected composition closely enough while preserving ROOVA branding and real package data.
+1. Initial attempt: opened `/app/projects`; redirected to `/login?next=%2Fapp%2Fprojects`.
+2. Recovery attempt: tried the available Chrome browser family to reuse the signed-in session; the browser connection was unavailable.
 
-## Follow-up polish
+## Implementation checklist
 
-- P3: an original ROOVA ambient background asset could add more depth later, but it is not required for clarity or fidelity of the pricing interaction.
+- Capture the authenticated projects screen at the source desktop viewport.
+- Compare the updated sidebar and first project row with the supplied screenshot.
+- Check search, create-project, view switcher, project navigation, and empty state.
+- Confirm the console has no new errors.
 
-final result: passed
+final result: blocked

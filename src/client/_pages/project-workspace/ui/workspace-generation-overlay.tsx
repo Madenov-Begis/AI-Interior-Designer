@@ -24,7 +24,6 @@ type WorkspaceGenerationOverlayProps = {
   onCloseEditor(): void;
   onSubmitSuccess(): void;
   onDismiss(): void;
-  onRemove(): void;
 };
 
 export function WorkspaceGenerationOverlay({
@@ -37,7 +36,6 @@ export function WorkspaceGenerationOverlay({
   onCloseEditor,
   onSubmitSuccess,
   onDismiss,
-  onRemove,
 }: WorkspaceGenerationOverlayProps) {
   const generation = selected?.generation;
   if (
@@ -61,7 +59,6 @@ export function WorkspaceGenerationOverlay({
       editorOpen={editorOpen}
       onToggleEditor={onToggleEditor}
       onDismiss={onDismiss}
-      onRemove={onRemove}
       composer={
         <GenerationRefinementComposer
           generationId={generation.id}

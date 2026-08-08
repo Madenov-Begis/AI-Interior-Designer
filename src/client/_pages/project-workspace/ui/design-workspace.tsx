@@ -94,9 +94,6 @@ function ReadyDesignWorkspace({
   const [styleCode, setStyleCode] = useState<string>();
   const [selectedCanvasItem, setSelectedCanvasItem] =
     useState<string>("source");
-  const [hiddenCanvasItemIds, setHiddenCanvasItemIds] = useState<Set<string>>(
-    () => new Set(),
-  );
   const [refinementEditorNodeId, setRefinementEditorNodeId] = useState<
     string | null
   >(null);
@@ -106,7 +103,9 @@ function ReadyDesignWorkspace({
   } | null>(null);
   const [tool, setTool] = useState<VisualPromptTool>("select");
   const [color, setColor] = useState("#afea4d");
-  const [strokeWidth, setStrokeWidth] = useState(12);
+  const [drawingStrokeWidth, setDrawingStrokeWidth] = useState(12);
+  const [eraserWidth, setEraserWidth] = useState(40);
+  const strokeWidth = tool === "eraser" ? eraserWidth : drawingStrokeWidth;
   const [canvasActionError, setCanvasActionError] = useState<string | null>(
     null,
   );
@@ -114,6 +113,28 @@ function ReadyDesignWorkspace({
     canUndo: false,
     canRedo: false,
   });
+
+  const clearCurrentVisualPrompt = useCallback(async () => {
+    const sourceSelected = selectedCanvasItem === "source";
+    const editor = sourceSelected
+      ? visualPromptRef.current
+      : refinementPromptRef.current;
+
+    if (!editor) {
+      setCanvasActionError("Редактор разметки ещё не готов");
+      return;
+    }
+
+    setCanvasActionError(null);
+    try {
+      await editor.clear();
+      if (sourceSelected) await editor.persist();
+    } catch (error) {
+      setCanvasActionError(
+        error instanceof Error ? error.message : "Не удалось очистить разметку",
+      );
+    }
+  }, [selectedCanvasItem]);
 
   const focusGeneration = useCallback(
     (generationId: string) => {
@@ -161,14 +182,14 @@ function ReadyDesignWorkspace({
           left.generation.id.localeCompare(right.generation.id),
       );
   }, [generationsQuery.data]);
-  const canvasGenerationInstances = useMemo(() => {
-    return indexedGenerations
-      .map((item) => ({
+  const canvasGenerationInstances = useMemo(
+    () =>
+      indexedGenerations.map((item) => ({
         ...item,
         nodeId: item.generation.id,
-      }))
-      .filter((item) => !hiddenCanvasItemIds.has(item.nodeId));
-  }, [hiddenCanvasItemIds, indexedGenerations]);
+      })),
+    [indexedGenerations],
+  );
   useEffect(() => {
     if (
       !pendingCanvasFocusId ||
@@ -228,17 +249,6 @@ function ReadyDesignWorkspace({
         actions={{ cancelGeneration, retryGeneration, retryAttempts }}
         onHistoryStateChange={setHistoryState}
         onEditorError={setCanvasActionError}
-        onRemove={() => {
-          setHiddenCanvasItemIds((current) =>
-            new Set(current).add(item.nodeId),
-          );
-          if (selectedCanvasItem === item.nodeId)
-            setSelectedCanvasItem("source");
-          if (refinementEditorNodeId === item.nodeId)
-            setRefinementEditorNodeId(null);
-          if (openedResult?.generationId === item.generation.id)
-            setOpenedResult(null);
-        }}
         onOpenResult={(generationId, resultUrl) => {
           setSelectedCanvasItem(generationId);
           setOpenedResult({ generationId, resultUrl });
@@ -270,20 +280,6 @@ function ReadyDesignWorkspace({
     );
   }
 
-  function removeSelectedGeneration() {
-    if (!selectedCanvasGeneration) return;
-    setHiddenCanvasItemIds((current) => {
-      const next = new Set(current);
-      next.add(selectedCanvasGeneration.nodeId);
-      return next;
-    });
-    if (openedResult?.generationId === selectedCanvasGeneration.generation.id) {
-      setOpenedResult(null);
-    }
-    setSelectedCanvasItem("source");
-    setRefinementEditorNodeId(null);
-  }
-
   const selectedGenerationOverlay = (
     <WorkspaceGenerationOverlay
       selected={selectedCanvasGeneration}
@@ -298,7 +294,6 @@ function ReadyDesignWorkspace({
         setSelectedCanvasItem("source");
         setRefinementEditorNodeId(null);
       }}
-      onRemove={removeSelectedGeneration}
     />
   );
   const openedGeneration = openedResult
@@ -306,38 +301,6 @@ function ReadyDesignWorkspace({
         ({ generation }) => generation.id === openedResult.generationId,
       )?.generation
     : undefined;
-
-  async function clearVisualPrompt() {
-    if (
-      !window.confirm(
-        "Восстановить исходное изображение и очистить всю разметку? Исходник, проект, история генераций и референсы останутся без изменений.",
-      )
-    ) {
-      return;
-    }
-
-    const editor =
-      selectedCanvasItem === "source"
-        ? visualPromptRef.current
-        : refinementPromptRef.current;
-    if (!editor) {
-      setCanvasActionError("Редактор разметки ещё не готов");
-      return;
-    }
-
-    try {
-      await editor.clear();
-      if (selectedCanvasItem === "source") {
-        await editor.persist();
-      }
-    } catch (error) {
-      setCanvasActionError(
-        error instanceof Error
-          ? error.message
-          : "Не удалось очистить сохранённую разметку",
-      );
-    }
-  }
 
   return (
     <div className="canvas-workspace flex h-full min-h-0 flex-col">
@@ -394,7 +357,10 @@ function ReadyDesignWorkspace({
             canRedo={canRedo}
             onToolChange={setTool}
             onColorChange={setColor}
-            onStrokeWidthChange={setStrokeWidth}
+            onStrokeWidthChange={(width) => {
+              if (tool === "eraser") setEraserWidth(width);
+              else setDrawingStrokeWidth(width);
+            }}
             onUndo={() =>
               void (
                 selectedCanvasItem === "source"
@@ -409,13 +375,7 @@ function ReadyDesignWorkspace({
                   : refinementPromptRef.current
               )?.redo()
             }
-            onDelete={() =>
-              (selectedCanvasItem === "source"
-                ? visualPromptRef.current
-                : refinementPromptRef.current
-              )?.deleteSelected()
-            }
-            onClear={() => void clearVisualPrompt()}
+            onClear={() => void clearCurrentVisualPrompt()}
           />
         </section>
         <WorkspaceInspectorPanel

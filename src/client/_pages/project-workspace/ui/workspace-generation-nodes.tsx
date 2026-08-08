@@ -33,7 +33,6 @@ type WorkspaceGenerationNodeProps = {
     SetStateAction<{ canUndo: boolean; canRedo: boolean }>
   >;
   onEditorError: Dispatch<SetStateAction<string | null>>;
-  onRemove(): void;
   onOpenResult(generationId: string, resultUrl: string): void;
 };
 
@@ -47,7 +46,6 @@ export function WorkspaceGenerationNode({
   actions,
   onHistoryStateChange,
   onEditorError,
-  onRemove,
   onOpenResult,
 }: WorkspaceGenerationNodeProps) {
   const { cancelGeneration, retryGeneration, retryAttempts } = actions;
@@ -92,7 +90,6 @@ export function WorkspaceGenerationNode({
       actionError={actionError}
       onCancel={() => cancelGeneration.mutate(generation.id)}
       onRetry={() => retryGeneration.mutate(retryAttempts.begin(generation))}
-      onRemove={onRemove}
       onOpenResult={(resultUrl) => onOpenResult(generation.id, resultUrl)}
     />
   );

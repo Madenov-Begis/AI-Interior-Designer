@@ -1,26 +1,31 @@
 "use client";
 
 import {
-  FolderOpen,
   Grid2X2,
   ImageIcon,
+  Lightbulb,
   List,
   MoreHorizontal,
   Plus,
   Search,
-  SlidersHorizontal,
   Trash2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  type InfiniteData,
-  useInfiniteQuery,
+  keepPreviousData,
   useMutation,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/shared/ui";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  AppPagination,
+} from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import { Card, CardContent } from "@/shared/ui";
 import {
@@ -38,7 +43,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/shared/ui";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/shared/ui";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui";
 import { apiData } from "@/shared/api";
@@ -61,23 +71,65 @@ type ProjectItem = {
 type ProjectsPayload = {
   items: ProjectItem[];
   nextCursor: string | null;
+  page: number;
+  pageCount: number;
+  total: number;
 };
 
-export function ProjectsGrid() {
+const PROJECTS_PER_PAGE = 20;
+
+function projectsListHref(page: number, search: string) {
+  const params = new URLSearchParams();
+  const normalizedSearch = search.trim();
+  if (normalizedSearch) params.set("search", normalizedSearch);
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return query ? `/app/projects?${query}` : "/app/projects";
+}
+
+export function ProjectsGrid({
+  page,
+  initialSearch,
+}: {
+  page: number;
+  initialSearch: string;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [view, setView] = useState<"grid" | "list">("grid");
-  const projects = useInfiniteQuery({
-    queryKey: ["projects"],
-    initialPageParam: "",
-    queryFn: ({ pageParam }) =>
+  const buildPageHref = useCallback(
+    (nextPage: number) => projectsListHref(nextPage, initialSearch),
+    [initialSearch],
+  );
+
+  useEffect(() => {
+    const normalizedSearch = search.trim();
+    if (normalizedSearch === initialSearch) return;
+
+    const timeout = window.setTimeout(() => {
+      router.replace(projectsListHref(1, normalizedSearch), { scroll: false });
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [initialSearch, router, search]);
+
+  const projects = useQuery({
+    queryKey: [
+      "projects",
+      { page, limit: PROJECTS_PER_PAGE, search: initialSearch },
+    ],
+    queryFn: () =>
       apiData<ProjectsPayload>({
         url: "/projects",
         method: "GET",
-        params: { limit: 40, cursor: pageParam || undefined },
+        params: {
+          limit: PROJECTS_PER_PAGE,
+          page,
+          search: initialSearch || undefined,
+        },
       }),
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    placeholderData: keepPreviousData,
   });
   const createProject = useMutation({
     mutationFn: () =>
@@ -94,34 +146,17 @@ export function ProjectsGrid() {
         url: `/projects/${id}`,
         method: "DELETE",
       }),
-    onSuccess: (_data, id) => {
-      queryClient.setQueryData<InfiniteData<ProjectsPayload>>(
-        ["projects"],
-        (current) =>
-          current
-            ? {
-                ...current,
-                pages: current.pages.map((page) => ({
-                  ...page,
-                  items: page.items.filter((project) => project.id !== id),
-                })),
-              }
-            : current,
-      );
+    onSuccess: () => {
+      if (page > 1 && projects.data?.items.length === 1) {
+        router.replace(buildPageHref(page - 1));
+      }
+      void queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 
-  const loadedProjects = useMemo(
-    () => projects.data?.pages.flatMap((page) => page.items) ?? [],
-    [projects.data?.pages],
-  );
-  const filteredProjects = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("ru");
-    if (!query) return loadedProjects;
-    return loadedProjects.filter((project) =>
-      project.name.toLocaleLowerCase("ru").includes(query),
-    );
-  }, [loadedProjects, search]);
+  const loadedProjects = projects.data?.items ?? [];
+  const hasProjects = (projects.data?.total ?? 0) > 0;
+  const hasActiveSearch = Boolean(initialSearch);
 
   return (
     <div className="grid min-h-[calc(100dvh-72px)] lg:grid-cols-[292px_minmax(0,1fr)]">
@@ -136,36 +171,64 @@ export function ProjectsGrid() {
           <Plus className="size-5" />
           {createProject.isPending ? "Создаём…" : "Создать проект"}
         </Button>
-        <p className="mt-7 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-          Папки
-        </p>
-        <div className="mt-3 flex min-h-12 items-center gap-3 rounded-xl bg-secondary px-4 text-sm font-bold">
-          <FolderOpen className="size-5" />
-          Все проекты
+        <div className="mt-8">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            Быстрый старт
+          </p>
+          <ol className="mt-4 space-y-4">
+            {[
+              ["1", "Создайте проект"],
+              ["2", "Загрузите фото комнаты"],
+              ["3", "Выберите стиль и создайте дизайн"],
+            ].map(([number, label]) => (
+              <li key={number} className="flex items-start gap-3">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-foreground">
+                  {number}
+                </span>
+                <span className="pt-1 text-sm leading-5 text-muted-foreground">
+                  {label}
+                </span>
+              </li>
+            ))}
+          </ol>
         </div>
-        <Button variant="ghost" className="mt-2 w-full justify-start">
-          <Plus data-icon="inline-start" />
-          Новая папка
-        </Button>
+
+        <div className="mt-8 rounded-2xl border border-border bg-background/45 p-4">
+          <Lightbulb className="text-primary" aria-hidden="true" />
+          <p className="mt-3 text-sm font-bold">Для лучшего результата</p>
+          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+            Используйте светлое фото, где комната полностью видна в кадре.
+          </p>
+        </div>
       </aside>
 
       <section className="min-w-0">
         <div className="flex flex-col gap-3 border-b border-border p-5 md:flex-row md:items-center">
-          <InputGroup className="h-12 min-w-0 flex-1 bg-card">
+          <InputGroup className="h-12 min-w-0 flex-1 bg-card has-[[data-slot=input-group-control]:focus-visible]:border-muted-foreground/60 has-[[data-slot=input-group-control]:focus-visible]:ring-0">
+            <InputGroupAddon align="inline-start">
+              <Search aria-hidden="true" />
+            </InputGroupAddon>
             <InputGroupInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Поиск среди загруженных проектов"
               aria-label="Поиск среди загруженных проектов"
             />
-            <InputGroupAddon>
-              <Search aria-hidden="true" />
-            </InputGroupAddon>
+            {search ? (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-sm"
+                  aria-label="Очистить поиск"
+                  onClick={() => {
+                    setSearch("");
+                    router.replace(projectsListHref(1, ""), { scroll: false });
+                  }}
+                >
+                  <X />
+                </InputGroupButton>
+              </InputGroupAddon>
+            ) : null}
           </InputGroup>
-          <Button variant="secondary" size="lg">
-            <SlidersHorizontal data-icon="inline-start" />
-            Категория
-          </Button>
           <ToggleGroup
             type="single"
             value={view}
@@ -203,24 +266,28 @@ export function ProjectsGrid() {
 
           {!projects.isLoading &&
           !projects.error &&
-          filteredProjects.length === 0 ? (
+          loadedProjects.length === 0 ? (
             <Empty className="min-h-80 border">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  {search.trim() ? <Search /> : <Plus />}
+                  {hasActiveSearch ? <Search /> : <Plus />}
                 </EmptyMedia>
                 <EmptyTitle>
-                  {search.trim()
+                  {hasActiveSearch
                     ? "Проекты не найдены"
-                    : "Создать первый проект"}
+                    : hasProjects
+                      ? "На этой странице нет проектов"
+                      : "Создать первый проект"}
                 </EmptyTitle>
                 <EmptyDescription>
-                  {search.trim()
-                    ? "Измените запрос или загрузите следующую страницу проектов"
-                    : "Фото комнаты прикрепляется сразу на холсте"}
+                  {hasActiveSearch
+                    ? "Измените поисковый запрос"
+                    : page > 1
+                      ? "Перейдите на другую страницу списка"
+                      : "Фото комнаты прикрепляется сразу на холсте"}
                 </EmptyDescription>
               </EmptyHeader>
-              {!search.trim() ? (
+              {!hasActiveSearch && !hasProjects ? (
                 <EmptyContent>
                   <Button
                     onClick={() => createProject.mutate()}
@@ -236,11 +303,13 @@ export function ProjectsGrid() {
 
           <div
             className={cn(
-              "grid",
+              "grid transition-opacity",
               view === "grid" ? "gap-4 sm:grid-cols-2 xl:grid-cols-4" : "gap-3",
+              projects.isFetching && !projects.isLoading && "opacity-60",
             )}
+            aria-busy={projects.isFetching}
           >
-            {filteredProjects.map((project) => (
+            {loadedProjects.map((project) => (
               <Card
                 key={project.id}
                 className={cn(
@@ -313,16 +382,13 @@ export function ProjectsGrid() {
               </Card>
             ))}
           </div>
-          {projects.hasNextPage ? (
-            <div className="mt-6 flex justify-center">
-              <Button
-                variant="secondary"
-                onClick={() => projects.fetchNextPage()}
-                disabled={projects.isFetchingNextPage}
-              >
-                {projects.isFetchingNextPage ? "Загружаем…" : "Показать ещё"}
-              </Button>
-            </div>
+          {!projects.error ? (
+            <AppPagination
+              page={page}
+              pageCount={projects.data?.pageCount ?? 0}
+              buildHref={buildPageHref}
+              className="mt-8"
+            />
           ) : null}
         </div>
       </section>

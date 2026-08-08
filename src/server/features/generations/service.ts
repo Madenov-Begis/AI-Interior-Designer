@@ -187,15 +187,3 @@ export async function cancelGenerationAsAdmin(id: string) {
     ? cancelOwnedGenerationWithDatabase(getDb(), generation.userId, id)
     : false;
 }
-export async function softDeleteOwnedGeneration(userId: string, id: string) {
-  const updated = await getDb().generation.updateMany({
-    where: {
-      id,
-      userId,
-      status: { notIn: ["QUEUED", "PROCESSING"] },
-      deletedAt: null,
-    },
-    data: { deletedAt: new Date() },
-  });
-  return updated.count > 0;
-}

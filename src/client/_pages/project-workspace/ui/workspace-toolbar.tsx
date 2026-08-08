@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Check,
   Eraser,
   Highlighter,
   MousePointer2,
@@ -11,8 +12,28 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
-import { useState, type ComponentType } from "react";
+import {
+  forwardRef,
+  useState,
+  type ComponentProps,
+  type ComponentType,
+} from "react";
 import type { VisualPromptTool } from "@/features/visual-prompt";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+  Slider,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/shared/ui";
+import { cn } from "@/shared/lib";
 
 export type WorkspaceToolbarProps = {
   tool: VisualPromptTool;
@@ -25,7 +46,6 @@ export type WorkspaceToolbarProps = {
   onStrokeWidthChange(width: number): void;
   onUndo(): void;
   onRedo(): void;
-  onDelete(): void;
   onClear(): void;
 };
 
@@ -42,38 +62,49 @@ const TOOLS: Array<{
   { id: "pen", label: "Рисовать ручкой", icon: PenLine },
   { id: "marker", label: "Рисовать маркером", icon: Highlighter },
   { id: "rectangle", label: "Выделить прямоугольником", icon: Square },
+  { id: "eraser", label: "Стирать разметку", icon: Eraser },
 ];
 
-const COLORS = ["#afea4d", "#ff7474", "#58a6ff", "#f5f5f1", "#f2b84b"];
+const COLORS = [
+  { value: "#afea4d", label: "Лаймовый" },
+  { value: "#ff7474", label: "Красный" },
+  { value: "#58a6ff", label: "Синий" },
+  { value: "#f5f5f1", label: "Белый" },
+  { value: "#f2b84b", label: "Жёлтый" },
+];
 
-function ToolbarButton({
-  label,
-  pressed,
-  disabled = false,
-  onClick,
-  children,
-}: {
+type ToolbarButtonProps = Omit<
+  ComponentProps<"button">,
+  "aria-label" | "title"
+> & {
   label: string;
   pressed?: boolean;
-  disabled?: boolean;
-  onClick(): void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      aria-pressed={pressed}
-      data-active={pressed || undefined}
-      disabled={disabled}
-      onClick={onClick}
-      className="workspace-toolbar__button disabled:pointer-events-none disabled:opacity-30"
-    >
-      {children}
-    </button>
-  );
-}
+};
+
+const ToolbarButton = forwardRef<HTMLButtonElement, ToolbarButtonProps>(
+  function ToolbarButton(
+    { label, pressed, className, children, ...props },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        aria-label={label}
+        title={label}
+        aria-pressed={pressed}
+        data-active={pressed || undefined}
+        className={cn(
+          "workspace-toolbar__button disabled:pointer-events-none disabled:opacity-30",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  },
+);
 
 export function WorkspaceToolbar({
   tool,
@@ -86,12 +117,15 @@ export function WorkspaceToolbar({
   onStrokeWidthChange,
   onUndo,
   onRedo,
-  onDelete,
   onClear,
 }: WorkspaceToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const hasDrawingSettings =
-    tool === "pen" || tool === "marker" || tool === "rectangle";
+    tool === "pen" ||
+    tool === "marker" ||
+    tool === "rectangle" ||
+    tool === "eraser";
+  const hasColorSettings = tool !== "eraser";
 
   return (
     <div className="workspace-toolbar" aria-label="Инструменты разметки">
@@ -112,25 +146,141 @@ export function WorkspaceToolbar({
 
         <span className="workspace-toolbar__divider" aria-hidden="true" />
 
-        {hasDrawingSettings && (
-          <ToolbarButton
-            label="Цвет и толщина"
-            pressed={settingsOpen}
-            onClick={() => setSettingsOpen((open) => !open)}
-          >
-            <span
-              className="relative grid size-5 place-items-center"
-              style={{ color }}
+        {hasDrawingSettings ? (
+          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <PopoverTrigger asChild>
+              <ToolbarButton label="Цвет и толщина" pressed={settingsOpen}>
+                <span
+                  className="relative grid size-5 place-items-center"
+                  style={hasColorSettings ? { color } : undefined}
+                >
+                  <SlidersHorizontal size={19} strokeWidth={2.1} />
+                  {hasColorSettings ? (
+                    <span
+                      className="absolute -right-1 -bottom-1 size-2.5 rounded-full border border-surface"
+                      style={{ backgroundColor: color }}
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                </span>
+              </ToolbarButton>
+            </PopoverTrigger>
+            <PopoverContent
+              side="right"
+              align="center"
+              sideOffset={10}
+              collisionPadding={12}
+              className="w-80"
             >
-              <SlidersHorizontal size={19} strokeWidth={2.1} />
-              <span
-                className="absolute -right-1 -bottom-1 size-2.5 rounded-full border border-surface"
-                style={{ backgroundColor: color }}
-                aria-hidden="true"
-              />
-            </span>
-          </ToolbarButton>
-        )}
+              <PopoverHeader>
+                <PopoverTitle>Параметры разметки</PopoverTitle>
+                <PopoverDescription>
+                  {hasColorSettings
+                    ? "Выберите цвет и толщину линии"
+                    : "Настройте толщину ластика"}
+                </PopoverDescription>
+              </PopoverHeader>
+
+              <FieldGroup className="mt-5 gap-5">
+                {hasColorSettings ? (
+                  <>
+                    <Field>
+                      <FieldLabel>Цвет</FieldLabel>
+                      <ToggleGroup
+                        type="single"
+                        value={
+                          COLORS.some(
+                            ({ value }) => value === color.toLowerCase(),
+                          )
+                            ? color.toLowerCase()
+                            : ""
+                        }
+                        onValueChange={(value) => {
+                          if (value) onColorChange(value);
+                        }}
+                        spacing={2}
+                        aria-label="Цвет линии"
+                      >
+                        {COLORS.map((preset) => {
+                          const selected =
+                            color.toLowerCase() === preset.value.toLowerCase();
+
+                          return (
+                            <ToggleGroupItem
+                              key={preset.value}
+                              value={preset.value}
+                              aria-label={preset.label}
+                              title={preset.label}
+                              className={cn(
+                                "size-9 rounded-full border-2 p-0",
+                                selected
+                                  ? "border-foreground"
+                                  : "border-transparent",
+                              )}
+                              style={{ backgroundColor: preset.value }}
+                            >
+                              {selected ? (
+                                <Check
+                                  className="text-black"
+                                  aria-hidden="true"
+                                />
+                              ) : null}
+                            </ToggleGroupItem>
+                          );
+                        })}
+                      </ToggleGroup>
+                    </Field>
+
+                    <Field>
+                      <FieldLabel className="w-full cursor-pointer items-center justify-between rounded-lg border border-border px-3 py-2.5">
+                        <span>Свой цвет</span>
+                        <span className="flex items-center gap-2 font-mono text-xs uppercase text-muted-foreground">
+                          <span
+                            className="size-5 rounded-full border border-border"
+                            style={{ backgroundColor: color }}
+                            aria-hidden="true"
+                          />
+                          {color}
+                        </span>
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(event) =>
+                            onColorChange(event.target.value)
+                          }
+                          className="sr-only"
+                          aria-label="Выбрать свой цвет"
+                        />
+                      </FieldLabel>
+                    </Field>
+                  </>
+                ) : null}
+
+                <Field>
+                  <FieldLabel htmlFor="workspace-stroke-width">
+                    {tool === "eraser" ? "Толщина ластика" : "Толщина линии"}
+                    <span className="ml-auto tabular-nums text-muted-foreground">
+                      {strokeWidth}px
+                    </span>
+                  </FieldLabel>
+                  <Slider
+                    id="workspace-stroke-width"
+                    min={tool === "eraser" ? 16 : 2}
+                    max={tool === "eraser" ? 96 : 48}
+                    step={tool === "eraser" ? 2 : 1}
+                    value={[strokeWidth]}
+                    onValueChange={([value]) => {
+                      if (value !== undefined) onStrokeWidthChange(value);
+                    }}
+                    aria-label={
+                      tool === "eraser" ? "Толщина ластика" : "Толщина линии"
+                    }
+                  />
+                </Field>
+              </FieldGroup>
+            </PopoverContent>
+          </Popover>
+        ) : null}
 
         <ToolbarButton label="Отменить" disabled={!canUndo} onClick={onUndo}>
           <Undo2 size={19} strokeWidth={2.1} />
@@ -138,78 +288,10 @@ export function WorkspaceToolbar({
         <ToolbarButton label="Повторить" disabled={!canRedo} onClick={onRedo}>
           <Redo2 size={19} strokeWidth={2.1} />
         </ToolbarButton>
-        <ToolbarButton label="Удалить выбранное" onClick={onDelete}>
+        <ToolbarButton label="Удалить всю разметку" onClick={onClear}>
           <Trash2 size={19} strokeWidth={2.1} />
         </ToolbarButton>
-        <ToolbarButton label="Очистить разметку" onClick={onClear}>
-          <Eraser size={19} strokeWidth={2.1} />
-        </ToolbarButton>
       </div>
-
-      {hasDrawingSettings && settingsOpen && (
-        <div
-          className="workspace-toolbar__popover"
-          role="dialog"
-          aria-label="Параметры инструмента"
-        >
-          <div>
-            <p className="text-xs font-bold text-muted">Цвет</p>
-            <div className="mt-2 flex items-center gap-2">
-              {COLORS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  aria-label={`Выбрать цвет ${preset}`}
-                  title={`Цвет ${preset}`}
-                  aria-pressed={color.toLowerCase() === preset.toLowerCase()}
-                  onClick={() => onColorChange(preset)}
-                  className="grid size-11 shrink-0 place-items-center rounded-lg"
-                >
-                  <span
-                    className={`size-6 rounded-full border-2 ${
-                      color.toLowerCase() === preset.toLowerCase()
-                        ? "border-foreground"
-                        : "border-transparent"
-                    }`}
-                    style={{ backgroundColor: preset }}
-                    aria-hidden="true"
-                  />
-                </button>
-              ))}
-              <label
-                className="workspace-focus-proxy relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg"
-                title="Другой цвет"
-              >
-                <span className="sr-only">Другой цвет</span>
-                <span
-                  className="size-7 rounded-full border border-border"
-                  style={{ backgroundColor: color }}
-                  aria-hidden="true"
-                />
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(event) => onColorChange(event.target.value)}
-                  className="absolute inset-0 size-full cursor-pointer opacity-0"
-                />
-              </label>
-            </div>
-          </div>
-          <label className="mt-4 grid gap-2 text-xs font-bold text-muted">
-            Толщина: {strokeWidth}px
-            <input
-              type="range"
-              min="2"
-              max="48"
-              value={strokeWidth}
-              onChange={(event) =>
-                onStrokeWidthChange(Number(event.target.value))
-              }
-              className="h-11 w-48 accent-[var(--accent)]"
-            />
-          </label>
-        </div>
-      )}
     </div>
   );
 }

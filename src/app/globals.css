@@ -305,20 +305,6 @@ body {
   background: var(--border);
 }
 
-.workspace-toolbar__popover {
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 0.6rem);
-  width: max-content;
-  transform: translateY(-50%);
-  padding: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 0.85rem;
-  background: color-mix(in srgb, var(--surface) 97%, transparent);
-  box-shadow: 0 14px 38px rgb(0 0 0 / 38%);
-  backdrop-filter: blur(14px);
-}
-
 .canvas-zoom-controls {
   position: absolute;
   z-index: 20;
@@ -442,7 +428,7 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
-:focus-visible {
+:focus-visible:not([data-slot="input-group-control"]) {
   outline: 3px solid color-mix(in srgb, var(--accent) 72%, white);
   outline-offset: 3px;
 }
@@ -477,15 +463,6 @@ a {
     width: 1px;
     height: 1.6rem;
     margin: 0 0.15rem;
-  }
-
-  .workspace-toolbar__popover {
-    top: auto;
-    right: 0;
-    bottom: calc(100% + 0.6rem);
-    left: auto;
-    max-width: calc(100vw - 1.5rem);
-    transform: none;
   }
 
   .canvas-zoom-controls {

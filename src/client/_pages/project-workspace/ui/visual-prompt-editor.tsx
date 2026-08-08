@@ -7,7 +7,13 @@ import {
   useImperativeHandle,
   useRef,
 } from "react";
-import type { Canvas, Rect as FabricRect } from "fabric";
+import type {
+  Canvas,
+  FabricObject,
+  PencilBrush,
+  Rect as FabricRect,
+} from "fabric";
+import type { EraserBrush } from "@erase2d/fabric";
 import type {
   VisualPromptCanvasState,
   VisualPromptEditorHandle,
@@ -15,6 +21,10 @@ import type {
 } from "@/features/visual-prompt";
 import { apiData } from "@/shared/api";
 import { canvasToPngBlob } from "../model/visual-prompt-canvas-export";
+
+const ERASER_CURSOR = 'url("/cursors/eraser.svg?v=3") 5 24, auto';
+
+type ErasableFabricObject = FabricObject & { erasable?: boolean };
 
 type Props = {
   projectId?: string;
@@ -41,6 +51,8 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const pendingCanvasOperationsRef = useRef(0);
     const rectangleRef = useRef<FabricRect | null>(null);
     const rectangleStartRef = useRef<{ x: number; y: number } | null>(null);
+    const pencilBrushRef = useRef<PencilBrush | null>(null);
+    const eraserBrushRef = useRef<EraserBrush | null>(null);
     const toolRef = useRef<VisualPromptTool>(props.tool);
     const colorRef = useRef(props.color);
     const strokeWidthRef = useRef(props.strokeWidth);
@@ -72,30 +84,50 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         nextColor: string,
         nextStrokeWidth: number,
       ) => {
-        const isDrawing = nextTool === "pen" || nextTool === "marker";
+        const isDrawing =
+          nextTool === "pen" || nextTool === "marker" || nextTool === "eraser";
         const isSelecting = nextTool === "select";
 
         canvas.isDrawingMode = isDrawing;
         canvas.selection = isSelecting;
         canvas.skipTargetFind = !isSelecting;
         canvas.defaultCursor =
-          nextTool === "rectangle"
-            ? "crosshair"
-            : isSelecting
-              ? "pointer"
-              : "default";
-        canvas.forEachObject((object) =>
+          nextTool === "eraser"
+            ? ERASER_CURSOR
+            : nextTool === "rectangle"
+              ? "crosshair"
+              : isSelecting
+                ? "pointer"
+                : "default";
+        canvas.freeDrawingCursor =
+          nextTool === "eraser" ? ERASER_CURSOR : "crosshair";
+        canvas.forEachObject((object) => {
+          const isEraserStroke =
+            object.globalCompositeOperation === "destination-out";
+          (object as ErasableFabricObject).erasable = !isEraserStroke;
           object.set({
-            selectable: isSelecting,
-            evented: isSelecting,
-            hoverCursor: isSelecting ? "pointer" : "default",
-          }),
-        );
+            selectable: isSelecting && !isEraserStroke,
+            evented: isSelecting && !isEraserStroke,
+            hoverCursor: isSelecting && !isEraserStroke ? "pointer" : "default",
+          });
+        });
+
+        if (isDrawing) {
+          const brush =
+            nextTool === "eraser"
+              ? eraserBrushRef.current
+              : pencilBrushRef.current;
+          if (brush) canvas.freeDrawingBrush = brush;
+        }
 
         if (isDrawing && canvas.freeDrawingBrush) {
           canvas.freeDrawingBrush.width = nextStrokeWidth;
           canvas.freeDrawingBrush.color =
-            nextTool === "marker" ? `${nextColor}66` : nextColor;
+            nextTool === "eraser"
+              ? "rgba(0, 0, 0, 1)"
+              : nextTool === "marker"
+                ? `${nextColor}66`
+                : nextColor;
         }
 
         canvas.upperCanvasEl.style.pointerEvents = "auto";
@@ -220,29 +252,17 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       [emitHistoryState, enqueueCanvasOperation, loadSnapshot],
     );
 
-    const deleteSelected = useCallback(() => {
-      void enqueueCanvasOperation(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const selected = canvas.getActiveObjects();
-        if (selected.length === 0) return;
-
-        canvas.discardActiveObject();
-        selected.forEach((object) => canvas.remove(object));
-        canvas.requestRenderAll();
-        captureHistory(true);
-      });
-    }, [captureHistory, enqueueCanvasOperation]);
-
     const clear = useCallback(
       () =>
         enqueueCanvasOperation(() => {
           const canvas = canvasRef.current;
-          if (!canvas || canvas.getObjects().length === 0) return;
+          if (!canvas) return;
+          if (canvas.getObjects().length === 0) return;
 
+          rectangleRef.current = null;
+          rectangleStartRef.current = null;
           canvas.discardActiveObject();
-          canvas.getObjects().forEach((object) => canvas.remove(object));
+          canvas.clear();
           canvas.requestRenderAll();
           captureHistory(true);
         }),
@@ -345,10 +365,9 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         snapshot,
         undo,
         redo,
-        deleteSelected,
         clear,
       }),
-      [clear, deleteSelected, markPersisted, persist, redo, snapshot, undo],
+      [clear, markPersisted, persist, redo, snapshot, undo],
     );
 
     useEffect(() => {
@@ -356,15 +375,14 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
 
       let disposed = false;
       let canvas: Canvas | null = null;
+      let disposeEraserEnd: (() => void) | null = null;
+      let eraserBrush: EraserBrush | null = null;
 
-      void import("fabric").then(
-        async ({
-          Canvas: FabricCanvas,
-          FabricImage,
-          PencilBrush,
-          Rect,
-          util,
-        }) => {
+      void Promise.all([import("fabric"), import("@erase2d/fabric")]).then(
+        async ([
+          { Canvas: FabricCanvas, FabricImage, PencilBrush, Rect, util },
+          { EraserBrush },
+        ]) => {
           if (disposed || !canvasElementRef.current) return;
 
           canvas = new FabricCanvas(canvasElementRef.current, {
@@ -377,16 +395,38 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             backgroundColor: "transparent",
           });
           canvasRef.current = canvas;
-          canvas.freeDrawingBrush = new PencilBrush(canvas);
+          const pencilBrush = new PencilBrush(canvas);
+          eraserBrush = new EraserBrush(canvas);
+          pencilBrushRef.current = pencilBrush;
+          eraserBrushRef.current = eraserBrush;
+          canvas.freeDrawingBrush = pencilBrush;
+
+          disposeEraserEnd = eraserBrush.on("end", (event) => {
+            event.preventDefault();
+            void enqueueCanvasOperation(async () => {
+              if (!eraserBrush) return;
+              await eraserBrush.commit(event.detail);
+              canvas?.requestRenderAll();
+              captureHistory(true);
+            }).catch((error: unknown) => {
+              persistenceStateCallbackRef.current(
+                error instanceof Error
+                  ? `Не удалось стереть разметку: ${error.message}`
+                  : "Не удалось стереть разметку",
+              );
+            });
+          });
 
           const wrapper = canvas.wrapperEl;
           wrapper.style.width = "100%";
           wrapper.style.height = "100%";
           wrapper.classList.add("visual-prompt-canvas");
 
-          const changed = () => captureHistory();
-          canvas.on("path:created", changed);
-          canvas.on("object:modified", changed);
+          canvas.on("path:created", (event) => {
+            (event.path as ErasableFabricObject).erasable = true;
+            captureHistory();
+          });
+          canvas.on("object:modified", () => captureHistory());
 
           canvas.on("mouse:down", (event) => {
             if (toolRef.current !== "rectangle" || !event.scenePoint) return;
@@ -616,6 +656,10 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
 
       return () => {
         disposed = true;
+        disposeEraserEnd?.();
+        eraserBrush?.dispose();
+        pencilBrushRef.current = null;
+        eraserBrushRef.current = null;
         canvasRef.current = null;
         historyRef.current = [];
         historyIndexRef.current = -1;
@@ -626,6 +670,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       captureHistory,
       configureCanvas,
       emitHistoryState,
+      enqueueCanvasOperation,
       props.editorHeight,
       props.editorWidth,
       props.initialState,

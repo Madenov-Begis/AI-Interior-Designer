@@ -78,6 +78,24 @@ export {
   InputGroupTextarea,
 } from "../components/ui/input-group.tsx";
 export { Label } from "../components/ui/label.tsx";
+export {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "../components/ui/pagination.tsx";
+export {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "../components/ui/popover.tsx";
 export { Separator } from "../components/ui/separator.tsx";
 export {
   Sheet,
@@ -88,6 +106,7 @@ export {
   SheetTrigger,
 } from "../components/ui/sheet.tsx";
 export { Skeleton } from "../components/ui/skeleton.tsx";
+export { Slider } from "../components/ui/slider.tsx";
 export { Textarea } from "../components/ui/textarea.tsx";
 export { Toggle } from "../components/ui/toggle.tsx";
 export {
@@ -101,6 +120,7 @@ export {
   TooltipTrigger,
 } from "../components/ui/tooltip.tsx";
 export { RoovaLogo } from "../components/design-system/brand.tsx";
+export { AppPagination } from "../components/design-system/app-pagination.tsx";
 export {
   RoovaPage,
   RoovaPanel,

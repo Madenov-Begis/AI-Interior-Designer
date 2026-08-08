@@ -34,6 +34,18 @@ const canvasSource = readFileSync(
   new URL("./canvas-viewport.tsx", import.meta.url),
   "utf8",
 );
+const toolbarSource = readFileSync(
+  new URL("./workspace-toolbar.tsx", import.meta.url),
+  "utf8",
+);
+const visualPromptEditorSource = readFileSync(
+  new URL("./visual-prompt-editor.tsx", import.meta.url),
+  "utf8",
+);
+const generationRouteSource = readFileSync(
+  new URL("../../../../app/api/v1/generations/[id]/route.ts", import.meta.url),
+  "utf8",
+);
 
 test("refinement editor uses a controlled modal dialog", () => {
   assert.match(source, /<Dialog/);
@@ -58,10 +70,40 @@ test("context actions dismiss on an outside pointer interaction", () => {
   );
 });
 
-test("context actions keep only refinement and removal", () => {
+test("drawing settings use a dismissable popover", () => {
+  assert.match(toolbarSource, /<Popover open=\{settingsOpen\}/);
+  assert.match(toolbarSource, /onOpenChange=\{setSettingsOpen\}/);
+  assert.match(toolbarSource, /<PopoverTrigger asChild>/);
+  assert.match(toolbarSource, /<PopoverContent/);
+  assert.doesNotMatch(toolbarSource, /workspace-toolbar__popover/);
+});
+
+test("context actions keep refinement without generation removal", () => {
   assert.match(overlaySource, /Доработать/);
-  assert.match(overlaySource, /Удалить/);
-  assert.doesNotMatch(overlaySource, /Дублировать|onDuplicate|\bCopy\b/);
+  assert.doesNotMatch(
+    overlaySource,
+    /Удалить|onRemove|Дублировать|onDuplicate|\bCopy\b/,
+  );
+  assert.doesNotMatch(cardSource, /Убрать с холста|onRemove/);
+  assert.doesNotMatch(generationRouteSource, /export async function DELETE/);
+});
+
+test("eraser uses the Fabric 7 compatible erasing brush", () => {
+  assert.match(toolbarSource, /id: "eraser"/);
+  assert.match(toolbarSource, /Стирать разметку/);
+  assert.match(visualPromptEditorSource, /nextTool === "eraser"/);
+  assert.match(visualPromptEditorSource, /freeDrawingCursor/);
+  assert.match(visualPromptEditorSource, /cursors\/eraser\.svg/);
+  assert.match(visualPromptEditorSource, /new EraserBrush\(canvas\)/);
+  assert.match(visualPromptEditorSource, /await eraserBrush\.commit/);
+});
+
+test("trash clears all markup without a browser confirmation", () => {
+  assert.match(toolbarSource, /label="Удалить всю разметку"/);
+  assert.match(workspaceSource, /clearCurrentVisualPrompt/);
+  assert.match(workspaceSource, /await editor\.clear\(\)/);
+  assert.match(visualPromptEditorSource, /canvas\.clear\(\)/);
+  assert.doesNotMatch(workspaceSource, /window\.confirm/);
 });
 
 test("refinement sends only new files for the selected generation", () => {
