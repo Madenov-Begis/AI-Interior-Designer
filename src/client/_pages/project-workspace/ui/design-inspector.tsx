@@ -14,6 +14,12 @@ import { Button } from "@/shared/ui";
 import { Textarea } from "@/shared/ui";
 import type { WorkspaceReference } from "../model/workspace-types";
 import {
+  GENERATION_ASPECT_RATIO_LABELS,
+  GENERATION_ASPECT_RATIOS,
+  type GenerationAspectRatio,
+  type GenerationAspectRatioSelection,
+} from "../model/generation-aspect-ratio";
+import {
   GENERATION_CREDIT_COST,
   GENERATION_REFUND_MESSAGE,
 } from "@/shared/config";
@@ -30,8 +36,9 @@ export type DesignInspectorProps = {
   styles: Array<{ code: string; name: string; imageUrl: string }>;
   styleCode: string | undefined;
   onStyleChange(value: string | undefined): void;
-  aspectRatio: string;
-  onAspectRatioChange(value: string): void;
+  aspectRatio: GenerationAspectRatioSelection;
+  sourceAspectRatio: GenerationAspectRatio;
+  onAspectRatioChange(value: GenerationAspectRatioSelection): void;
   credits: GenerationWallet | null | undefined;
   dataLoading: boolean;
   dataError: string | null;
@@ -40,14 +47,6 @@ export type DesignInspectorProps = {
   generationErrorCode: string | null;
   disabledReasons: string[];
   onGenerate(): void;
-};
-
-const ASPECT_RATIO_LABELS: Record<string, string> = {
-  RATIO_1_1: "1:1",
-  RATIO_16_9: "16:9",
-  RATIO_9_16: "9:16",
-  RATIO_4_3: "4:3",
-  RATIO_3_4: "3:4",
 };
 
 export function DesignInspector({
@@ -59,6 +58,7 @@ export function DesignInspector({
   styleCode,
   onStyleChange,
   aspectRatio,
+  sourceAspectRatio,
   onAspectRatioChange,
   credits,
   dataLoading,
@@ -69,7 +69,6 @@ export function DesignInspector({
   disabledReasons,
   onGenerate,
 }: DesignInspectorProps) {
-  const supportedAspectRatios = Object.keys(ASPECT_RATIO_LABELS);
   const promptIsInvalid =
     prompt.length > 0 && (prompt.trim().length < 3 || prompt.length > 4000);
   const walletPresentation = generationWalletPresentation(
@@ -150,7 +149,27 @@ export function DesignInspector({
             Формат
           </legend>
           <div className="mt-2 grid grid-cols-5 gap-1.5">
-            {supportedAspectRatios.map((ratio) => (
+            <label
+              className={`workspace-focus-proxy col-span-5 flex min-h-10 cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                aspectRatio === "SOURCE"
+                  ? "border-primary bg-primary/12 text-primary"
+                  : "border-border bg-secondary/55 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
+              }`}
+            >
+              <input
+                type="radio"
+                name="aspect-ratio"
+                value="SOURCE"
+                checked={aspectRatio === "SOURCE"}
+                onChange={() => onAspectRatioChange("SOURCE")}
+                className="sr-only"
+              />
+              <span>Как в исходнике</span>
+              <span className="font-mono text-[11px]">
+                {GENERATION_ASPECT_RATIO_LABELS[sourceAspectRatio]}
+              </span>
+            </label>
+            {GENERATION_ASPECT_RATIOS.map((ratio) => (
               <label
                 key={ratio}
                 className={`workspace-focus-proxy inline-flex min-h-10 min-w-0 cursor-pointer items-center justify-center rounded-lg border px-2 py-2 font-mono text-[11px] font-semibold transition-colors ${
@@ -167,7 +186,7 @@ export function DesignInspector({
                   onChange={() => onAspectRatioChange(ratio)}
                   className="sr-only"
                 />
-                {ASPECT_RATIO_LABELS[ratio] ?? ratio}
+                {GENERATION_ASPECT_RATIO_LABELS[ratio]}
               </label>
             ))}
           </div>

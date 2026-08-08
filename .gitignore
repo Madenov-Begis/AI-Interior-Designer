@@ -51,3 +51,5 @@ next-env.d.ts
 .codex-audits/
 .trigger/
 /src/generated/prisma/
+
+.agents

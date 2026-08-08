@@ -38,7 +38,7 @@ function SimpleList({
 export const PlansPage = () => (
   <SimpleList
     title="Тарифы"
-    description="Параллельность, доступные модели и правила watermark"
+    description="Параллельность и параметры доступных тарифов"
     path="/api/v1/admin/plans"
     columns={[
       ["Код", "code"],

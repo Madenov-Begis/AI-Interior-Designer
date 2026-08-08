@@ -38,15 +38,14 @@ export async function getGenerationUsage(userId: string) {
     plan: {
       code: plan.code,
       name: plan.name,
-      watermarkRequired: plan.watermarkRequired,
     },
   };
 }
 
 export async function getOwnedGeneration(userId: string, id: string) {
   const db = getDb();
-  const readGeneration = () =>
-    db.generation.findFirst({
+  const readGeneration = async () => {
+    const generation = await db.generation.findFirst({
       where: { id, userId, deletedAt: null },
       select: {
         id: true,
@@ -57,7 +56,7 @@ export async function getOwnedGeneration(userId: string, id: string) {
         finalPrompt: true,
         aspectRatio: true,
         visualPromptUsed: true,
-        resultUserId: true,
+        resultOriginalId: true,
         errorCode: true,
         errorMessage: true,
         createdAt: true,
@@ -66,7 +65,7 @@ export async function getOwnedGeneration(userId: string, id: string) {
         completedAt: true,
         durationMs: true,
         usageEvent: { select: { status: true, expiresAt: true } },
-        resultUser: {
+        resultOriginal: {
           select: {
             bucket: true,
             path: true,
@@ -80,6 +79,14 @@ export async function getOwnedGeneration(userId: string, id: string) {
         },
       },
     });
+    return generation
+      ? {
+          ...generation,
+          resultUserId: generation.resultOriginalId,
+          resultUser: generation.resultOriginal,
+        }
+      : null;
+  };
   const generation = await readGeneration();
   if (
     generation &&
@@ -135,7 +142,7 @@ export async function listOwnedGenerations(
         prompt: true,
         aspectRatio: true,
         visualPromptUsed: true,
-        resultUserId: true,
+        resultOriginalId: true,
         errorCode: true,
         errorMessage: true,
         createdAt: true,
@@ -143,7 +150,7 @@ export async function listOwnedGenerations(
         completedAt: true,
         durationMs: true,
         project: { select: { name: true, sourcePreviewId: true } },
-        resultUser: {
+        resultOriginal: {
           select: { bucket: true, path: true, width: true, height: true },
         },
         references: {
@@ -155,7 +162,12 @@ export async function listOwnedGenerations(
     }),
   ]);
   const hasMore = rows.length > input.limit;
-  const items = hasMore ? rows.slice(0, input.limit) : rows;
+  const pageRows = hasMore ? rows.slice(0, input.limit) : rows;
+  const items = pageRows.map((generation) => ({
+    ...generation,
+    resultUserId: generation.resultOriginalId,
+    resultUser: generation.resultOriginal,
+  }));
   return {
     items,
     nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,

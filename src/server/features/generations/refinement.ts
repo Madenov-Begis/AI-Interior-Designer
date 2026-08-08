@@ -7,6 +7,7 @@ import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 
 export class RefinementParentNotFoundError extends Error {}
+export class RefinementReferenceLimitError extends Error {}
 
 export async function uploadRefinementReferences(
   userId: string,
@@ -15,7 +16,9 @@ export async function uploadRefinementReferences(
 ) {
   if (files.length === 0) throw new Error("REFERENCE_REQUIRED");
   if (files.length > REFERENCE_IMAGE_RULES.maxCount) {
-    throw new Error("REFERENCE_LIMIT_EXCEEDED");
+    throw new RefinementReferenceLimitError(
+      `Можно добавить не более ${REFERENCE_IMAGE_RULES.maxCount} референсов`,
+    );
   }
 
   const parent = await getDb().generation.findFirst({

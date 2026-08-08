@@ -15,6 +15,17 @@ import {
 } from "@/server/features/generations/schema";
 import { processGeneration } from "@/server/features/generations/worker";
 import {
+  RefinementParentNotFoundError,
+  RefinementReferenceLimitError,
+  uploadRefinementReferences,
+} from "@/server/features/generations/refinement";
+import { ImageValidationError } from "@/server/features/media/image-validation";
+import { deleteMediaFileIfUnreferenced } from "@/server/features/media/cleanup";
+import {
+  REFERENCE_IMAGE_RULES,
+  VISUAL_PROMPT_RULES,
+} from "@/server/shared/config/storage";
+import {
   parseVisualPromptCanvasState,
   VisualPromptValidationError,
 } from "@/server/features/visual-prompt/schema";
@@ -40,8 +51,22 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
   let uploadOwnerId: string | null = null;
   let unattachedVisualPromptId: string | null = null;
+  let unattachedReferenceIds: string[] = [];
   try {
     enforceRateLimit(request, "generation-refinement", 10, 60_000);
+    const contentLength = Number(request.headers.get("content-length") ?? 0);
+    const maximumBodySize =
+      REFERENCE_IMAGE_RULES.maxBytes * REFERENCE_IMAGE_RULES.maxCount +
+      VISUAL_PROMPT_RULES.maxOverlayBytes +
+      1024 * 1024;
+    if (contentLength > maximumBodySize) {
+      return apiError(
+        "FILE_TOO_LARGE",
+        "Общий размер файлов слишком велик",
+        requestId,
+        413,
+      );
+    }
     const user = await requireCurrentUser();
     uploadOwnerId = user.id;
     await recoverExpiredGenerationReservations(user.id);
@@ -57,10 +82,35 @@ export async function POST(request: NextRequest, context: RouteContext) {
       canvasStatePresent: typeof canvasStateValue === "string",
     });
     const referenceValue = formData.get("referenceFileIds");
-    const input = createRefinementSchema.parse({
+    const referenceFiles = formData
+      .getAll("files")
+      .filter((value): value is File => value instanceof File);
+    const existingInput = createRefinementSchema.parse({
       prompt: formData.get("prompt"),
       referenceFileIds:
         typeof referenceValue === "string" ? JSON.parse(referenceValue) : [],
+    });
+    if (existingInput.referenceFileIds.length + referenceFiles.length > 10) {
+      throw new RefinementReferenceLimitError(
+        "Можно добавить не более 10 референсов",
+      );
+    }
+    const uploadedReferences = referenceFiles.length
+      ? await uploadRefinementReferences(
+          user.id,
+          parentGenerationId,
+          referenceFiles,
+        )
+      : [];
+    unattachedReferenceIds = uploadedReferences.map(
+      (reference) => reference.fileId,
+    );
+    const input = createRefinementSchema.parse({
+      prompt: existingInput.prompt,
+      referenceFileIds: [
+        ...existingInput.referenceFileIds,
+        ...unattachedReferenceIds,
+      ],
     });
 
     let visualPromptImageId: string | undefined;
@@ -87,7 +137,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (reserved.isExisting && unattachedVisualPromptId) {
       await discardUnattachedVisualPrompt(user.id, unattachedVisualPromptId);
     }
+    if (reserved.isExisting && unattachedReferenceIds.length > 0) {
+      await Promise.all(
+        unattachedReferenceIds.map((fileId) =>
+          deleteMediaFileIfUnreferenced(user.id, fileId),
+        ),
+      );
+    }
     unattachedVisualPromptId = null;
+    unattachedReferenceIds = [];
     if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
       after(() => processGeneration(reserved.generation.id));
     }
@@ -110,6 +168,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
         uploadOwnerId,
         unattachedVisualPromptId,
       ).catch(() => undefined);
+    }
+    if (uploadOwnerId && unattachedReferenceIds.length > 0) {
+      await Promise.all(
+        unattachedReferenceIds.map((fileId) =>
+          deleteMediaFileIfUnreferenced(uploadOwnerId!, fileId).catch(
+            () => undefined,
+          ),
+        ),
+      );
     }
     if (error instanceof RateLimitError) {
       return apiError("RATE_LIMITED", error.message, requestId, 429);
@@ -142,6 +209,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
     if (error instanceof VisualPromptValidationError) {
+      return apiError(error.code, error.message, requestId, 400);
+    }
+    if (error instanceof RefinementParentNotFoundError) {
+      return apiError(
+        "GENERATION_NOT_FOUND",
+        "Результат не найден",
+        requestId,
+        404,
+      );
+    }
+    if (error instanceof RefinementReferenceLimitError) {
+      return apiError(
+        "REFERENCE_LIMIT_EXCEEDED",
+        error.message,
+        requestId,
+        400,
+      );
+    }
+    if (error instanceof ImageValidationError) {
       return apiError(error.code, error.message, requestId, 400);
     }
     if (error instanceof ZodError || error instanceof SyntaxError) {

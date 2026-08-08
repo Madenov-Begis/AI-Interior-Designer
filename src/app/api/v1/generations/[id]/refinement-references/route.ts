@@ -3,6 +3,7 @@ import { z, ZodError } from "zod";
 import { REFERENCE_IMAGE_RULES } from "@/server/shared/config/storage";
 import {
   RefinementParentNotFoundError,
+  RefinementReferenceLimitError,
   uploadRefinementReferences,
 } from "@/server/features/generations/refinement";
 import { ImageValidationError } from "@/server/features/media/image-validation";
@@ -57,6 +58,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     if (error instanceof ImageValidationError) {
       return apiError(error.code, error.message, requestId, 400);
+    }
+    if (error instanceof RefinementReferenceLimitError) {
+      return apiError(
+        "REFERENCE_LIMIT_EXCEEDED",
+        error.message,
+        requestId,
+        400,
+      );
     }
     if (error instanceof Error && error.message === "REFERENCE_REQUIRED") {
       return apiError(

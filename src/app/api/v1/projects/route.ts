@@ -2,8 +2,14 @@ import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
-import { createProject, listProjects } from "@/server/features/projects/service";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
+import {
+  createProject,
+  listProjects,
+} from "@/server/features/projects/service";
 import {
   createProjectSchema,
   listProjectsSchema,
@@ -53,7 +59,7 @@ export async function GET(request: NextRequest) {
     const items = await Promise.all(
       projects.items.map(async (project) => {
         const media =
-          project.generations[0]?.resultUser ?? project.sourcePreview;
+          project.generations[0]?.resultOriginal ?? project.sourcePreview;
         let previewUrl: string | null = null;
         if (media) {
           const signed = await getSupabaseAdmin()

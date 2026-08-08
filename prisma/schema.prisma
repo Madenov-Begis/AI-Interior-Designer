@@ -37,7 +37,6 @@ enum MediaType {
   REFERENCE
   GENERATION_ORIGINAL
   GENERATION_RESULT
-  WATERMARK
 }
 
 enum AiProvider {
@@ -136,7 +135,6 @@ model Plan {
   maxUploadSizeMb        Int      @default(15)
   maxOutputWidth         Int?
   maxOutputHeight        Int?
-  watermarkRequired      Boolean  @default(true)
   priorityProcessing     Boolean  @default(false)
   active                 Boolean  @default(true)
   sortOrder              Int      @default(0)

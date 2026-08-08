@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
         maxReferenceImages: true,
         maxReferenceUrls: true,
         maxUploadSizeMb: true,
-        watermarkRequired: true,
         priorityProcessing: true,
       },
     });

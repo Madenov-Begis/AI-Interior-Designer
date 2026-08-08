@@ -22,11 +22,11 @@ const projectSummarySelect = {
     },
   },
   generations: {
-    where: { status: "SUCCEEDED", resultUserId: { not: null } },
+    where: { status: "SUCCEEDED", resultOriginalId: { not: null } },
     orderBy: [{ completedAt: "desc" }, { id: "desc" }],
     take: 1,
     select: {
-      resultUser: {
+      resultOriginal: {
         select: {
           bucket: true,
           path: true,

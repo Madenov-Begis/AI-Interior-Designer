@@ -15,6 +15,7 @@ type GenerationRow = {
   status: string;
   deletedAt: Date | null;
   parentGenerationId?: string;
+  finalPrompt?: string | null;
   estimatedCost?: unknown;
 };
 
@@ -415,6 +416,7 @@ function reservationDependencies(
     db,
     aiProvider: "fake",
     buildFinalPrompt: () => "final prompt",
+    buildRefinementPrompt: () => "refinement prompt",
     randomUUID: () => generationId,
     now: () => new Date("2026-07-29T00:00:00.000Z"),
   };
@@ -502,6 +504,10 @@ test("refinement uses the credit-only billing policy", async () => {
   assert.equal(
     state.generations.get("generation-refinement")?.estimatedCost,
     0,
+  );
+  assert.equal(
+    state.generations.get("generation-refinement")?.finalPrompt,
+    "refinement prompt",
   );
   assert.equal(state.usageEvents.get("generation-refinement")?.creditAmount, 4);
 });

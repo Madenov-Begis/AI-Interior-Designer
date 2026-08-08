@@ -36,6 +36,17 @@ test("source upload checks image content before creating storage paths", async (
   assert.ok(storagePathCreation > semanticValidation);
 });
 
+test("source upload is create-only and rejects replacement", async () => {
+  const uploadSource = await readFile(
+    new URL("./source-upload.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(uploadSource, /ProjectSourceAlreadyExistsError/);
+  assert.match(uploadSource, /current\.sourceImageId \|\| current\.sourcePreviewId/);
+  assert.doesNotMatch(uploadSource, /replacedSource|deleteMediaFileIfUnreferenced/);
+});
+
 test("validation uses a text-capable multimodal model independently of image generation", async () => {
   const validatorSource = await readFile(
     new URL("./interior-image-validator.ts", import.meta.url),

@@ -13,11 +13,15 @@ test("button and badge use class-variance-authority", async () => {
 });
 
 test("sheet uses the official Radix-backed implementation", async () => {
-  const sheet = await ui("sheet");
+  const [sheet, dialog] = await Promise.all([ui("sheet"), ui("dialog")]);
 
   assert.match(sheet, /from "radix-ui"/);
   assert.doesNotMatch(sheet, /<dialog/);
   assert.match(sheet, /SheetContent/);
+
+  assert.match(dialog, /from "radix-ui"/);
+  assert.match(dialog, /DialogOverlay/);
+  assert.match(dialog, /DialogContent/);
 });
 
 test("button keeps the existing non-submit default", async () => {

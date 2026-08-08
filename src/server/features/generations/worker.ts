@@ -8,6 +8,7 @@ import {
   generateWithConfiguredProvider,
 } from "@/server/features/generations/execution-policy";
 import { getGenerationModelConfig } from "@/server/features/generations/model-config";
+import { normalizeRefinementOutput } from "@/server/features/generations/refinement-output";
 import { failGenerationWithDatabase } from "@/server/features/generations/operations";
 import { getImageGenerationProvider } from "@/server/features/generations/provider";
 import { getDb } from "@/server/shared/db/prisma";
@@ -25,23 +26,6 @@ async function downloadStoredFile(file: StoredFile) {
     data: Buffer.from(await download.data.arrayBuffer()),
     mimeType: file.mimeType,
   };
-}
-
-async function addWatermark(image: Buffer) {
-  const metadata = await sharp(image).metadata();
-  if (!metadata.width || !metadata.height)
-    throw new Error("RESULT_DIMENSIONS_MISSING");
-  const fontSize = Math.max(18, Math.round(metadata.width * 0.022));
-  const padding = Math.round(fontSize * 0.8);
-  const width = Math.round(fontSize * 11.5);
-  const height = Math.round(fontSize * 2.2);
-  const svg = Buffer.from(
-    `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" rx="${fontSize}" fill="#111" fill-opacity="0.72"/><text x="${padding}" y="${Math.round(height * 0.66)}" fill="#afea4d" font-size="${fontSize}" font-family="Arial, sans-serif" font-weight="700">AI INTERIOR</text></svg>`,
-  );
-  return sharp(image)
-    .composite([{ input: svg, gravity: "southeast" }])
-    .webp({ quality: 90 })
-    .toBuffer();
 }
 
 async function markFailed(generationId: string, code: string, message: string) {
@@ -73,20 +57,6 @@ export async function processGeneration(generationId: string) {
         sourceImage: true,
         visualPromptImage: true,
         references: { orderBy: { position: "asc" }, include: { file: true } },
-        user: {
-          include: {
-            plan: true,
-            subscriptions: {
-              where: {
-                status: "ACTIVE",
-                OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }],
-              },
-              orderBy: { startsAt: "desc" },
-              take: 1,
-              include: { plan: true },
-            },
-          },
-        },
       },
     });
     if (!generation) return;
@@ -114,6 +84,7 @@ export async function processGeneration(generationId: string) {
         modelId: model.externalModelId,
         timeoutSeconds: model.timeoutSeconds,
         input: {
+          operation: generation.parentGenerationId ? "refinement" : "root",
           source,
           visualPrompt,
           references,
@@ -123,12 +94,16 @@ export async function processGeneration(generationId: string) {
       },
       getImageGenerationProvider,
     );
-    const activePlan =
-      generation.user.subscriptions[0]?.plan ?? generation.user.plan;
-    const userImage =
-      activePlan?.watermarkRequired === false
-        ? output.image
-        : await addWatermark(output.image);
+    const finalizedOutput = generation.parentGenerationId
+      ? {
+          ...output,
+          ...(await normalizeRefinementOutput(
+            output.image,
+            metadata.width,
+            metadata.height,
+          )),
+        }
+      : output;
     const originalId = randomUUID();
     const userResultId = randomUUID();
     const originalPath = `users/${generation.userId}/generations/${generation.id}/original/${originalId}.webp`;
@@ -136,8 +111,8 @@ export async function processGeneration(generationId: string) {
 
     const originalUpload = await getSupabaseAdmin()
       .storage.from(STORAGE_BUCKETS.generationOriginals)
-      .upload(originalPath, output.image, {
-        contentType: output.mimeType,
+      .upload(originalPath, finalizedOutput.image, {
+        contentType: finalizedOutput.mimeType,
         cacheControl: "31536000",
         upsert: false,
       });
@@ -148,7 +123,7 @@ export async function processGeneration(generationId: string) {
     });
     const resultUpload = await getSupabaseAdmin()
       .storage.from(STORAGE_BUCKETS.generationResults)
-      .upload(resultPath, userImage, {
+      .upload(resultPath, finalizedOutput.image, {
         contentType: "image/webp",
         cacheControl: "31536000",
         upsert: false,
@@ -170,9 +145,9 @@ export async function processGeneration(generationId: string) {
             originalName: `generation-${generation.id}-original.webp`,
             mimeType: "image/webp",
             extension: "webp",
-            sizeBytes: output.image.byteLength,
-            width: output.width,
-            height: output.height,
+            sizeBytes: finalizedOutput.image.byteLength,
+            width: finalizedOutput.width,
+            height: finalizedOutput.height,
             type: "GENERATION_ORIGINAL",
           },
           {
@@ -183,9 +158,9 @@ export async function processGeneration(generationId: string) {
             originalName: `interior-design-${generation.id}.webp`,
             mimeType: "image/webp",
             extension: "webp",
-            sizeBytes: userImage.byteLength,
-            width: output.width,
-            height: output.height,
+            sizeBytes: finalizedOutput.image.byteLength,
+            width: finalizedOutput.width,
+            height: finalizedOutput.height,
             type: "GENERATION_RESULT",
           },
         ],

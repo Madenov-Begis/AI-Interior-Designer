@@ -17,7 +17,6 @@ export async function ensureSystemDefaults() {
         maxParallelGenerations: 1,
         maxReferenceImages: 10,
         maxReferenceUrls: 10,
-        watermarkRequired: true,
         sortOrder: 0,
       },
       update: {
@@ -29,11 +28,10 @@ export async function ensureSystemDefaults() {
       create: {
         code: "VIP",
         name: "VIP",
-        description: "Расширенные лимиты без водяного знака",
+        description: "Расширенные лимиты и приоритетная обработка",
         maxParallelGenerations: 3,
         maxReferenceImages: 10,
         maxReferenceUrls: 10,
-        watermarkRequired: false,
         priorityProcessing: true,
         sortOrder: 10,
       },

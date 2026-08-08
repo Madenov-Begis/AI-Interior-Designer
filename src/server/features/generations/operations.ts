@@ -37,6 +37,7 @@ type ReservationDependencies<TDatabase> = {
   db: TDatabase;
   aiProvider: string | undefined;
   buildFinalPrompt: BuildFinalPrompt;
+  buildRefinementPrompt: BuildFinalPrompt;
   randomUUID: () => string;
   now: () => Date;
 };
@@ -491,7 +492,7 @@ export async function reserveRefinementWithDependencies<TDatabase>(
         }
 
         const usageDate = usageDateInTimezone(profile.timezone, now);
-        const finalPrompt = dependencies.buildFinalPrompt({
+        const finalPrompt = dependencies.buildRefinementPrompt({
           prompt: input.prompt,
           visualPromptUsed: Boolean(input.visualPromptImageId),
           referenceCount: input.referenceFileIds.length,

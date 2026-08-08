@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Minus, Plus } from "lucide-react";
+import { Focus, Maximize2, Minus, Plus } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -23,31 +23,34 @@ import {
   positionFloatingOverlay,
   screenRectForWorldItem,
 } from "@/features/generate-design";
+import {
+  CANVAS_ZOOM_STEP,
+  MAX_CANVAS_SCALE,
+  MIN_CANVAS_SCALE,
+  canvasWheelAction,
+  clampCanvasScale,
+  zoomTransformAroundPoint,
+  type CanvasTransform,
+} from "../model/canvas-navigation";
+import {
+  calculateCanvasLayout,
+  canvasViewportInsets,
+  CARD_HEADER_HEIGHT,
+  CARD_WIDTH,
+  constrainCanvasTransform,
+  RESULT_CARD_HEIGHT,
+  SOURCE_X,
+  SOURCE_Y,
+  type CanvasSize,
+} from "../model/canvas-layout";
 
-type ViewportTransform = { x: number; y: number; scale: number };
-type ViewportSize = { width: number; height: number };
-type WorldBounds = { minX: number; minY: number; maxX: number; maxY: number };
-type ViewportInsets = {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-};
-
-export const MIN_SCALE = 0.25;
-export const MAX_SCALE = 2.5;
-export const SOURCE_X = 80;
-export const SOURCE_Y = 80;
-export const CARD_WIDTH = 760;
-export const CARD_GAP = 72;
-
-const RESULT_CARD_HEIGHT = 610;
-const FIT_MIN_SCALE = 0.01;
-
+type ViewportTransform = CanvasTransform;
+type ViewportSize = CanvasSize;
 export type CanvasViewportHandle = {
   zoomIn(): void;
   zoomOut(): void;
   fitToContent(): void;
+  focusItem(itemId: string): void;
 };
 
 type Source = {
@@ -83,72 +86,6 @@ type CanvasViewportProps = {
   onSelectItem(itemId: string): void;
   onActivateSource?(): void;
 };
-
-export function generationPosition(index: number) {
-  return {
-    x: SOURCE_X + (index + 1) * (CARD_WIDTH + CARD_GAP),
-    y: SOURCE_Y,
-  };
-}
-
-function clamp(value: number, minimum: number, maximum: number) {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-function constrainAxis(
-  offset: number,
-  viewportLength: number,
-  contentMinimum: number,
-  contentMaximum: number,
-  scale: number,
-  leadingInset: number,
-  trailingInset: number,
-) {
-  const trailingEdgeOffset =
-    viewportLength - trailingInset - contentMaximum * scale;
-  const leadingEdgeOffset = leadingInset - contentMinimum * scale;
-  return clamp(
-    offset,
-    Math.min(trailingEdgeOffset, leadingEdgeOffset),
-    Math.max(trailingEdgeOffset, leadingEdgeOffset),
-  );
-}
-
-function constrainTransform(
-  transform: ViewportTransform,
-  viewport: ViewportSize,
-  bounds: WorldBounds,
-  insets: ViewportInsets,
-) {
-  return {
-    ...transform,
-    x: constrainAxis(
-      transform.x,
-      viewport.width,
-      bounds.minX,
-      bounds.maxX,
-      transform.scale,
-      insets.left,
-      insets.right,
-    ),
-    y: constrainAxis(
-      transform.y,
-      viewport.height,
-      bounds.minY,
-      bounds.maxY,
-      transform.scale,
-      insets.top,
-      insets.bottom,
-    ),
-  };
-}
-
-function getViewportInsets(width: number): ViewportInsets {
-  if (width < 1200) {
-    return { top: 64, right: 40, bottom: 80, left: 40 };
-  }
-  return { top: 40, right: 40, bottom: 64, left: 72 };
-}
 
 export const CanvasViewport = forwardRef<
   CanvasViewportHandle,
@@ -192,42 +129,20 @@ export const CanvasViewport = forwardRef<
     scale: 1,
   });
   const viewportInsets = useMemo(
-    () => getViewportInsets(viewportSize.width),
+    () => canvasViewportInsets(viewportSize.width),
     [viewportSize.width],
   );
 
-  const sourceCardHeight = 46 + (CARD_WIDTH * source.height) / source.width;
-  const wrappedColumnCount =
-    generations.length > 4
-      ? clamp(
-          Math.floor(
-            Math.max(0, viewportSize.width - SOURCE_X * 2) /
-              (CARD_WIDTH + CARD_GAP),
-          ),
-          1,
-          4,
-        )
-      : Math.max(1, generations.length);
-  const tallestGeneration = Math.max(
-    RESULT_CARD_HEIGHT,
-    ...generations.map((generation) => generation.height ?? RESULT_CARD_HEIGHT),
-  );
-  const rowHeight = Math.max(sourceCardHeight, tallestGeneration) + CARD_GAP;
-
-  const generationPositions = useMemo(
+  const sourceCardHeight =
+    CARD_HEADER_HEIGHT + (CARD_WIDTH * source.height) / source.width;
+  const { generationPositions, worldBounds } = useMemo(
     () =>
-      generations.map((_, index) => {
-        if (generations.length <= 4) return generationPosition(index);
-        return {
-          x:
-            SOURCE_X +
-            CARD_WIDTH +
-            CARD_GAP +
-            (index % wrappedColumnCount) * (CARD_WIDTH + CARD_GAP),
-          y: SOURCE_Y + Math.floor(index / wrappedColumnCount) * rowHeight,
-        };
+      calculateCanvasLayout({
+        generationHeights: generations.map((generation) => generation.height),
+        sourceCardHeight,
+        viewportWidth: viewportSize.width,
       }),
-    [generations, rowHeight, wrappedColumnCount],
+    [generations, sourceCardHeight, viewportSize.width],
   );
   const selectedGenerationIndex = generations.findIndex(
     (generation) => generation.id === selectedItemId,
@@ -257,26 +172,6 @@ export const CanvasViewport = forwardRef<
       })
     : null;
 
-  const worldBounds = useMemo<WorldBounds>(() => {
-    let maxX = SOURCE_X + CARD_WIDTH;
-    let maxY = SOURCE_Y + sourceCardHeight;
-
-    generationPositions.forEach((position, index) => {
-      maxX = Math.max(maxX, position.x + CARD_WIDTH);
-      maxY = Math.max(
-        maxY,
-        position.y + (generations[index]?.height ?? RESULT_CARD_HEIGHT),
-      );
-    });
-
-    return {
-      minX: 0,
-      minY: 0,
-      maxX: maxX + SOURCE_X,
-      maxY: maxY + SOURCE_Y,
-    };
-  }, [generationPositions, generations, sourceCardHeight]);
-
   const fitToContent = useCallback(() => {
     if (viewportSize.width === 0 || viewportSize.height === 0) return;
 
@@ -290,10 +185,8 @@ export const CanvasViewport = forwardRef<
       1,
       viewportSize.height - viewportInsets.top - viewportInsets.bottom,
     );
-    const nextScale = clamp(
+    const nextScale = clampCanvasScale(
       Math.min(availableWidth / contentWidth, availableHeight / contentHeight),
-      FIT_MIN_SCALE,
-      MAX_SCALE,
     );
 
     setTransform({
@@ -309,22 +202,81 @@ export const CanvasViewport = forwardRef<
     });
   }, [viewportInsets, viewportSize, worldBounds]);
 
+  const getWorldItemRect = useCallback(
+    (itemId: string) => {
+      if (itemId === "source") {
+        return {
+          x: SOURCE_X,
+          y: SOURCE_Y,
+          width: CARD_WIDTH,
+          height: sourceCardHeight,
+        };
+      }
+
+      const index = generations.findIndex(
+        (generation) => generation.id === itemId,
+      );
+      const position = generationPositions[index];
+      if (index < 0 || !position) return null;
+
+      return {
+        ...position,
+        width: CARD_WIDTH,
+        height: generations[index]?.height ?? RESULT_CARD_HEIGHT,
+      };
+    },
+    [generationPositions, generations, sourceCardHeight],
+  );
+
+  const focusItem = useCallback(
+    (itemId: string) => {
+      const item = getWorldItemRect(itemId);
+      if (!item || viewportSize.width === 0 || viewportSize.height === 0)
+        return;
+
+      const availableWidth = Math.max(
+        1,
+        viewportSize.width - viewportInsets.left - viewportInsets.right,
+      );
+      const availableHeight = Math.max(
+        1,
+        viewportSize.height - viewportInsets.top - viewportInsets.bottom,
+      );
+      const scale = clampCanvasScale(
+        Math.min(1, availableWidth / item.width, availableHeight / item.height),
+      );
+
+      setTransform(
+        constrainCanvasTransform(
+          {
+            scale,
+            x:
+              viewportInsets.left +
+              (availableWidth - item.width * scale) / 2 -
+              item.x * scale,
+            y:
+              viewportInsets.top +
+              (availableHeight - item.height * scale) / 2 -
+              item.y * scale,
+          },
+          viewportSize,
+          worldBounds,
+          viewportInsets,
+        ),
+      );
+    },
+    [getWorldItemRect, viewportInsets, viewportSize, worldBounds],
+  );
+
   const zoomBy = useCallback(
     (factor: number, pointerX: number, pointerY: number) => {
       setTransform((current) => {
-        const scale = clamp(
-          current.scale * factor,
-          Math.min(MIN_SCALE, current.scale),
-          MAX_SCALE,
-        );
-        const worldX = (pointerX - current.x) / current.scale;
-        const worldY = (pointerY - current.y) / current.scale;
-        return constrainTransform(
-          {
-            scale,
-            x: pointerX - worldX * scale,
-            y: pointerY - worldY * scale,
-          },
+        const next = zoomTransformAroundPoint(current, current.scale * factor, {
+          x: pointerX,
+          y: pointerY,
+        });
+        return constrainCanvasTransform(
+          next,
           viewportSize,
           worldBounds,
           viewportInsets,
@@ -341,14 +293,29 @@ export const CanvasViewport = forwardRef<
     [viewportSize.height, viewportSize.width, zoomBy],
   );
 
+  const resetZoom = useCallback(() => {
+    setTransform((current) =>
+      constrainCanvasTransform(
+        zoomTransformAroundPoint(current, 1, {
+          x: viewportSize.width / 2,
+          y: viewportSize.height / 2,
+        }),
+        viewportSize,
+        worldBounds,
+        viewportInsets,
+      ),
+    );
+  }, [viewportInsets, viewportSize, worldBounds]);
+
   useImperativeHandle(
     ref,
     () => ({
-      zoomIn: () => zoomFromCenter(1.2),
-      zoomOut: () => zoomFromCenter(1 / 1.2),
+      zoomIn: () => zoomFromCenter(CANVAS_ZOOM_STEP),
+      zoomOut: () => zoomFromCenter(1 / CANVAS_ZOOM_STEP),
       fitToContent,
+      focusItem,
     }),
-    [fitToContent, zoomFromCenter],
+    [fitToContent, focusItem, zoomFromCenter],
   );
 
   useEffect(() => {
@@ -380,7 +347,12 @@ export const CanvasViewport = forwardRef<
   useEffect(() => {
     if (!initialFitRef.current) return;
     setTransform((current) =>
-      constrainTransform(current, viewportSize, worldBounds, viewportInsets),
+      constrainCanvasTransform(
+        current,
+        viewportSize,
+        worldBounds,
+        viewportInsets,
+      ),
     );
   }, [viewportInsets, viewportSize, worldBounds]);
 
@@ -399,25 +371,68 @@ export const CanvasViewport = forwardRef<
           : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
             ? viewport.clientHeight
             : 1;
-      const normalizedDelta = event.deltaY * modeMultiplier;
-      const factor = Math.exp(-normalizedDelta * 0.0015);
+      const deltaX = event.deltaX * modeMultiplier;
+      const deltaY = event.deltaY * modeMultiplier;
+      const availableWidth = Math.max(
+        1,
+        viewportSize.width - viewportInsets.left - viewportInsets.right,
+      );
+      const availableHeight = Math.max(
+        1,
+        viewportSize.height - viewportInsets.top - viewportInsets.bottom,
+      );
+      const contentWidth =
+        (worldBounds.maxX - worldBounds.minX) * transform.scale;
+      const contentHeight =
+        (worldBounds.maxY - worldBounds.minY) * transform.scale;
+      const action = canvasWheelAction({
+        deltaX,
+        deltaY,
+        zoomModifier: event.ctrlKey || event.metaKey,
+        preferHorizontal:
+          event.shiftKey ||
+          (contentWidth > availableWidth && contentHeight <= availableHeight),
+      });
 
-      zoomBy(factor, event.clientX - rect.left, event.clientY - rect.top);
+      if (action.type === "zoom") {
+        zoomBy(
+          action.factor,
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+        );
+        return;
+      }
+
+      setTransform((current) =>
+        constrainCanvasTransform(
+          {
+            ...current,
+            x: current.x - action.deltaX,
+            y: current.y - action.deltaY,
+          },
+          viewportSize,
+          worldBounds,
+          viewportInsets,
+        ),
+      );
     };
 
     viewport.addEventListener("wheel", handleWheel, { passive: false });
     return () => viewport.removeEventListener("wheel", handleWheel);
-  }, [zoomBy]);
+  }, [transform.scale, viewportInsets, viewportSize, worldBounds, zoomBy]);
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (
-      tool !== "select" ||
-      (event.pointerType === "mouse" && event.button !== 0)
-    ) {
-      return;
-    }
+    const isMiddleMouse = event.pointerType === "mouse" && event.button === 1;
+    const isPrimaryPointer =
+      event.pointerType !== "mouse" || event.button === 0;
+    if (!isMiddleMouse && !isPrimaryPointer) return;
+
     const target = event.target;
-    if (target instanceof Element && target.closest("[data-canvas-item]")) {
+    if (
+      !isMiddleMouse &&
+      target instanceof Element &&
+      target.closest("[data-canvas-item]")
+    ) {
       return;
     }
 
@@ -444,7 +459,7 @@ export const CanvasViewport = forwardRef<
       panMovedRef.current = true;
     }
     setTransform(
-      constrainTransform(
+      constrainCanvasTransform(
         {
           ...transform,
           x: pan.transformX + deltaX,
@@ -479,6 +494,31 @@ export const CanvasViewport = forwardRef<
     onSelectItem(itemId);
   }
 
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target.matches("input, textarea, select, button"))
+    ) {
+      return;
+    }
+
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault();
+      zoomFromCenter(CANVAS_ZOOM_STEP);
+    } else if (event.key === "-") {
+      event.preventDefault();
+      zoomFromCenter(1 / CANVAS_ZOOM_STEP);
+    } else if (event.key === "0") {
+      event.preventDefault();
+      fitToContent();
+    } else if (event.key === "1") {
+      event.preventDefault();
+      focusItem(selectedItemId);
+    }
+  }
+
   return (
     <div
       ref={viewportRef}
@@ -488,15 +528,18 @@ export const CanvasViewport = forwardRef<
       aria-label="Холст проекта"
       aria-describedby="canvas-viewport-instructions"
       role="region"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={finishPan}
       onPointerCancel={finishPan}
     >
       <p id="canvas-viewport-instructions" className="sr-only">
-        Инструмент со стрелкой выбирает объекты и перемещает холст
-        перетаскиванием свободной области. Используйте кнопки масштаба, чтобы
-        приблизить, отдалить или вписать всё содержимое.
+        Перетаскивайте свободную область, чтобы перемещать холст. Колесо или
+        трекпад прокручивает холст, Control или Command с колесом изменяет
+        масштаб. Клавиши плюс и минус меняют масштаб, ноль показывает всё,
+        единица показывает выбранный объект.
       </p>
       <div
         className="canvas-world"
@@ -535,14 +578,17 @@ export const CanvasViewport = forwardRef<
             }
           }}
         >
-          <header className="flex h-[46px] items-center justify-between border-b border-border px-4">
+          <header
+            className="flex shrink-0 items-center justify-between border-b border-border px-5"
+            style={{ height: CARD_HEADER_HEIGHT }}
+          >
             <div>
               <p className="text-sm font-black">Исходное изображение</p>
-              <p className="text-[11px] text-muted">
+              <p className="mt-1 text-[11px] text-muted">
                 Разметка не изменяет оригинал
               </p>
             </div>
-            <span className="rounded-full bg-surface-elevated px-2.5 py-1 text-[10px] font-bold text-muted">
+            <span className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
               Оригинал
             </span>
           </header>
@@ -643,18 +689,36 @@ export const CanvasViewport = forwardRef<
           type="button"
           aria-label="Уменьшить масштаб"
           title="Уменьшить масштаб"
-          onClick={() => zoomFromCenter(1 / 1.2)}
+          disabled={transform.scale <= MIN_CANVAS_SCALE + 0.0001}
+          onClick={() => zoomFromCenter(1 / CANVAS_ZOOM_STEP)}
         >
           <Minus size={18} />
         </button>
-        <span aria-live="polite">{Math.round(transform.scale * 100)}%</span>
+        <button
+          type="button"
+          className="canvas-zoom-controls__value"
+          aria-label="Сбросить масштаб до 100%"
+          title="Сбросить масштаб до 100%"
+          onClick={resetZoom}
+        >
+          <span aria-live="polite">{Math.round(transform.scale * 100)}%</span>
+        </button>
         <button
           type="button"
           aria-label="Увеличить масштаб"
           title="Увеличить масштаб"
-          onClick={() => zoomFromCenter(1.2)}
+          disabled={transform.scale >= MAX_CANVAS_SCALE - 0.0001}
+          onClick={() => zoomFromCenter(CANVAS_ZOOM_STEP)}
         >
           <Plus size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label="Показать выбранный объект"
+          title="Показать выбранный объект"
+          onClick={() => focusItem(selectedItemId)}
+        >
+          <Focus size={17} />
         </button>
         <button
           type="button"

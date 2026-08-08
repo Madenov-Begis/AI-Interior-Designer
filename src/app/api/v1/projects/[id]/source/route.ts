@@ -8,6 +8,7 @@ import { ImageValidationError } from "@/server/features/media/image-validation";
 import { InteriorImageValidationUnavailableError } from "@/server/features/media/interior-image-validator";
 import {
   ProjectNotFoundError,
+  ProjectSourceAlreadyExistsError,
   uploadProjectSource,
 } from "@/server/features/media/source-upload";
 import { SOURCE_IMAGE_RULES } from "@/server/shared/config/storage";
@@ -53,6 +54,13 @@ export async function POST(
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
     if (error instanceof ProjectNotFoundError || error instanceof ZodError)
       return apiError("PROJECT_NOT_FOUND", "Проект не найден", requestId, 404);
+    if (error instanceof ProjectSourceAlreadyExistsError)
+      return apiError(
+        "SOURCE_ALREADY_EXISTS",
+        error.message,
+        requestId,
+        409,
+      );
     if (error instanceof ImageValidationError)
       return apiError(error.code, error.message, requestId, 400);
     if (error instanceof InteriorImageValidationUnavailableError)

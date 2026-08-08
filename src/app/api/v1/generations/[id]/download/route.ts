@@ -1,15 +1,15 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import {
-  convertGenerationDownloadToJpeg,
-  generationDownloadFilename,
-} from "@/server/features/generations/jpeg-download";
+import { generationDownloadFilename } from "@/server/features/generations/generation-download";
 import { generationIdSchema } from "@/server/features/generations/schema";
 import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 import { apiError } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 
 export async function GET(
   request: NextRequest,
@@ -26,9 +26,9 @@ export async function GET(
         status: "SUCCEEDED",
         deletedAt: null,
       },
-      include: { resultUser: true },
+      include: { resultOriginal: true },
     });
-    if (!generation?.resultUser)
+    if (!generation?.resultOriginal)
       return apiError(
         "GENERATION_NOT_FOUND",
         "Результат не найден",
@@ -36,8 +36,8 @@ export async function GET(
         404,
       );
     const downloaded = await getSupabaseAdmin()
-      .storage.from(generation.resultUser.bucket)
-      .download(generation.resultUser.path);
+      .storage.from(generation.resultOriginal.bucket)
+      .download(generation.resultOriginal.path);
     if (downloaded.error || !downloaded.data)
       return apiError(
         "DOWNLOAD_FAILED",
@@ -47,12 +47,15 @@ export async function GET(
       );
 
     const storedImage = Buffer.from(await downloaded.data.arrayBuffer());
-    const jpeg = await convertGenerationDownloadToJpeg(storedImage);
-    const filename = generationDownloadFilename(generation.createdAt);
+    const filename = generationDownloadFilename(
+      generation.createdAt,
+      generation.resultOriginal.mimeType,
+    );
 
-    return new Response(new Uint8Array(jpeg), {
+    return new Response(new Uint8Array(storedImage), {
       headers: {
-        "content-type": "image/jpeg",
+        "content-type": generation.resultOriginal.mimeType,
+        "content-length": String(storedImage.byteLength),
         "content-disposition": `attachment; filename="${filename}"`,
         "cache-control": "private, no-store",
         "x-request-id": requestId,

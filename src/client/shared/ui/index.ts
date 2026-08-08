@@ -37,6 +37,18 @@ export {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu.tsx";
 export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog.tsx";
+export {
   Empty,
   EmptyContent,
   EmptyDescription,

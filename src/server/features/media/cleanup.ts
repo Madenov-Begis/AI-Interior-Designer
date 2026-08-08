@@ -30,7 +30,6 @@ export async function deleteMediaFileIfUnreferenced(
           where: {
             id: candidateId,
             ownerId,
-            type: { not: "WATERMARK" },
             ...unreferencedMedia,
           },
           select: { id: true, bucket: true, path: true },
@@ -40,7 +39,6 @@ export async function deleteMediaFileIfUnreferenced(
           where: {
             id: candidateId,
             ownerId,
-            type: { not: "WATERMARK" },
             ...unreferencedMedia,
           },
         });

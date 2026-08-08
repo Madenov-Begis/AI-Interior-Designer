@@ -2,7 +2,6 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
-import { deleteMediaFileIfUnreferenced } from "@/server/features/media/cleanup";
 import {
   DEFAULT_PROJECT_NAME,
   projectNameFromSourceFile,
@@ -13,6 +12,7 @@ import { validateSourceImage } from "@/server/features/media/image-validation";
 import { validateInteriorSourceImage } from "@/server/features/media/interior-image-validator";
 
 export class ProjectNotFoundError extends Error {}
+export class ProjectSourceAlreadyExistsError extends Error {}
 
 export async function uploadProjectSource(
   userId: string,
@@ -22,9 +22,14 @@ export async function uploadProjectSource(
   const db = getDb();
   const project = await db.project.findFirst({
     where: { id: projectId, userId, deletedAt: null },
-    select: { id: true },
+    select: { id: true, sourceImageId: true, sourcePreviewId: true },
   });
   if (!project) throw new ProjectNotFoundError("Проект не найден");
+  if (project.sourceImageId || project.sourcePreviewId) {
+    throw new ProjectSourceAlreadyExistsError(
+      "Фото помещения уже загружено",
+    );
+  }
 
   const image = await validateSourceImage(file);
   await validateInteriorSourceImage(image);
@@ -52,12 +57,17 @@ export async function uploadProjectSource(
     if (previewUpload.error) throw previewUpload.error;
     uploaded.push(previewPath);
 
-    const saved = await db.$transaction(async (tx) => {
+    return await db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
       const current = await tx.project.findUniqueOrThrow({
         where: { id: projectId },
         select: { name: true, sourceImageId: true, sourcePreviewId: true },
       });
+      if (current.sourceImageId || current.sourcePreviewId) {
+        throw new ProjectSourceAlreadyExistsError(
+          "Фото помещения уже загружено",
+        );
+      }
       const source = await tx.mediaFile.create({
         data: {
           id: sourceId,
@@ -101,18 +111,8 @@ export async function uploadProjectSource(
           status: "READY",
         },
       });
-      return {
-        source,
-        preview,
-        replacedSourceImageId: current.sourceImageId,
-        replacedSourcePreviewId: current.sourcePreviewId,
-      };
+      return { source, preview };
     });
-    await Promise.all([
-      deleteMediaFileIfUnreferenced(userId, saved.replacedSourceImageId),
-      deleteMediaFileIfUnreferenced(userId, saved.replacedSourcePreviewId),
-    ]);
-    return { source: saved.source, preview: saved.preview };
   } catch (error) {
     if (uploaded.length) await storage.remove(uploaded);
     throw error;

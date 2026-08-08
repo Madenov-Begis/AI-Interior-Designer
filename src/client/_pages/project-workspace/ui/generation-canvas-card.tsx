@@ -20,6 +20,7 @@ import type {
   VisualPromptTool,
 } from "@/features/visual-prompt";
 import { apiData } from "@/shared/api";
+import { CARD_HEADER_HEIGHT } from "../model/canvas-layout";
 
 type GenerationCanvasCardProps = {
   generation: WorkspaceGeneration;
@@ -65,7 +66,10 @@ function CardHeader({
   status: WorkspaceGeneration["status"];
 }) {
   return (
-    <header className="flex h-[70px] shrink-0 items-center justify-between border-b border-border px-5">
+    <header
+      className="flex shrink-0 items-center justify-between border-b border-border px-5"
+      style={{ height: CARD_HEADER_HEIGHT }}
+    >
       <div>
         <p className="text-sm font-black">Вариант {variantNumber}</p>
         <p className="mt-1 text-[11px] text-muted">
@@ -158,6 +162,8 @@ export function GenerationCanvasCard({
   });
   const resultUnavailable =
     generation.status === "SUCCEEDED" && !generation.resultUserId;
+  const resultWidth = generation.resultUser?.width ?? null;
+  const resultHeight = generation.resultUser?.height ?? null;
   const announcementIsError =
     generation.status === "FAILED" ||
     generation.status === "REJECTED" ||
@@ -278,25 +284,23 @@ export function GenerationCanvasCard({
         );
       } else {
         content = (
-          <div className="relative min-h-0 flex-1 bg-black">
+          <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
             {/* Private signed URLs are short lived and intentionally bypass image optimization. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={resultQuery.data}
               alt={`Готовый интерьер, вариант ${variantNumber}`}
-              className="size-full object-contain"
+              className="absolute inset-0 size-full object-fill"
               draggable={false}
             />
-            {selected &&
-            generation.resultUser?.width &&
-            generation.resultUser.height ? (
+            {selected && resultWidth && resultHeight ? (
               <div className="absolute inset-0">
                 <VisualPromptEditor
                   ref={editorRef}
-                  editorWidth={generation.resultUser.width}
-                  editorHeight={generation.resultUser.height}
-                  sourceWidth={generation.resultUser.width}
-                  sourceHeight={generation.resultUser.height}
+                  editorWidth={resultWidth}
+                  editorHeight={resultHeight}
+                  sourceWidth={resultWidth}
+                  sourceHeight={resultHeight}
                   initialState={null}
                   tool={tool}
                   color={color}
@@ -318,7 +322,7 @@ export function GenerationCanvasCard({
                 "absolute right-4 bottom-4 rounded-xl bg-surface/95 shadow-xl",
               )}
             >
-              Сравнить и детали
+              Открыть и скачать
             </button>
           </div>
         );

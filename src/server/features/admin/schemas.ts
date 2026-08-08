@@ -25,7 +25,6 @@ export const planSchema = z.object({
   maxReferenceImages: z.number().int().min(0).max(30),
   maxReferenceUrls: z.number().int().min(0).max(30),
   maxUploadSizeMb: z.number().int().min(1).max(100),
-  watermarkRequired: z.boolean(),
   priorityProcessing: z.boolean(),
   active: z.boolean(),
   sortOrder: z.number().int(),

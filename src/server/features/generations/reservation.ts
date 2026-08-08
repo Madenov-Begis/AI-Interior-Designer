@@ -7,7 +7,10 @@ import {
   type RefinementReservationInput,
   type RootGenerationReservationInput,
 } from "@/server/features/generations/operations";
-import { buildFinalPrompt } from "@/server/features/generations/prompt";
+import {
+  buildFinalPrompt,
+  buildRefinementPrompt,
+} from "@/server/features/generations/prompt";
 import { getDb } from "@/server/shared/db/prisma";
 
 export {
@@ -20,6 +23,7 @@ function reservationDependencies() {
     db: getDb(),
     aiProvider: process.env.AI_PROVIDER,
     buildFinalPrompt,
+    buildRefinementPrompt,
     randomUUID,
     now: () => new Date(),
   };

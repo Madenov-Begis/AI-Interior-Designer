@@ -1,46 +1,49 @@
 # Design QA
 
-- Source visual truth: `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_zOSjlG/Снимок экрана — 2026-08-03 в 03.57.44.png`
-- Source pixels: 2390 × 210
-- Inferred CSS viewport: approximately 1195 × 105 at device scale factor 2
-- Implementation route: `/app` on the local Next.js development server
-- Implementation screenshot: unavailable because the in-app browser has no authenticated Renoa session and redirects to `/login`; Chrome was unavailable
-- State: authenticated workspace header requested; unauthenticated browser state observed
+- Source visual truth:
+  - `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_F6Bubu/Снимок экрана — 2026-08-08 в 21.46.42.png`
+  - `/var/folders/db/jl3v8y0s7pqcbyq_ty9fpgkh0000gn/T/TemporaryItems/NSIRD_screencaptureui_VBUYqc/Снимок экрана — 2026-08-08 в 21.47.09.png`
+- Source pixels: unavailable because macOS denied access to the temporary screenshot directory after the images were supplied in the conversation.
+- Intended CSS viewport: desktop workspace, matching the supplied captures.
+- Density normalization: unavailable; no rendered comparison artifact could be captured.
+- Target state: authenticated project workspace with source and generated cards visible, plus the responsive inspector drawer open over the canvas.
+- Implementation screenshot: unavailable. The in-app browser reached the app but redirected to `/login?next=%2Fapp`; it does not share the user's authenticated project session, and no connected external browser is available.
+- Implementation pixels/CSS size/device density: unavailable for the same reason.
 
 ## Full-view comparison evidence
 
-The source shows the Renoa workspace header at an approximately 1195 CSS-pixel viewport with a large empty middle region. The previous implementation hid navigation until `xl` (1280 CSS px), explaining why no links appeared. The implementation now displays navigation from `md` (768 CSS px), keeps it between the flexible middle region and the account control, and uses the existing header typography, spacing, colors, icons, and hover tokens.
+The supplied captures show two objective issues: the source and result card headers use different height and horizontal padding, and the responsive inspector drawer remains open after pressing the dimmed canvas. The implementation could not be rendered in the verification browser, so no post-change screenshot comparison was performed from code or memory.
 
-## Focused region comparison
+## Focused region comparison evidence
 
-The header is the only changed region, so no additional crop is needed. Code-level verification confirms two semantic links in the header:
-
-- `Все проекты` → `/app/projects`
-- `Создать новый проект` → `/app`
+Blocked with the full-view comparison. The required focused regions are the source/result card headers and the drawer/backdrop boundary during an outside pointer interaction.
 
 ## Findings
 
-- No code-level P0/P1/P2 issue remains.
-- Browser-rendered visual comparison is blocked by the missing authenticated browser session.
+- [P1] Browser-rendered verification is unavailable for the authenticated workspace.
+  - Evidence: the in-app browser reached `/app` and was redirected to `/login?next=%2Fapp`; the external Chrome browser is not connected.
+  - Impact: frame alignment and backdrop dismissal cannot be visually and interactively compared against the supplied screenshots in the same state.
+  - Fix: open the authenticated project in a connected browser and capture the workspace at the same desktop viewport, then press the backdrop and confirm the drawer closes.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: unchanged existing header tokens.
-- Spacing and layout rhythm: unchanged link sizing and gaps; breakpoint corrected from `xl` to `md`.
-- Colors and visual tokens: unchanged existing foreground, secondary hover, and border tokens.
-- Image quality and assets: existing Renoa logo and Lucide navigation icons retained; no new raster assets required.
-- Copy and content: both requested destinations are present with explicit Russian labels.
-
-## Primary interactions and console
-
-- Navigation interaction could not be browser-tested because the protected route redirected to login.
-- Console verification of the authenticated workspace was therefore unavailable.
-- Production build, TypeScript, tests, and lint completed successfully.
+- Fonts and typography: unchanged by this patch; visual confirmation blocked.
+- Spacing and layout rhythm: source and result headers now share a 70 px height, 20 px horizontal padding, and centered vertical alignment; card and image dimensions remain driven by their own aspect ratios; visual confirmation blocked.
+- Colors and visual tokens: existing project tokens are retained; visual confirmation blocked.
+- Image quality and asset fidelity: image sizing and rendering behavior are unchanged by the corrected patch; visual confirmation blocked.
+- Copy and content: unchanged.
 
 ## Comparison history
 
-- Initial finding: navigation was hidden at the screenshot's inferred CSS width because it required `xl`.
-- Fix: changed visibility to `md`, corrected the projects destination, and added the requested create-new-project label.
-- Post-fix browser evidence: blocked by authentication.
+- Initial source finding: source and generated card headers had inconsistent height and padding; the drawer did not dismiss from its backdrop.
+- Fixes made: unified only the header height, padding, and vertical alignment; restored the original dynamic card/image sizing; retained coordinate-aware native-dialog backdrop dismissal that ignores presses inside the panel.
+- Post-fix visual evidence: unavailable because no verification browser can access the authenticated host-local state.
+
+## Automated evidence
+
+- 176 tests passed.
+- TypeScript passed.
+- Production build passed.
+- ESLint reported zero errors and seven pre-existing warnings in the separate admin workspace.
 
 final result: blocked

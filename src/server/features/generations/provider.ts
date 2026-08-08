@@ -2,10 +2,12 @@ import "server-only";
 
 import sharp from "sharp";
 import type { AiProvider, AspectRatio } from "@/generated/prisma/enums";
+import { GENERATION_WEBP_OPTIONS } from "@/server/features/generations/generation-image";
 import { VertexGeminiImageProvider } from "@/server/features/generations/vertex-provider";
 
 export type ProviderImage = { data: Buffer; mimeType: string };
 export type ProviderInput = {
+  operation: "root" | "refinement";
   source: ProviderImage;
   visualPrompt?: ProviderImage;
   references: ProviderImage[];
@@ -52,7 +54,7 @@ export class FakeImageGenerationProvider implements ImageGenerationProvider {
       .rotate()
       .toColorspace("srgb")
       .composite([{ input: overlay, blend: "over" }])
-      .webp({ quality: 92 })
+      .webp(GENERATION_WEBP_OPTIONS)
       .toBuffer();
     return {
       image,

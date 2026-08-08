@@ -7,6 +7,7 @@ type Props = {
   editorOpen: boolean;
   composer: ReactNode;
   onToggleEditor(): void;
+  onDismiss(): void;
   onRemove(): void;
 };
 
@@ -14,10 +15,32 @@ export function GenerationContextOverlay({
   editorOpen,
   composer,
   onToggleEditor,
+  onDismiss,
   onRemove,
 }: Props) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const previousEditorOpenRef = useRef(editorOpen);
+
+  useEffect(() => {
+    if (editorOpen) return;
+
+    function dismissOnOutsidePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node) || overlayRef.current?.contains(target)) {
+        return;
+      }
+      onDismiss();
+    }
+
+    document.addEventListener("pointerdown", dismissOnOutsidePointerDown, true);
+    return () =>
+      document.removeEventListener(
+        "pointerdown",
+        dismissOnOutsidePointerDown,
+        true,
+      );
+  }, [editorOpen, onDismiss]);
 
   useEffect(() => {
     if (previousEditorOpenRef.current && !editorOpen) {
@@ -28,6 +51,7 @@ export function GenerationContextOverlay({
 
   return (
     <div
+      ref={overlayRef}
       className="generation-context-overlay"
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
@@ -40,7 +64,8 @@ export function GenerationContextOverlay({
           ref={editButtonRef}
           type="button"
           aria-expanded={editorOpen}
-          aria-controls="generation-refinement-popover"
+          aria-controls="generation-refinement-dialog"
+          aria-haspopup="dialog"
           data-active={editorOpen || undefined}
           onClick={onToggleEditor}
         >

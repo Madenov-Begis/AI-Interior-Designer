@@ -9,6 +9,10 @@ import type {
   ProviderInput,
   ProviderOutput,
 } from "@/server/features/generations/provider";
+import {
+  GENERATION_IMAGE_SIZE,
+  GENERATION_WEBP_OPTIONS,
+} from "@/server/features/generations/generation-image";
 import { INTERIOR_DESIGN_SYSTEM_PROMPT } from "@/server/features/generations/professional-system-prompt";
 import { createVertexGenAi } from "@/server/shared/integrations/google/vertex-client";
 
@@ -32,7 +36,10 @@ function imagePart(image: ProviderImage): Part {
 function buildParts(input: ProviderInput): Part[] {
   const parts: Part[] = [
     {
-      text: "The next image is the authoritative source photo of the room. Redesign this same room while preserving its exact camera angle, perspective, composition, walls, windows, doors, ceiling, and floor boundaries. Do not crop, rotate, mirror, or replace the room.",
+      text:
+        input.operation === "refinement"
+          ? "The next image is the exact existing interior result selected by the user for editing. Modify this image according to the new user request. Preserve its exact dimensions, camera angle, perspective, composition, room geometry, and every unmentioned design detail. Do not redesign it from scratch, crop, rotate, mirror, or replace the room."
+          : "The next image is the authoritative source photo of the room. Redesign this same room while preserving its exact camera angle, perspective, composition, walls, windows, doors, ceiling, and floor boundaries. Do not crop, rotate, mirror, or replace the room.",
     },
     imagePart(input.source),
   ];
@@ -59,7 +66,7 @@ function buildParts(input: ProviderInput): Part[] {
   }
 
   parts.push({
-    text: `User design brief:\n${input.prompt}\n\nReturn one finished, photorealistic interior visualization only. The output must show the redesigned source room, without text, borders, watermarks, annotations, split screens, or a before/after collage.`,
+    text: `User design brief:\n${input.prompt}\n\nReturn one finished, photorealistic interior visualization only. The output must show the redesigned source room, without text, logos, borders, annotations, split screens, or a before/after collage.`,
   });
   return parts;
 }
@@ -78,7 +85,11 @@ export class VertexGeminiImageProvider implements ImageGenerationProvider {
       config: {
         systemInstruction: INTERIOR_DESIGN_SYSTEM_PROMPT,
         responseModalities: [Modality.TEXT, Modality.IMAGE],
-        imageConfig: { aspectRatio: ASPECT_RATIOS[input.aspectRatio] },
+        imageConfig: {
+          aspectRatio: ASPECT_RATIOS[input.aspectRatio],
+          imageSize: GENERATION_IMAGE_SIZE,
+          imageOutputOptions: { mimeType: "image/png" },
+        },
       },
     });
     const generated = response.candidates
@@ -93,7 +104,7 @@ export class VertexGeminiImageProvider implements ImageGenerationProvider {
     const normalized = await sharp(Buffer.from(generated.data, "base64"))
       .rotate()
       .toColorspace("srgb")
-      .webp({ quality: 92 })
+      .webp(GENERATION_WEBP_OPTIONS)
       .toBuffer({ resolveWithObject: true });
     if (!normalized.info.width || !normalized.info.height)
       throw new Error("RESULT_DIMENSIONS_MISSING");
