@@ -1,7 +1,7 @@
 # Техническое задание ROOVA
 
-- Версия: 2.0
-- Дата актуализации: 1 августа 2026 года
+- Версия: 2.1
+- Дата актуализации: 9 августа 2026 года
 - Статус: спецификация текущей реализации и ближайших обязательных ограничений
   Связанная история: [`docs/project-history.md`](../project-history.md)
 
@@ -25,8 +25,9 @@ ROOVA — веб-сервис AI-визуализации дизайна инт�
 - Google OAuth через Supabase Auth;
 - профиль пользователя и блокировка аккаунта;
 - проекты и первичная загрузка исходной фотографии;
+- каталог проектов с серверным поиском, grid/list и пагинацией по 20 элементов;
 - файловые и URL-референсы;
-- Visual Prompting на Fabric.js;
+- Visual Prompting на Fabric.js 7 и `@erase2d/fabric`;
 - шесть интерьерных стилей;
 - пять форматов изображения;
 - fake и Vertex AI providers;
@@ -117,7 +118,7 @@ Axios читает access token через `js-cookie` и отправляет �
 | `/login`                     | Google OAuth вход                    |
 | `/app`                       | Создание или выбор рабочего проекта  |
 | `/app/[id]`                  | Канонический canvas workspace        |
-| `/app/history`               | История проектов и генераций         |
+| `/app/projects`              | Каталог завершённых проектов         |
 | `/app/profile`               | Профиль пользователя                 |
 | `/app/credits`               | Баланс, пакеты и операции            |
 | `/app/credits/checkout/[id]` | Локальный mock checkout              |
@@ -143,6 +144,10 @@ Workspace `admin` запускается отдельно на Vite и орие�
 
 Пустой проект показывает upload-state. После успешной загрузки тот же экран отображает canvas workspace без промежуточного мастера.
 
+Каталог `/app/projects` показывает только проекты, у которых есть хотя бы одна успешная генерация с сохранённым original result. Пустые drafts и проекты без успешного результата остаются в базе, но не входят в каталог. Пустой draft без source переиспользуется `/app` через entry operation. Автоматическое удаление скрытых незавершённых проектов не выполняется.
+
+`GET /api/v1/projects` поддерживает `page`, `limit`, `search` и совместимый `cursor`. Пользовательский каталог использует `limit=20`, серверный регистронезависимый поиск по названию и сохраняет `page`/`search` в URL. Ответ содержит `items`, `page`, `pageCount`, `total` и `nextCursor`.
+
 ### 6.2. Исходная фотография
 
 Разрешены JPEG, PNG и WebP:
@@ -164,7 +169,7 @@ Source загружается только один раз. Повторный `
 
 Редактор должен поддерживать:
 
-- кисть и геометрические аннотации;
+- ручку, маркер, прямоугольные аннотации и ластик;
 - выбор, undo, redo и clear;
 - pan и pointer-centered zoom;
 - сохранение Fabric JSON и прозрачного overlay;
@@ -173,7 +178,9 @@ Source загружается только один раз. Повторный `
 - миграцию legacy coordinate space;
 - видимые ошибки сохранения.
 
-Очистка разметки не удаляет исходную фотографию, проект, референсы или историю. Она должна быть подтверждена пользователем и сохранена на сервере.
+Ластик использует `@erase2d/fabric`, отдельную толщину и сериализуемые clip paths. Cursor в drawing mode задаётся через `Canvas.freeDrawingCursor`.
+
+Trash очищает всю разметку выбранного изображения без browser confirm. Очистка не удаляет исходную фотографию, проект, референсы или историю генераций. Для source пустое состояние сразу сохраняется на сервере через `DELETE /projects/:id/visual-prompt`; для временной refinement-разметки очищается локальный editor state.
 
 ### 6.4. Референсы
 
@@ -264,9 +271,9 @@ Worker атомарно захватывает queued-задачу, загруж
 - выбрать результат;
 - открыть результат в полном размере;
 - открыть плавающий composer доработки;
-- скачать сохранённый WebP без дополнительной конвертации и потери качества;
-- скрыть неуспешную карточку локально;
-- удалить запись через owner-checked API там, где это предусмотрено UI.
+- скачать сохранённый WebP без дополнительной конвертации и потери качества.
+
+Удаление или локальное скрытие отдельной генерации не поддерживается. Пользователь может отменить допустимую queued-задачу, повторить неуспешную генерацию или создать refinement от успешного результата. Снимки и дерево генераций остаются неизменяемой историей проекта.
 
 Storage сохраняет lossless WebP; download endpoint отдаёт те же байты и MIME type без повторного кодирования.
 
@@ -383,7 +390,6 @@ GET    /api/v1/media/:id/signed-url
 POST   /api/v1/generations
 GET    /api/v1/generations
 GET    /api/v1/generations/:id
-DELETE /api/v1/generations/:id
 POST   /api/v1/generations/:id/retry
 POST   /api/v1/generations/:id/cancel
 POST   /api/v1/generations/:id/refinement-references
@@ -534,7 +540,7 @@ ADMIN_ORIGIN=http://localhost:5173
 - TypeScript;
 - Tailwind CSS 4;
 - shadcn/ui, Radix UI, Lucide;
-- Fabric.js;
+- Fabric.js 7 и `@erase2d/fabric`;
 - Prisma 7 и PostgreSQL;
 - Supabase Auth/Storage;
 - Google Gen AI SDK / Vertex AI;
@@ -561,7 +567,7 @@ ADMIN_ORIGIN=http://localhost:5173
 - не загружать приватные original images без необходимости;
 - использовать preview и signed URL;
 - не опрашивать полное дерево генераций на каждом коротком интервале;
-- применять cursor pagination к большим спискам;
+- применять серверную пагинацию к большим спискам; каталог проектов использует page pagination по 20 элементов, административные списки могут использовать cursor pagination;
 - ограничивать параллельные генерации тарифом;
 - не выполнять N+1-запросы для списков.
 
@@ -600,17 +606,18 @@ pnpm db:status
 Функциональная приёмка должна проверять:
 
 1. Google login и сохранение сессии;
-2. создание проекта и первичный upload source;
-3. разметку, undo/redo/clear и reload;
-4. файловые и URL-референсы;
-5. root generation через fake provider;
-6. success, failure, cancellation, retry и credit refund;
-7. выбор результата и дочернюю refinement generation;
-8. signed preview и скачивание сохранённого WebP без повторного сжатия;
-9. историю, профиль и credits;
-10. mock checkout только в development;
-11. административную авторизацию и self-lockout protection;
-12. desktop/mobile keyboard and touch behavior основного приложения.
+2. каталог проектов: серверный поиск, очистку поиска, grid/list и пагинацию;
+3. создание проекта и первичный upload source;
+4. ручку, маркер, прямоугольник, ластик, undo/redo/Trash и reload;
+5. файловые и URL-референсы;
+6. root generation через fake provider;
+7. success, failure, cancellation, retry и credit refund;
+8. выбор результата и дочернюю refinement generation;
+9. signed preview и скачивание сохранённого WebP без повторного сжатия;
+10. профиль и credits;
+11. mock checkout только в development;
+12. административную авторизацию и self-lockout protection;
+13. desktop/mobile keyboard and touch behavior основного приложения.
 
 ## 18. Ближайшие отдельные проекты
 
@@ -622,4 +629,5 @@ pnpm db:status
 4. observability через Sentry и/или job orchestration;
 5. политика управления AI-моделями без раскрытия model ID клиенту;
 6. системные уведомления, если они снова войдут в продуктовый scope;
-7. эксплуатационные backup, retention и disaster recovery procedures.
+7. эксплуатационные backup, retention и disaster recovery procedures;
+8. retention/cleanup скрытых проектов без успешной генерации.
