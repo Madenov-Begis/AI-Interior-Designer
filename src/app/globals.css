@@ -4,20 +4,20 @@
 
 :root {
   color-scheme: dark;
-  --roova-canvas: #19191b;
-  --roova-canvas-deep: #111113;
-  --roova-surface: #232325;
-  --roova-surface-raised: #2c2c2f;
-  --roova-line: #343437;
-  --roova-text: #f2f2ef;
-  --roova-text-muted: #9a9a9f;
-  --roova-lime: #a9ed32;
-  --roova-lime-hover: #c0fb5c;
-  --roova-radius-control: 0.625rem;
-  --roova-radius-card: 1.125rem;
-  --roova-radius-panel: 1.5rem;
-  --roova-radius-modal: 1.875rem;
-  --roova-header-height: 4.5rem;
+  --ruvie-canvas: #19191b;
+  --ruvie-canvas-deep: #111113;
+  --ruvie-surface: #232325;
+  --ruvie-surface-raised: #2c2c2f;
+  --ruvie-line: #343437;
+  --ruvie-text: #f2f2ef;
+  --ruvie-text-muted: #9a9a9f;
+  --ruvie-lime: #a9ed32;
+  --ruvie-lime-hover: #c0fb5c;
+  --ruvie-radius-control: 0.625rem;
+  --ruvie-radius-card: 1.125rem;
+  --ruvie-radius-panel: 1.5rem;
+  --ruvie-radius-modal: 1.875rem;
+  --ruvie-header-height: 4.5rem;
   --background: #19191b;
   --foreground: #f2f2ef;
   --card: #232325;
@@ -64,7 +64,7 @@ body {
   color: var(--primary-foreground);
 }
 
-.roova-grid {
+.ruvie-grid {
   background-color: var(--background);
   background-image:
     linear-gradient(
@@ -79,7 +79,7 @@ body {
   background-size: 64px 64px;
 }
 
-.roova-dot-grid {
+.ruvie-dot-grid {
   background-color: var(--background);
   background-image: radial-gradient(
     circle,
@@ -90,7 +90,7 @@ body {
   background-size: 18px 18px;
 }
 
-.roova-panel-shadow {
+.ruvie-panel-shadow {
   box-shadow: 0 20px 64px rgb(0 0 0 / 28%);
 }
 

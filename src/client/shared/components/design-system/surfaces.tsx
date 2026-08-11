@@ -2,14 +2,14 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { Card } from "../ui/card";
 import { cn } from "@/shared/lib";
 
-export function RoovaPage({
+export function RuviePage({
   className,
   children,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("roova-grid min-h-full bg-background", className)}
+      className={cn("ruvie-grid min-h-full bg-background", className)}
       {...props}
     >
       {children}
@@ -17,7 +17,7 @@ export function RoovaPage({
   );
 }
 
-export function RoovaPanel({
+export function RuviePanel({
   className,
   children,
   ...props
@@ -29,7 +29,7 @@ export function RoovaPanel({
   );
 }
 
-export function RoovaSectionHeading({
+export function RuvieSectionHeading({
   eyebrow,
   title,
   description,
@@ -69,7 +69,7 @@ export function RoovaSectionHeading({
   );
 }
 
-export function RoovaStepLabel({
+export function RuvieStepLabel({
   step,
   children,
   className,

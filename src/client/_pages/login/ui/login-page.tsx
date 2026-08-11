@@ -4,9 +4,13 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
-import { Card, CardContent, CardHeader } from "@/shared/ui";
-import { buttonClassName } from "@/shared/ui";
-import { APP_NAME } from "@/shared/config";
+import {
+  buttonClassName,
+  Card,
+  CardContent,
+  CardHeader,
+  RuvieLogo,
+} from "@/shared/ui";
 import { useCurrentAuthUser } from "@/features/auth";
 import { safeReturnPath } from "@/features/auth";
 
@@ -46,11 +50,7 @@ function LoginCard({
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md rounded-[24px] shadow-2xl shadow-black/35">
         <CardHeader className="p-6 sm:p-8">
-          <Link href="/">
-            <span className="text-lg font-black italic tracking-[-0.045em]">
-              {APP_NAME}
-            </span>
-          </Link>
+          <RuvieLogo href="/" />
           <p className="mt-8 font-mono text-[10px] font-semibold tracking-[0.18em] text-primary uppercase">
             Личный кабинет
           </p>

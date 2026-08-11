@@ -11,7 +11,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui";
 import { Badge } from "@/shared/ui";
 import { Button } from "@/shared/ui";
-import { RoovaPanel } from "@/shared/ui";
+import { RuviePanel } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 import {
   CREDIT_PACKAGES_QUERY_KEY,
@@ -61,14 +61,14 @@ export function CreditsGrid() {
 
   if (packagesQuery.isLoading) {
     return (
-      <div className="roova-grid min-h-[calc(100dvh-72px)] p-5 sm:p-8">
+      <div className="ruvie-grid min-h-[calc(100dvh-72px)] p-5 sm:p-8">
         <Skeleton className="mx-auto h-[620px] max-w-[1280px] rounded-[30px]" />
       </div>
     );
   }
   if (packagesQuery.error || !packagesQuery.data) {
     return (
-      <div className="roova-grid min-h-[calc(100dvh-72px)] p-8">
+      <div className="ruvie-grid min-h-[calc(100dvh-72px)] p-8">
         <Alert variant="destructive" className="mx-auto max-w-3xl">
           <AlertTitle>Не удалось загрузить кредиты</AlertTitle>
           <AlertDescription>
@@ -86,8 +86,8 @@ export function CreditsGrid() {
   const presentedBalance = presentCreditBalance(balance);
 
   return (
-    <div className="roova-grid min-h-[calc(100dvh-72px)] p-4 sm:p-8">
-      <section className="roova-panel-shadow mx-auto max-w-[1280px] overflow-hidden rounded-[30px] border border-border bg-card">
+    <div className="ruvie-grid min-h-[calc(100dvh-72px)] p-4 sm:p-8">
+      <section className="ruvie-panel-shadow mx-auto max-w-[1280px] overflow-hidden rounded-[30px] border border-border bg-card">
         <header className="flex flex-col gap-4 border-b border-border px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
@@ -194,7 +194,7 @@ export function CreditsGrid() {
         </div>
       </section>
 
-      <RoovaPanel className="mx-auto mt-6 max-w-[1280px] p-6">
+      <RuviePanel className="mx-auto mt-6 max-w-[1280px] p-6">
         <h2 className="flex items-center gap-2 text-xl font-black italic">
           <ReceiptText className="size-5 text-primary" />
           Последние операции
@@ -252,7 +252,7 @@ export function CreditsGrid() {
             })}
           </ul>
         )}
-      </RoovaPanel>
+      </RuviePanel>
     </div>
   );
 }

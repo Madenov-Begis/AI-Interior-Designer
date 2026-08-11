@@ -1,6 +1,6 @@
 import { createTheme, type MantineColorsTuple } from "@mantine/core";
 
-const roova: MantineColorsTuple = [
+const ruvie: MantineColorsTuple = [
   "#efffd4",
   "#dcffb2",
   "#c4fb83",
@@ -14,9 +14,9 @@ const roova: MantineColorsTuple = [
 ];
 
 export const theme = createTheme({
-  primaryColor: "roova",
+  primaryColor: "ruvie",
   primaryShade: 3,
-  colors: { roova },
+  colors: { ruvie },
   fontFamily: "var(--font-geist-sans), Geist, Arial, sans-serif",
   headings: {
     fontFamily: "var(--font-geist-sans), Geist, Arial, sans-serif",

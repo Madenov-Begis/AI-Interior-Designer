@@ -1,12 +1,4 @@
-import {
-  AppShell,
-  Avatar,
-  Burger,
-  Group,
-  NavLink,
-  Text,
-  Title,
-} from "@mantine/core";
+import { AppShell, Avatar, Group, NavLink, Text } from "@mantine/core";
 import {
   IconChartBar,
   IconCoin,
@@ -15,6 +7,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { NavLink as RouterLink, Outlet, useLocation } from "react-router-dom";
+import { RuvieLogo } from "../shared/brand";
 
 const nav = [
   ["/", "Обзор", IconChartBar],
@@ -36,15 +29,13 @@ export function AdminShell({ onLogout }: { onLogout: () => void }) {
       <AppShell.Header bg="#111113" withBorder>
         <Group justify="space-between" h="100%" px="xl">
           <Group gap="sm">
-            <Title order={3} fw={900} fs="italic">
-              ROOVA
-            </Title>
+            <RuvieLogo />
             <Text c="dimmed" size="sm">
               Администрирование
             </Text>
           </Group>
           <Group>
-            <Avatar color="roova" radius="xl">
+            <Avatar color="ruvie" radius="xl">
               A
             </Avatar>
             <Text
@@ -75,7 +66,7 @@ export function AdminShell({ onLogout }: { onLogout: () => void }) {
                   ? location.pathname === "/"
                   : location.pathname.startsWith(to)
               }
-              color="roova"
+              color="ruvie"
               variant="filled"
               mb={4}
             />

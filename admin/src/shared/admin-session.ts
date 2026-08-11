@@ -1,4 +1,4 @@
-const storageKey = "roova-admin-phone";
+const storageKey = "ruvie-admin-phone";
 
 export function getAdminPhone() {
   return sessionStorage.getItem(storageKey);

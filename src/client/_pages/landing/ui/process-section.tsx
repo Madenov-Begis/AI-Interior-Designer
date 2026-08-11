@@ -37,7 +37,7 @@ export function ProcessSection() {
             Просто начать. Легко продолжить.
           </h2>
           <p className="mt-5 max-w-lg text-base leading-7 text-black/55">
-            ROOVA не заставляет проходить длинный мастер настроек. Вся работа
+            Ruvie не заставляет проходить длинный мастер настроек. Вся работа
             строится вокруг вашей комнаты и остаётся в одном проекте.
           </p>
           <div className="relative mt-9 overflow-hidden rounded-[28px] bg-[#d9d5cb] p-2 shadow-[0_24px_70px_rgba(33,31,26,0.14)]">

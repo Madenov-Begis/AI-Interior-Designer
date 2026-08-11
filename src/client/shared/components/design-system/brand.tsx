@@ -2,7 +2,17 @@ import Link from "next/link";
 import { APP_NAME } from "@/shared/config";
 import { cn } from "@/shared/lib";
 
-export function RoovaLogo({
+export function RuvieWordmark({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn("text-[19px] font-black tracking-[-0.055em]", className)}
+    >
+      {APP_NAME}
+    </span>
+  );
+}
+
+export function RuvieLogo({
   href = "/app",
   className,
 }: {
@@ -21,9 +31,7 @@ export function RoovaLogo({
         href === "/" ? `${APP_NAME} — главная` : `${APP_NAME} — открыть холст`
       }
     >
-      <span className="text-[19px] font-black italic tracking-[-0.055em]">
-        {APP_NAME}
-      </span>
+      <RuvieWordmark />
     </Link>
   );
 }

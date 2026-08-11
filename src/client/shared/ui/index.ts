@@ -119,11 +119,14 @@ export {
   TooltipProvider,
   TooltipTrigger,
 } from "../components/ui/tooltip.tsx";
-export { RoovaLogo } from "../components/design-system/brand.tsx";
+export {
+  RuvieLogo,
+  RuvieWordmark,
+} from "../components/design-system/brand.tsx";
 export { AppPagination } from "../components/design-system/app-pagination.tsx";
 export {
-  RoovaPage,
-  RoovaPanel,
-  RoovaSectionHeading,
-  RoovaStepLabel,
+  RuviePage,
+  RuviePanel,
+  RuvieSectionHeading,
+  RuvieStepLabel,
 } from "../components/design-system/surfaces.tsx";

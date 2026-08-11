@@ -2,8 +2,8 @@
 
 import Cookies from "js-cookie";
 
-export const ACCESS_TOKEN_COOKIE = "roova_access_token";
-export const REFRESH_TOKEN_COOKIE = "roova_refresh_token";
+export const ACCESS_TOKEN_COOKIE = "ruvie_access_token";
+export const REFRESH_TOKEN_COOKIE = "ruvie_refresh_token";
 
 const COOKIE_OPTIONS: Cookies.CookieAttributes = {
   path: "/",

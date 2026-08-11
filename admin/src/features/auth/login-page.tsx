@@ -12,6 +12,7 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { adminApi } from "../../shared/api";
 import { clearAdminPhone, setAdminPhone } from "../../shared/admin-session";
+import { RuvieLogo } from "../../shared/brand";
 import { adminLoginSchema } from "./schema";
 
 export function LoginPage({
@@ -42,9 +43,7 @@ export function LoginPage({
         <Card withBorder shadow="xl" p="xl" bg="dark.8">
           <Stack gap="lg">
             <div>
-              <Text c="roova.3" fw={800} fz="xs" tt="uppercase">
-                ROOVA
-              </Text>
+              <RuvieLogo />
               <Title order={1} mt={8}>
                 Администрирование
               </Title>
@@ -74,7 +73,7 @@ export function LoginPage({
                   key={form.key("phone")}
                   {...form.getInputProps("phone")}
                 />
-                <Button type="submit" color="roova" fullWidth>
+                <Button type="submit" color="ruvie" fullWidth>
                   Войти
                 </Button>
               </Stack>

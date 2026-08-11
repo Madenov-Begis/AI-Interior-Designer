@@ -1,6 +1,6 @@
-# ROOVA Design System
+# Ruvie Design System
 
-ROOVA uses one dark, high-contrast product system across the landing page,
+Ruvie uses one dark, high-contrast product system across the landing page,
 canvas, project library, balance, and profile.
 
 ## Foundations
@@ -29,15 +29,15 @@ The source of truth is split between:
 
 ## Components
 
-- `RoovaLogo` — the shared brand lockup.
-- `RoovaAppHeader` — global product navigation.
+- `RuvieLogo` — the shared brand lockup.
+- `RuvieAppHeader` — global product navigation.
 - `AccountMenu` — shadcn Dropdown Menu + Avatar for balance, profile, credits,
   and sign-out actions.
-- `RoovaPage` — graph-grid page background.
-- `RoovaPanel` — compatibility wrapper around the shadcn Card while older
+- `RuviePage` — graph-grid page background.
+- `RuviePanel` — compatibility wrapper around the shadcn Card while older
   screens are migrated to direct Card composition.
-- `RoovaSectionHeading` — dashboard page hierarchy.
-- `RoovaStepLabel` — numbered workflow sections.
+- `RuvieSectionHeading` — dashboard page hierarchy.
+- `RuvieStepLabel` — numbered workflow sections.
 - `Alert`, `Avatar`, `Badge`, `Button`, `Card`, `DropdownMenu`, `Empty`,
   `Field`, `InputGroup`, `Sheet`, `Textarea`, `ToggleGroup`, and `Tooltip` —
   shadcn application primitives using the same semantic tokens.

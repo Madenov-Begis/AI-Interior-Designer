@@ -1,22 +1,13 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { buttonClassName } from "@/shared/ui";
-import { APP_NAME } from "@/shared/config";
+import { buttonClassName, RuvieLogo } from "@/shared/ui";
 import { marketingCtaClassName } from "./cta-style";
 
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5">
       <div className="mx-auto flex h-15 max-w-[1280px] items-center justify-between rounded-full border border-white/10 bg-[#17181a]/90 px-3 pl-4 shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:pl-5">
-        <Link
-          href="/"
-          className="flex items-center"
-          aria-label={`${APP_NAME} — главная`}
-        >
-          <span className="text-lg font-black tracking-[-0.04em]">
-            {APP_NAME}
-          </span>
-        </Link>
+        <RuvieLogo href="/" />
         <nav
           className="hidden items-center gap-7 text-sm text-white/55 md:flex"
           aria-label="Основная навигация"

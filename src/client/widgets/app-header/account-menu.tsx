@@ -15,7 +15,7 @@ import {
 } from "@/shared/ui";
 import { apiData } from "@/shared/api";
 
-export type RoovaUserSummary = {
+export type RuvieUserSummary = {
   name: string;
   email: string;
   avatarUrl?: string | null;
@@ -25,7 +25,7 @@ export function AccountMenu({
   user,
   creditBalance,
 }: {
-  user: RoovaUserSummary;
+  user: RuvieUserSummary;
   creditBalance?: number | null;
 }) {
   const initials =

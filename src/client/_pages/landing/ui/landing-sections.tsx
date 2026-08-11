@@ -12,7 +12,7 @@ import {
   Palette,
   Upload,
 } from "lucide-react";
-import { buttonClassName } from "@/shared/ui";
+import { buttonClassName, RuvieWordmark } from "@/shared/ui";
 import { marketingCtaClassName } from "./cta-style";
 import { CREDIT_PACKAGES } from "@/shared/config";
 
@@ -27,7 +27,7 @@ const packageDescriptions = {
 const modes = [
   {
     title: "Сохранить геометрию",
-    copy: "ROOVA оставляет стены, окна и ракурс на месте, меняя только интерьер.",
+    copy: "Ruvie оставляет стены, окна и ракурс на месте, меняя только интерьер.",
     image: "/images/interior-styles/japandi.webp",
   },
   {
@@ -150,7 +150,7 @@ export function WorkflowSection() {
         <div className="rounded-[26px] border border-border bg-card p-3 shadow-2xl shadow-black/35">
           <div className="page-grid relative aspect-[16/10] overflow-hidden rounded-[18px] border border-border bg-background">
             <div className="absolute inset-x-6 top-6 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-              <span className="font-bold italic">ROOVA</span>
+              <RuvieWordmark />
               <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
                 10 кредитов
               </span>
@@ -194,7 +194,7 @@ export function PricingSection() {
             Пакеты кредитов
           </h2>
           <p className="mt-4 text-base font-semibold text-white/70">
-            Кредиты — валюта ROOVA для генераций и правок
+            Кредиты — валюта Ruvie для генераций и правок
           </p>
         </div>
 
@@ -349,7 +349,7 @@ const faqs = [
     "Снимите комнату ровно, при дневном свете и без сильного размытия. Поддерживаются JPG, PNG и WEBP до 15 МБ.",
   ],
   [
-    "ROOVA сохранит окна и геометрию?",
+    "Ruvie сохранит окна и геометрию?",
     "Да. Базовая инструкция просит модель сохранять ракурс, пропорции и архитектурные элементы помещения.",
   ],
   [

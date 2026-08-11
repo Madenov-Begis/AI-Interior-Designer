@@ -39,7 +39,7 @@ export function Hero() {
             <span className="text-primary">до ремонта</span>
           </h1>
           <p className="mt-7 max-w-xl text-base leading-7 text-white/60 sm:text-lg">
-            Загрузите фотографию комнаты. ROOVA сохранит стены, окна и ракурс —
+            Загрузите фотографию комнаты. Ruvie сохранит стены, окна и ракурс —
             и покажет реалистичный вариант за несколько минут.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -88,7 +88,7 @@ export function Hero() {
             <div className="relative aspect-[4/3] overflow-hidden rounded-[27px]">
               <Image
                 src="/images/interior-styles/japandi.webp"
-                alt="Интерьер, созданный в ROOVA"
+                alt="Интерьер, созданный в Ruvie"
                 fill
                 priority
                 sizes="(min-width: 1024px) 52vw, 100vw"

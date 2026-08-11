@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { APP_NAME } from "@/shared/config";
+import { RuvieLogo } from "@/shared/ui";
 
 export function SiteFooter() {
   return (
     <footer className="bg-[#111113]">
       <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.5fr_1fr_1fr]">
-        <Link href="/" className="flex items-center">
-          <span className="text-xl font-black tracking-[-0.045em]">
-            {APP_NAME}
-          </span>
-        </Link>
+        <RuvieLogo href="/" />
         <nav
           className="grid content-start gap-3 text-sm text-muted-foreground"
           aria-label="Ссылки в подвале"

@@ -18,7 +18,7 @@ import { Button, buttonClassName } from "@/shared/ui";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/shared/ui";
 import { Input } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
-import { RoovaPanel } from "@/shared/ui";
+import { RuviePanel } from "@/shared/ui";
 import { presentWalletSummary } from "@/features/manage-credits";
 import { apiData } from "@/shared/api";
 import {
@@ -127,7 +127,7 @@ export function ProfilePanel() {
     .join("");
 
   return (
-    <div className="roova-grid min-h-[calc(100dvh-72px)] px-5 py-12 sm:px-8">
+    <div className="ruvie-grid min-h-[calc(100dvh-72px)] px-5 py-12 sm:px-8">
       <div className="mx-auto max-w-[1080px]">
         <div className="text-center">
           <Avatar className="mx-auto size-28 text-5xl">
@@ -142,7 +142,7 @@ export function ProfilePanel() {
         </div>
 
         <div className="mt-12 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
-          <RoovaPanel className="p-6">
+          <RuviePanel className="p-6">
             <h2 className="text-2xl font-black italic">Проекты</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Link
@@ -204,11 +204,11 @@ export function ProfilePanel() {
               </span>
               <ArrowRight className="ml-auto size-5 text-muted-foreground" />
             </Link>
-          </RoovaPanel>
+          </RuviePanel>
 
           <div className="grid gap-5">
             <div className="grid grid-cols-2 gap-4">
-              <RoovaPanel className="border-primary bg-primary p-6 text-primary-foreground">
+              <RuviePanel className="border-primary bg-primary p-6 text-primary-foreground">
                 <p className="text-4xl font-black italic">{wallet.balance}</p>
                 <p className="mt-2 text-sm font-bold">Баланс кредитов</p>
                 <Link
@@ -222,18 +222,18 @@ export function ProfilePanel() {
                   <Plus className="size-4" />
                   Пополнить
                 </Link>
-              </RoovaPanel>
-              <RoovaPanel className="p-6">
+              </RuviePanel>
+              <RuviePanel className="p-6">
                 <ImageIcon className="size-5 text-primary" />
                 <p className="mt-5 text-4xl font-black italic">{usage.used}</p>
                 <p className="mt-2 text-sm font-bold">Сгенерировано</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Всего изображений
                 </p>
-              </RoovaPanel>
+              </RuviePanel>
             </div>
 
-            <RoovaPanel className="p-6">
+            <RuviePanel className="p-6">
               <h2 className="text-xl font-black italic">Данные аккаунта</h2>
               <FieldGroup className="mt-5 gap-4">
                 <Field data-invalid={Boolean(update.error)}>
@@ -285,7 +285,7 @@ export function ProfilePanel() {
                   Копировать email
                 </Button>
               </div>
-            </RoovaPanel>
+            </RuviePanel>
 
             <p className="px-2 text-xs leading-5 text-muted-foreground">
               {walletSummary.availableGenerationsText} · {usage.plan.name}
