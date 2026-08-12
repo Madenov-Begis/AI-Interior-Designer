@@ -9,6 +9,7 @@ const COOKIE_OPTIONS: Cookies.CookieAttributes = {
   path: "/",
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
+  domain: process.env.NEXT_PUBLIC_AUTH_COOKIE_DOMAIN || undefined,
 };
 
 function clearLegacySupabaseCookies() {

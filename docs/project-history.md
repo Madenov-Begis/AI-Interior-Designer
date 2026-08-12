@@ -210,7 +210,7 @@ Generation Core ввёл атомарное резервирование дне�
 - добавлен общий пакет контрактов `packages/admin-contracts`;
 - профиль получил nullable email и уникальный телефон;
 - добавлен seed-скрипт администратора Supabase Auth по номеру `+998` и паролю;
-- backend разрешает CORS для настроенного `ADMIN_ORIGIN`;
+- backend разрешает CORS для настроенного exact allowlist `ADMIN_ORIGINS`;
 - локальная desktop-админка может использовать `AdminPhone` только вне production;
 - production API требует проверенный Supabase Bearer token или cookie session и роль `ADMIN`;
 - добавлены dashboard, пользователи, генерации, финансы и тарифы;

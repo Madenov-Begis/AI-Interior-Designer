@@ -3,11 +3,11 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { isProtectedPath, safeReturnPath } from "./route-policy.ts";
 
-test("classifies only app and admin route segments as private", () => {
+test("classifies only app route segments as private", () => {
   assert.equal(isProtectedPath("/app"), true);
   assert.equal(isProtectedPath("/app/project-1"), true);
-  assert.equal(isProtectedPath("/admin"), true);
-  assert.equal(isProtectedPath("/admin/users"), true);
+  assert.equal(isProtectedPath("/admin"), false);
+  assert.equal(isProtectedPath("/admin/users"), false);
   assert.equal(isProtectedPath("/application"), false);
   assert.equal(isProtectedPath("/administrator"), false);
   assert.equal(isProtectedPath("/"), false);
@@ -29,7 +29,6 @@ test("protected routes use a client guard and axios sends the session token", as
   const [
     authClient,
     appLayout,
-    adminLayout,
     homePage,
     loginPage,
     dashboardLayout,
@@ -41,10 +40,6 @@ test("protected routes use a client guard and axios sends the session token", as
     readFile(new URL("../api/client.ts", import.meta.url), "utf8"),
     readFile(
       new URL("../../../../app/app/layout.tsx", import.meta.url),
-      "utf8",
-    ),
-    readFile(
-      new URL("../../../../app/admin/layout.tsx", import.meta.url),
       "utf8",
     ),
     readFile(new URL("../../../../app/page.tsx", import.meta.url), "utf8"),
@@ -71,7 +66,6 @@ test("protected routes use a client guard and axios sends the session token", as
   assert.match(authClient, /\/auth\/me/);
   assert.doesNotMatch(authClient, /supabase|onAuthStateChange|getClaims/);
   assert.match(appLayout, /ProtectedRouteGuard/);
-  assert.match(adminLayout, /ProtectedRouteGuard/);
   assert.doesNotMatch(
     homePage,
     /useCurrentAuthUser|auth\.getClaims|createSupabaseServerClient/,

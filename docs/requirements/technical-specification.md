@@ -99,10 +99,7 @@ Axios читает access token через `js-cookie` и отправляет �
 
 ### 4.2. Административный доступ
 
-Поддерживаются два доверенных варианта:
-
-- Supabase Bearer token основного Next.js-приложения;
-- Supabase Bearer token отдельного доверенного frontend.
+Production-админка входит через Supabase `signInWithPassword({ phone, password })`, сохраняет и обновляет сессию штатным browser client flow и отправляет access token как Bearer. Publishable key является публичным, service-role key во frontend не передаётся. `GET /api/v1/admin/session` при старте повторно проверяет роль и статус профиля через Prisma.
 
 Локальная desktop-админка может отправлять `Authorization: AdminPhone +998XXXXXXXXX` только при `NODE_ENV != production`. Этот режим предназначен для локальной разработки и обязан отклоняться в production.
 
@@ -122,19 +119,18 @@ Axios читает access token через `js-cookie` и отправляет �
 | `/app/profile`               | Профиль пользователя                 |
 | `/app/credits`               | Баланс, пакеты и операции            |
 | `/app/credits/checkout/[id]` | Локальный mock checkout              |
-| `/admin`                     | Встроенный административный overview |
 
 ### 5.2. Отдельная админ-панель
 
-Workspace `admin` запускается отдельно на Vite и ориентирован на desktop. Он использует Mantine, React Router и TanStack Query и содержит:
+Workspace `admin` запускается отдельно на Vite, работает от 375 px и использует React 19, Mantine, React Router и TanStack Query. Он содержит маршруты:
 
-- обзор;
-- пользователей;
-- генерации;
-- финансы;
-- тарифы.
+- `/login`, `/`;
+- `/users`, `/users/:id`;
+- `/generations`, `/generations/:id`;
+- `/finance/orders`, `/finance/transactions`;
+- `/plans`.
 
-Разрешённый origin задаётся `ADMIN_ORIGIN`, по умолчанию `http://localhost:5173`.
+Интерфейс использует системную light/dark тему Mantine и отдельную от клиентского приложения blue design system. Разрешённые browser origins задаются обязательным exact allowlist `ADMIN_ORIGINS`; localhost добавляется автоматически только в development.
 
 ## 6. Рабочий процесс проекта
 
@@ -409,6 +405,7 @@ POST   /api/v1/payment-orders/:id/mock-outcome
 
 ```text
 GET    /api/v1/admin/stats
+GET    /api/v1/admin/session
 GET    /api/v1/admin/users
 GET    /api/v1/admin/users/:id
 PATCH  /api/v1/admin/users/:id
@@ -421,7 +418,10 @@ POST   /api/v1/admin/plans
 PATCH  /api/v1/admin/plans/:id
 GET    /api/v1/admin/payment-orders
 GET    /api/v1/admin/credit-transactions
+GET    /api/v1/admin/media/:id/signed-url
 ```
+
+Все списки принимают `page`, `pageSize` и отвечают `{ items, pageInfo }`; page size по умолчанию 25, максимум 100. Admin handlers выполняют только auth, validation, вызов сервиса и DTO serialization. Невалидные query/body получают `422`, malformed JSON — `400`, not found — `404`, доменные конфликты — `409`, rate limit — `429`. Ответ сохраняет envelope `{ data, meta: { requestId } }`.
 
 ## 11. Данные
 
@@ -498,7 +498,7 @@ users/{userId}/generations/{generationId}/...
 - SSRF-защита URL importer;
 - короткоживущие signed URLs;
 - secrets только в server environment;
-- CORS только для точного `ADMIN_ORIGIN`;
+- CORS только для точных allowlist `APP_ORIGINS` и `ADMIN_ORIGINS`;
 - запрет `AdminPhone` и mock payments в production;
 - идемпотентность генераций, платежей, списаний и возвратов;
 - отсутствие stack trace и credentials в API errors.
@@ -510,7 +510,11 @@ users/{userId}/generations/{generationId}/...
 ```dotenv
 NODE_ENV=development
 NEXT_PUBLIC_APP_NAME=Ruvie
-APP_URL=http://localhost:3000
+APP_URL=https://ruvie.cc
+APP_ORIGINS=https://ruvie.cc
+NEXT_PUBLIC_API_BASE_URL=https://api.ruvie.cc
+NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=.ruvie.cc
+AUTH_COOKIE_DOMAIN=.ruvie.cc
 APP_TIMEZONE=Asia/Tashkent
 
 NEXT_PUBLIC_SUPABASE_URL=...
@@ -522,7 +526,7 @@ DIRECT_URL=...
 
 AI_PROVIDER=fake
 PAYMENT_PROVIDER=disabled
-ADMIN_ORIGIN=http://localhost:5173
+ADMIN_ORIGINS=https://admin.ruvie.cc
 ```
 
 Для Vertex AI требуются `GOOGLE_CLOUD_PROJECT_ID`, `GOOGLE_CLOUD_LOCATION` и credentials. Model ID может задаваться `VERTEX_IMAGE_MODEL`.
@@ -560,14 +564,14 @@ ADMIN_ORIGIN=http://localhost:5173
 - live regions для значимых async-статусов;
 - responsive canvas без потери доступа к inspector и результатам.
 
-Отдельная Mantine-админка в текущей версии ориентирована на desktop и не обязана повторять mobile UX основного приложения.
+Отдельная Mantine-админка использует собственный responsive UX: постоянный sidebar на desktop, Burger/Drawer и карточное представление таблиц на ширинах до 767 px. Поддерживаемые контрольные ширины — 375, 768 и 1440 px.
 
 ### 16.2. Производительность
 
 - не загружать приватные original images без необходимости;
 - использовать preview и signed URL;
 - не опрашивать полное дерево генераций на каждом коротком интервале;
-- применять серверную пагинацию к большим спискам; каталог проектов использует page pagination по 20 элементов, административные списки могут использовать cursor pagination;
+- применять серверную пагинацию к большим спискам; административные списки используют единый контракт `page`, `pageSize`, `pageInfo` с размером 25 по умолчанию и максимумом 100;
 - ограничивать параллельные генерации тарифом;
 - не выполнять N+1-запросы для списков.
 
@@ -591,6 +595,7 @@ pnpm typecheck
 pnpm lint
 pnpm build
 pnpm admin:test
+pnpm admin:server:test
 pnpm admin:typecheck
 pnpm admin:build
 git diff --check

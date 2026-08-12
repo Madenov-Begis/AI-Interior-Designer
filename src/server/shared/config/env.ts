@@ -9,6 +9,7 @@ const serverEnvSchema = z
       .enum(["development", "test", "production"])
       .default("development"),
     APP_URL: z.url(),
+    APP_ORIGINS: z.string().min(1).optional(),
     APP_TIMEZONE: z.string().min(1).default("Asia/Tashkent"),
     NEXT_PUBLIC_SUPABASE_URL: z.url(),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
@@ -22,8 +23,24 @@ const serverEnvSchema = z
     GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
     TRIGGER_SECRET_KEY: z.string().min(1).optional(),
     SENTRY_DSN: z.url().optional(),
+    ADMIN_ORIGINS: z.string().min(1).optional(),
+    AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
   })
   .superRefine((env, context) => {
+    if (env.NODE_ENV === "production" && !env.ADMIN_ORIGINS) {
+      context.addIssue({
+        code: "custom",
+        path: ["ADMIN_ORIGINS"],
+        message: "Обязателен exact allowlist origin для production-админки",
+      });
+    }
+    if (env.NODE_ENV === "production" && !env.APP_ORIGINS) {
+      context.addIssue({
+        code: "custom",
+        path: ["APP_ORIGINS"],
+        message: "Обязателен exact allowlist origin для production-клиента",
+      });
+    }
     if (env.AI_PROVIDER === "vertex") {
       if (!env.GOOGLE_CLOUD_PROJECT_ID)
         context.addIssue({

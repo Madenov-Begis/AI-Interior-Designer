@@ -1,34 +1,20 @@
-import { createTheme, type MantineColorsTuple } from "@mantine/core";
-
-const ruvie: MantineColorsTuple = [
-  "#efffd4",
-  "#dcffb2",
-  "#c4fb83",
-  "#a9ed32",
-  "#93d71d",
-  "#78bd09",
-  "#5a9400",
-  "#3e6800",
-  "#254000",
-  "#102000",
-];
+import { createTheme } from "@mantine/core";
 
 export const theme = createTheme({
-  primaryColor: "ruvie",
-  primaryShade: 3,
-  colors: { ruvie },
-  fontFamily: "var(--font-geist-sans), Geist, Arial, sans-serif",
-  headings: {
-    fontFamily: "var(--font-geist-sans), Geist, Arial, sans-serif",
-    fontWeight: "800",
-  },
+  primaryColor: "blue",
   defaultRadius: "md",
-  black: "#111113",
-  white: "#f2f2ef",
-  other: {
-    surface: "#232325",
-    elevated: "#2c2c2f",
-    border: "#343437",
-    muted: "#9a9a9f",
+  fontFamily:
+    "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+  headings: {
+    fontFamily:
+      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    fontWeight: "700",
+  },
+  components: {
+    Button: {
+      defaultProps: { radius: "md" },
+      styles: { root: { minHeight: 44 } },
+    },
+    ActionIcon: { defaultProps: { radius: "md", size: 44 } },
   },
 });

@@ -1,4 +1,4 @@
-const PROTECTED_SEGMENTS = ["/app", "/admin"];
+const PROTECTED_SEGMENTS = ["/app"];
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 export function isProtectedPath(pathname: string) {

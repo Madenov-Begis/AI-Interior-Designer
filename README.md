@@ -31,9 +31,8 @@ src/
 
 admin/src/
 ├── app/
-├── features/
+├── pages/
 ├── shared/
-└── widgets/
 ```
 
 ## Работа с данными
@@ -53,6 +52,8 @@ pnpm dev
 ```
 
 Приложение откроется на `http://localhost:3000`. По умолчанию используется `AI_PROVIDER=fake`, поэтому реальные credentials Vertex AI для запуска интерфейса не нужны.
+
+Клиентский frontend отправляет API-запросы на `https://api.ruvie.cc/api/v1`, отдельная админка — на `https://api.ruvie.cc/api/v1/admin`. Значение можно переопределить через `NEXT_PUBLIC_API_BASE_URL` и `VITE_API_BASE_URL`. Backend разрешает browser-origin клиента только из exact allowlist `APP_ORIGINS`, а origin админки — из `ADMIN_ORIGINS`.
 
 Основные пользовательские маршруты:
 
@@ -86,7 +87,14 @@ PAYMENT_PROVIDER=disabled  # production until Payme/Click is connected
 PAYMENT_PROVIDER=mock      # local development only; requires AI_PROVIDER=fake
 ```
 
-После первой авторизации администратора можно назначить через Prisma Studio: открыть `Profile`, выставить `role = ADMIN` и оставить `status = ACTIVE`. Затем становится доступна страница `/admin` и защищённые API `/api/v1/admin/*`.
+После первой авторизации администратора можно назначить через Prisma Studio: открыть `Profile`, выставить `role = ADMIN` и оставить `status = ACTIVE`. Административный UI является отдельным Vite-приложением; встроенного Next.js-маршрута `/admin` нет.
+
+```bash
+pnpm admin:seed
+pnpm admin:dev
+```
+
+Админка откроется на `http://localhost:5173`. В production вход выполняется через Supabase phone/password с publishable key; для hosted-проекта заранее включите **Authentication → Sign In / Providers → Phone**. Backend повторно проверяет `role = ADMIN` и `status = ACTIVE`. `AdminPhone` доступен только как dev-only fallback. Browser origins задаются точным списком `ADMIN_ORIGINS` через запятую; wildcard не поддерживается.
 
 ## База данных
 
@@ -109,6 +117,10 @@ pnpm test
 pnpm typecheck
 pnpm lint
 pnpm build
+pnpm admin:server:test
+pnpm admin:test
+pnpm admin:typecheck
+pnpm admin:build
 ```
 
 Полная проверка включает unit/service тесты, строгую типизацию, ESLint, Prisma

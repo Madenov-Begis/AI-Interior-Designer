@@ -13,6 +13,7 @@ import {
 } from "@/shared/ui";
 import { useCurrentAuthUser } from "@/features/auth";
 import { safeReturnPath } from "@/features/auth";
+import { apiUrl } from "@/shared/api/url";
 
 export function LoginPage() {
   return (
@@ -44,7 +45,7 @@ function LoginCard({
   next: string;
   checkingSession: boolean;
 }) {
-  const googleLoginUrl = `/api/v1/auth/google?next=${encodeURIComponent(next)}`;
+  const googleLoginUrl = apiUrl(`/auth/google?next=${encodeURIComponent(next)}`);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">

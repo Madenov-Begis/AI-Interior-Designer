@@ -11,6 +11,7 @@ const commonOptions = {
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production",
   path: "/",
+  domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
 };
 
 function isLegacySupabaseAuthCookie(name: string) {

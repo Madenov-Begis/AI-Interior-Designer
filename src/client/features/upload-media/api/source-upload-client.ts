@@ -1,4 +1,5 @@
 import { apiData } from "../../../shared/api/index.ts";
+import { apiUrl } from "../../../shared/api/url.ts";
 
 type UploadProjectSourceInput = {
   projectId: string;
@@ -40,7 +41,7 @@ export async function uploadProjectSource({
   formData.set("file", file);
 
   if (fetcher) {
-    const response = await fetcher(`/api/v1/projects/${projectId}/source`, {
+    const response = await fetcher(apiUrl(`/projects/${projectId}/source`), {
       method: "POST",
       body: formData,
       signal,

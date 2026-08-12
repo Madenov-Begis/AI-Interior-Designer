@@ -8,6 +8,7 @@ import {
 } from "@/server/features/auth/current-user";
 import type { NextRequest } from "next/server";
 import { headers } from "next/headers";
+import { getLocalAdminPhone } from "@/server/features/admin/admin-phone";
 
 export class ForbiddenError extends Error {
   constructor(message = "Недостаточно прав") {
@@ -18,12 +19,13 @@ export class ForbiddenError extends Error {
 
 export async function requireAdmin(request?: NextRequest) {
   const requestHeaders = request?.headers ?? (await headers());
-  const localPhone = requestHeaders
-    .get("authorization")
-    ?.match(/^AdminPhone\s+(\+998\d{9})$/)?.[1];
+  const local = getLocalAdminPhone(
+    requestHeaders.get("authorization"),
+    process.env.NODE_ENV,
+  );
+  const localPhone = local.phone;
+  if (local.disabled) throw new UnauthorizedError("Локальный вход отключён");
   if (localPhone) {
-    if (process.env.NODE_ENV === "production")
-      throw new UnauthorizedError("Локальный вход отключён");
     const profile = await getDb().profile.findUnique({
       where: { phone: localPhone },
     });

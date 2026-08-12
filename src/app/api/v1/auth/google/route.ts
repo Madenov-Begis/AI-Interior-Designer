@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeReturnPath } from "@/server/features/auth/route-policy";
 import { createSupabaseServerClient } from "@/server/shared/integrations/supabase/server";
+import { serverEnv } from "@/server/shared/config/env";
 
 export async function GET(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
+  const appUrl = serverEnv().APP_URL;
   const callbackUrl = new URL("/auth/callback", request.nextUrl.origin);
   callbackUrl.searchParams.set(
     "next",
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !data.url) {
     return NextResponse.redirect(
-      new URL("/login?error=oauth_start", request.nextUrl.origin),
+      new URL("/login?error=oauth_start", appUrl),
     );
   }
 

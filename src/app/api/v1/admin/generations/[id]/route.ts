@@ -1,10 +1,10 @@
 import type { NextRequest } from "next/server";
-import { z } from "zod";
-import { apiError, apiSuccess } from "@/server/shared/api/responses";
-import { getRequestId } from "@/server/shared/api/request-id";
-import { requireAdmin } from "@/server/features/auth/admin";
-import { getDb } from "@/server/shared/db/prisma";
 import { adminApiError } from "@/server/features/admin/http";
+import { adminIdSchema } from "@/server/features/admin/schemas";
+import { getAdminGeneration } from "@/server/features/admin/service";
+import { requireAdmin } from "@/server/features/auth/admin";
+import { apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
 
 export async function GET(
   request: NextRequest,
@@ -12,33 +12,9 @@ export async function GET(
 ) {
   const requestId = getRequestId(request.headers);
   try {
-    await requireAdmin();
-    const id = z.uuid().parse((await context.params).id);
-    const item = await getDb().generation.findUnique({
-      where: { id },
-      include: {
-        user: { select: { id: true, email: true, displayName: true } },
-        project: { select: { id: true, name: true } },
-        references: {
-          orderBy: { position: "asc" },
-          include: {
-            file: {
-              select: {
-                id: true,
-                mimeType: true,
-                sizeBytes: true,
-                width: true,
-                height: true,
-              },
-            },
-          },
-        },
-        usageEvent: true,
-      },
-    });
-    return item
-      ? apiSuccess(item, requestId)
-      : apiError("NOT_FOUND", "Генерация не найдена", requestId, 404);
+    await requireAdmin(request);
+    const id = adminIdSchema.parse((await context.params).id);
+    return apiSuccess(await getAdminGeneration(id), requestId);
   } catch (error) {
     return adminApiError(error, requestId, "Не удалось загрузить генерацию");
   }

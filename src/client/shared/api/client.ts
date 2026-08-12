@@ -12,6 +12,7 @@ import {
   getRefreshToken,
   setAuthTokens,
 } from "../auth/tokens.ts";
+import { API_BASE_URL, apiUrl } from "./url.ts";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
@@ -75,7 +76,7 @@ function redirectToLogin(config?: InternalAxiosRequestConfig) {
 }
 
 export const apiClient = axios.create({
-  baseURL: "/api/v1",
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: { Accept: "application/json" },
 });
@@ -84,7 +85,7 @@ async function refreshSession() {
   const refreshToken = getRefreshToken();
   if (!refreshToken) throw new Error("Refresh token is missing");
 
-  refreshRequest ??= fetch("/api/v1/auth/refresh", {
+  refreshRequest ??= fetch(apiUrl("/auth/refresh"), {
     method: "POST",
     credentials: "include",
     headers: {

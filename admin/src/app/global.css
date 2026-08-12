@@ -1,21 +1,56 @@
 :root {
-  color-scheme: dark;
-  --font-geist-sans: Geist, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
+
 html,
 body,
 #root {
-  min-width: 1280px;
+  min-width: 375px;
   min-height: 100%;
   margin: 0;
-  background: #19191b;
 }
+
 body {
-  color: #f2f2ef;
+  background: var(--mantine-color-body);
 }
-.admin-grid {
-  background-image:
-    linear-gradient(rgb(52 52 55 / 0.28) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(52 52 55 / 0.28) 1px, transparent 1px);
-  background-size: 64px 64px;
+
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  inset: 8px auto auto 8px;
+  padding: 10px 14px;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-white);
+  background: var(--mantine-primary-color-filled);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+[data-page-title]:focus {
+  outline: none;
+}
+
+.admin-table-row {
+  transition: background-color 120ms ease;
+  content-visibility: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

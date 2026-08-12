@@ -22,7 +22,10 @@ test("uploads the selected file immediately to the project source endpoint", asy
   });
 
   assert.equal(calls.length, 1);
-  assert.equal(calls[0]?.input, "/api/v1/projects/project-1/source");
+  assert.equal(
+    calls[0]?.input,
+    "https://api.ruvie.cc/api/v1/projects/project-1/source",
+  );
   assert.equal(calls[0]?.init?.method, "POST");
   assert.equal(data.mediaId, "media-1");
 });

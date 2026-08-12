@@ -1,26 +1,17 @@
 import type { NextRequest } from "next/server";
+import { adminApiError } from "@/server/features/admin/http";
+import { creditTransactionsListSchema } from "@/server/features/admin/schemas";
+import { listAdminCreditTransactions } from "@/server/features/admin/service";
+import { requireAdmin } from "@/server/features/auth/admin";
 import { apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireAdmin } from "@/server/features/auth/admin";
-import { getDb } from "@/server/shared/db/prisma";
-import { adminApiError } from "@/server/features/admin/http";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
     await requireAdmin(request);
-    const items = await getDb().creditTransaction.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        wallet: {
-          include: {
-            user: { select: { email: true, phone: true, displayName: true } },
-          },
-        },
-      },
-    });
-    return apiSuccess(items, requestId);
+    const input = creditTransactionsListSchema.parse(Object.fromEntries(request.nextUrl.searchParams));
+    return apiSuccess(await listAdminCreditTransactions(input), requestId);
   } catch (error) {
     return adminApiError(error, requestId, "Не удалось загрузить операции");
   }

@@ -1,78 +1,32 @@
 import type { NextRequest } from "next/server";
-import { z } from "zod";
-import { apiError, apiSuccess } from "@/server/shared/api/responses";
-import { getRequestId } from "@/server/shared/api/request-id";
+import { adminApiError, adminMutationLimit, parseAdminJson } from "@/server/features/admin/http";
+import { adminIdSchema, updateUserSchema } from "@/server/features/admin/schemas";
+import { getAdminUser, updateAdminUser } from "@/server/features/admin/service";
 import { requireAdmin } from "@/server/features/auth/admin";
-import { getDb } from "@/server/shared/db/prisma";
-import { adminApiError, adminMutationLimit } from "@/server/features/admin/http";
-import { updateUserSchema } from "@/server/features/admin/schemas";
+import { apiSuccess } from "@/server/shared/api/responses";
+import { getRequestId } from "@/server/shared/api/request-id";
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+type Context = { params: Promise<{ id: string }> };
+
+export async function GET(request: NextRequest, context: Context) {
   const requestId = getRequestId(request.headers);
   try {
-    await requireAdmin();
-    const id = z.uuid().parse((await context.params).id);
-    const profile = await getDb().profile.findUnique({
-      where: { id },
-      include: {
-        plan: true,
-        subscriptions: { orderBy: { createdAt: "desc" }, take: 10 },
-        _count: { select: { projects: true, generations: true } },
-      },
-    });
-    return profile
-      ? apiSuccess(profile, requestId)
-      : apiError("NOT_FOUND", "Пользователь не найден", requestId, 404);
+    await requireAdmin(request);
+    const id = adminIdSchema.parse((await context.params).id);
+    return apiSuccess(await getAdminUser(id), requestId);
   } catch (error) {
     return adminApiError(error, requestId, "Не удалось загрузить пользователя");
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: NextRequest, context: Context) {
   const requestId = getRequestId(request.headers);
   try {
     await adminMutationLimit(request);
-    const { profile: actor } = await requireAdmin();
-    const id = z.uuid().parse((await context.params).id);
-    const input = updateUserSchema.parse(await request.json());
-    if (
-      id === actor.id &&
-      (input.role === "USER" ||
-        input.status === "BLOCKED" ||
-        input.status === "DELETED")
-    )
-      return apiError(
-        "SELF_LOCKOUT",
-        "Нельзя лишить себя административного доступа",
-        requestId,
-        409,
-      );
-    const updated = await getDb().profile.update({
-      where: { id },
-      data: {
-        ...input,
-        vipExpiresAt:
-          input.vipExpiresAt === undefined
-            ? undefined
-            : input.vipExpiresAt
-              ? new Date(input.vipExpiresAt)
-              : null,
-        deletedAt:
-          input.status === "DELETED"
-            ? new Date()
-            : input.status
-              ? null
-              : undefined,
-      },
-      include: { plan: true },
-    });
-    return apiSuccess(updated, requestId);
+    const { profile: actor } = await requireAdmin(request);
+    const id = adminIdSchema.parse((await context.params).id);
+    const input = updateUserSchema.parse(await parseAdminJson(request));
+    return apiSuccess(await updateAdminUser(actor.id, id, input), requestId);
   } catch (error) {
     return adminApiError(error, requestId, "Не удалось обновить пользователя");
   }

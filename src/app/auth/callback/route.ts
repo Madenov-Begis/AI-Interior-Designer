@@ -6,10 +6,12 @@ import {
   clearSessionCookies,
   storeSessionCookies,
 } from "@/server/shared/auth/session-cookies";
+import { serverEnv } from "@/server/shared/config/env";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const safeNext = safeReturnPath(request.nextUrl.searchParams.get("next"));
+  const appUrl = serverEnv().APP_URL;
 
   if (code) {
     const supabase = await createSupabaseServerClient();
@@ -21,12 +23,12 @@ export async function GET(request: NextRequest) {
           await upsertProfileFromAuthUser(session.user);
           await storeSessionCookies(session);
           return NextResponse.redirect(
-            new URL(safeNext, request.nextUrl.origin),
+            new URL(safeNext, appUrl),
           );
         } catch {
           await clearSessionCookies();
           return NextResponse.redirect(
-            new URL("/login?error=profile_setup", request.nextUrl.origin),
+            new URL("/login?error=profile_setup", appUrl),
           );
         }
       }
@@ -36,6 +38,6 @@ export async function GET(request: NextRequest) {
   await clearSessionCookies();
 
   return NextResponse.redirect(
-    new URL("/login?error=oauth_callback", request.nextUrl.origin),
+    new URL("/login?error=oauth_callback", appUrl),
   );
 }
