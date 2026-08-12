@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'", "base-uri 'self'", "frame-ancestors 'none'", "form-action 'self'",
       `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob: https:", "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co", "object-src 'none'", "worker-src 'self' blob:",
+      "connect-src 'self' https://api.ruvie.cc https://*.supabase.co wss://*.supabase.co", "object-src 'none'", "worker-src 'self' blob:",
       "upgrade-insecure-requests",
     ].join("; ");
     return [{ source: "/(.*)", headers: [

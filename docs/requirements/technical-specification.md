@@ -510,8 +510,8 @@ users/{userId}/generations/{generationId}/...
 ```dotenv
 NODE_ENV=development
 NEXT_PUBLIC_APP_NAME=Ruvie
-APP_URL=https://ruvie.cc
-APP_ORIGINS=https://ruvie.cc
+APP_URL=https://www.ruvie.cc
+APP_ORIGINS=https://ruvie.cc,https://www.ruvie.cc
 NEXT_PUBLIC_API_BASE_URL=https://api.ruvie.cc
 NEXT_PUBLIC_AUTH_COOKIE_DOMAIN=.ruvie.cc
 AUTH_COOKIE_DOMAIN=.ruvie.cc
