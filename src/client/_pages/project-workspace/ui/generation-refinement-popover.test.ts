@@ -131,13 +131,27 @@ test("root generation resolves the source format before creating a request", () 
 });
 
 test("source and result card headers share their height and spacing", () => {
-  assert.match(workspaceSource, /generationCardHeight/);
+  assert.match(
+    canvasSource,
+    /canvasCardHeight\(source\.width, source\.height\)/,
+  );
+  assert.match(
+    canvasSource,
+    /generationHeights: generations\.map\(\(\) => sourceCardHeight\)/,
+  );
+  assert.match(canvasSource, /height: sourceCardHeight/);
   assert.match(cardSource, /CARD_HEADER_HEIGHT/);
   assert.match(cardSource, /border-b border-border px-5/);
   assert.match(canvasSource, /CARD_HEADER_HEIGHT/);
   assert.match(canvasSource, /border-b border-border px-5/);
-  assert.match(canvasSource, /mt-1 text-\[11px\] text-muted/);
-  assert.match(canvasSource, /px-3 py-1 text-\[10px\]/);
+  assert.match(canvasSource, /mt-1 text-xs text-muted-foreground/);
+  assert.match(cardSource, /mt-1 text-xs text-muted-foreground/);
+  assert.match(canvasSource, /text-xs.*text-muted-foreground/);
+  assert.match(cardSource, /text-xs.*text-muted-foreground/);
+  assert.match(cardSource, /containedMediaRect/);
+  assert.match(cardSource, /object-contain/);
+  assert.match(cardSource, /loading=\{selected \? "eager" : "lazy"\}/);
+  assert.doesNotMatch(cardSource, /absolute right-4 bottom-4/);
 });
 
 test("inspector drawer closes only when the backdrop is pressed", () => {

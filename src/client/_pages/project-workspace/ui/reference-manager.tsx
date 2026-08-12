@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Link2,
+  LoaderCircle,
   Plus,
   Trash2,
   Upload,
@@ -146,6 +147,9 @@ export function ReferenceManager({
     next: ReferenceItem[],
     previous: ReferenceItem[],
   ) {
+    if (busy) return;
+    setBusy(true);
+    setMessage("Сохраняем порядок референсов…");
     setReferences(next.map((item, position) => ({ ...item, position })));
     try {
       await apiData({
@@ -159,6 +163,8 @@ export function ReferenceManager({
       setMessage(
         error instanceof Error ? error.message : "Не удалось изменить порядок",
       );
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -174,6 +180,7 @@ export function ReferenceManager({
   async function remove(referenceId: string) {
     if (busy) return;
     setBusy(true);
+    setMessage("Удаляем референс…");
     try {
       await apiData({
         url: `/projects/${projectId}/references/${referenceId}`,
@@ -197,6 +204,7 @@ export function ReferenceManager({
   async function clearAll() {
     if (!references.length || busy) return;
     setBusy(true);
+    setMessage("Удаляем все референсы…");
     try {
       await apiData({
         url: `/projects/${projectId}/references`,
@@ -245,6 +253,8 @@ export function ReferenceManager({
                   src={item.previewUrl}
                   alt={`Референс ${index + 1}`}
                   className="size-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               </a>
               <div className="grid grid-cols-3 border-t border-border bg-surface">
@@ -289,7 +299,7 @@ export function ReferenceManager({
           >
             <span>
               <Plus size={20} className="mx-auto" aria-hidden="true" />
-              <span className="mt-1 block text-[10px] font-black">
+              <span className="mt-1 block text-xs font-black">
                 {references.length} / {maxCount}
               </span>
             </span>
@@ -382,10 +392,17 @@ export function ReferenceManager({
 
         <div className="mt-2 flex items-start justify-between gap-3">
           <p
-            className="min-h-5 text-xs leading-5 text-muted"
+            className="flex min-h-5 items-start gap-2 text-xs leading-5 text-muted"
+            role="status"
             aria-live="polite"
           >
-            {busy ? "Обработка…" : message}
+            {busy ? (
+              <LoaderCircle
+                className="mt-0.5 size-3.5 shrink-0 animate-spin"
+                aria-hidden="true"
+              />
+            ) : null}
+            <span>{message}</span>
           </p>
           {references.length > 0 && (
             <button
@@ -474,8 +491,18 @@ export function ReferenceManager({
         </div>
       )}
 
-      <p className="mt-4 rounded-xl bg-surface-elevated p-3 text-sm leading-6 text-muted">
-        {busy ? "Обработка…" : message}
+      <p
+        className="mt-4 flex gap-2 rounded-xl bg-surface-elevated p-3 text-sm leading-6 text-muted"
+        role="status"
+        aria-live="polite"
+      >
+        {busy ? (
+          <LoaderCircle
+            className="mt-1 size-4 shrink-0 animate-spin"
+            aria-hidden="true"
+          />
+        ) : null}
+        <span>{message}</span>
       </p>
 
       {references.length > 0 && (
@@ -497,6 +524,8 @@ export function ReferenceManager({
                     src={item.previewUrl}
                     alt={`Референс ${index + 1}`}
                     className="size-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </a>
                 <div className="grid grid-cols-3 gap-1 p-2">

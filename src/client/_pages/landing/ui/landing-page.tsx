@@ -13,7 +13,11 @@ import { SiteHeader } from "./site-header";
 
 export function LandingPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-background text-foreground">
+    <main
+      id="main-content"
+      className="min-h-screen overflow-hidden bg-background text-foreground"
+      tabIndex={-1}
+    >
       <SiteHeader />
       <Hero />
       <ExamplesSection />

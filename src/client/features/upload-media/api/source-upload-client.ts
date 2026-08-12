@@ -5,6 +5,7 @@ type UploadProjectSourceInput = {
   projectId: string;
   file: File;
   signal: AbortSignal;
+  onProgress?(progress: number): void;
   fetcher?: typeof fetch;
 };
 
@@ -34,6 +35,7 @@ export async function uploadProjectSource({
   projectId,
   file,
   signal,
+  onProgress,
   fetcher,
 }: UploadProjectSourceInput) {
   signal.throwIfAborted();
@@ -52,6 +54,7 @@ export async function uploadProjectSource({
         payload.error?.message ?? "Не удалось загрузить фотографию",
       );
     }
+    onProgress?.(1);
     return payload.data ?? {};
   }
 
@@ -60,5 +63,13 @@ export async function uploadProjectSource({
     method: "POST",
     data: formData,
     signal,
+    onUploadProgress: (event) => {
+      const progress =
+        event.progress ??
+        (event.total && event.total > 0 ? event.loaded / event.total : null);
+      if (progress !== null) {
+        onProgress?.(Math.max(0, Math.min(1, progress)));
+      }
+    },
   });
 }

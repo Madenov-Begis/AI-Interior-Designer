@@ -78,6 +78,8 @@ export {
   InputGroupTextarea,
 } from "../components/ui/input-group.tsx";
 export { Label } from "../components/ui/label.tsx";
+export { LoadingButton } from "../components/ui/loading-button.tsx";
+export { LoadingRegion } from "../components/ui/loading-region.tsx";
 export {
   Pagination,
   PaginationContent,

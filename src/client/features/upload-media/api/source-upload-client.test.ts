@@ -7,6 +7,7 @@ import {
 
 test("uploads the selected file immediately to the project source endpoint", async () => {
   const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+  const progress: number[] = [];
   const file = new File(["room"], "living-room.jpg", {
     type: "image/jpeg",
   });
@@ -15,6 +16,7 @@ test("uploads the selected file immediately to the project source endpoint", asy
     projectId: "project-1",
     file,
     signal: new AbortController().signal,
+    onProgress: (value) => progress.push(value),
     fetcher: async (input, init) => {
       calls.push({ input, init });
       return Response.json({ data: { mediaId: "media-1" } });
@@ -28,6 +30,7 @@ test("uploads the selected file immediately to the project source endpoint", asy
   );
   assert.equal(calls[0]?.init?.method, "POST");
   assert.equal(data.mediaId, "media-1");
+  assert.deepEqual(progress, [1]);
 });
 
 test("surfaces the API error message", async () => {

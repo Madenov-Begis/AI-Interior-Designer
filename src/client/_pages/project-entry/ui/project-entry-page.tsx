@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Button } from "@/shared/ui";
+import { LoadingButton } from "@/shared/ui";
 import { projectsQueries } from "@/shared/api/projects";
 
 export function ProjectEntryPage() {
@@ -18,17 +18,30 @@ export function ProjectEntryPage() {
   }, [entry.data?.projectId, router]);
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-background px-4 text-foreground">
+    <main
+      id="main-content"
+      className="grid min-h-dvh place-items-center bg-background px-4 text-foreground"
+      tabIndex={-1}
+    >
       <div className="grid max-w-sm justify-items-center gap-4 text-center">
         {entry.isError ? (
           <>
             <p className="text-sm text-destructive" role="alert">
               {entry.error.message}
             </p>
-            <Button onClick={() => entry.refetch()}>Повторить</Button>
+            <LoadingButton
+              pending={entry.isFetching}
+              pendingText="Пробуем снова…"
+              onClick={() => entry.refetch()}
+            >
+              Повторить
+            </LoadingButton>
           </>
         ) : (
-          <div className="grid justify-items-center gap-3" role="status">
+          <div
+            className="delayed-loading-indicator grid justify-items-center gap-3"
+            role="status"
+          >
             <LoaderCircle
               className="size-7 animate-spin text-primary"
               aria-hidden="true"

@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { KeyRound, LoaderCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, type MouseEvent } from "react";
@@ -61,11 +61,15 @@ function LoginCard({
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <main
+      id="main-content"
+      className="flex min-h-screen items-center justify-center bg-background px-4 py-12"
+      tabIndex={-1}
+    >
       <Card className="w-full max-w-md rounded-[24px] shadow-2xl shadow-black/35">
         <CardHeader className="p-6 sm:p-8">
           <RuvieLogo href="/" />
-          <p className="mt-8 font-mono text-[10px] font-semibold tracking-[0.18em] text-primary uppercase">
+          <p className="mt-8 font-mono text-xs font-semibold tracking-[0.16em] text-primary uppercase">
             Личный кабинет
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
@@ -81,6 +85,7 @@ function LoginCard({
             href={googleLoginUrl}
             onClick={startGoogleLogin}
             aria-disabled={checkingSession}
+            aria-busy={checkingSession || undefined}
             tabIndex={checkingSession ? -1 : undefined}
             className={buttonClassName(
               "outline",
@@ -88,7 +93,14 @@ function LoginCard({
               "lg",
             )}
           >
-            <KeyRound className="size-5" />
+            {checkingSession ? (
+              <LoaderCircle
+                className="size-5 animate-spin"
+                aria-hidden="true"
+              />
+            ) : (
+              <KeyRound className="size-5" aria-hidden="true" />
+            )}
             {checkingSession ? "Проверяем вход…" : "Продолжить с Google"}
           </Link>
           <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">

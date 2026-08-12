@@ -6,15 +6,21 @@ import {
   Copy,
   FolderOpen,
   ImageIcon,
+  LoaderCircle,
   LogOut,
   Plus,
 } from "lucide-react";
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui";
 import { Avatar, AvatarFallback } from "@/shared/ui";
-import { Button, buttonClassName } from "@/shared/ui";
+import {
+  Button,
+  buttonClassName,
+  LoadingButton,
+  LoadingRegion,
+} from "@/shared/ui";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/shared/ui";
 import { Input } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
@@ -46,14 +52,17 @@ type ProfileProject = {
 
 function ProfileLoading() {
   return (
-    <div className="mx-auto max-w-[1080px] px-5 py-14">
+    <LoadingRegion
+      label="Загружаем профиль…"
+      className="mx-auto max-w-[1080px] px-5 py-14"
+    >
       <Skeleton className="mx-auto size-28 rounded-full" />
       <Skeleton className="mx-auto mt-5 h-9 w-52" />
       <div className="mt-12 grid gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
         <Skeleton className="h-[520px] rounded-[24px]" />
         <Skeleton className="h-[520px] rounded-[24px]" />
       </div>
-    </div>
+    </LoadingRegion>
   );
 }
 export function ProfilePanel() {
@@ -73,6 +82,7 @@ export function ProfilePanel() {
       }),
   });
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const update = useMutation({
     mutationFn: () =>
       apiData<{ profile: ProfilePayload["profile"] }>({
@@ -96,6 +106,12 @@ export function ProfilePanel() {
       });
     },
   });
+  const logout = useMutation({
+    mutationFn: () => apiData({ url: "/auth/logout", method: "POST" }),
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+  });
 
   if (profile.isLoading) return <ProfileLoading />;
   if (profile.error || !profile.data) {
@@ -104,7 +120,14 @@ export function ProfilePanel() {
         <Alert variant="destructive">
           <AlertTitle>Профиль недоступен</AlertTitle>
           <AlertDescription>
-            {profile.error?.message ?? "Повторите попытку позже"}
+            <p>{profile.error?.message ?? "Повторите попытку позже"}</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => profile.refetch()}
+            >
+              Повторить
+            </Button>
           </AlertDescription>
         </Alert>
       </div>
@@ -170,6 +193,8 @@ export function ProfilePanel() {
                         src={project.previewUrl}
                         alt={project.name}
                         className="size-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <ImageIcon className="size-5 text-muted-foreground" />
@@ -187,7 +212,27 @@ export function ProfilePanel() {
                   <ArrowRight className="ml-auto size-5 shrink-0 text-muted-foreground" />
                 </Link>
               ))}
+              {projects.isLoading
+                ? Array.from({ length: 3 }, (_, index) => (
+                    <Skeleton key={index} className="min-h-36 rounded-[18px]" />
+                  ))
+                : null}
             </div>
+            {projects.error ? (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTitle>Не удалось загрузить проекты</AlertTitle>
+                <AlertDescription>
+                  <p>{projects.error.message}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => projects.refetch()}
+                  >
+                    Повторить
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : null}
             <Link
               href="/app/projects"
               className="mt-4 flex min-h-24 items-center gap-4 rounded-[18px] border border-border px-5 transition-colors hover:bg-secondary"
@@ -204,7 +249,7 @@ export function ProfilePanel() {
           </RuviePanel>
 
           <div className="grid gap-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <RuviePanel className="border-primary bg-primary p-6 text-primary-foreground">
                 <p className="text-4xl font-black italic">{wallet.balance}</p>
                 <p className="mt-2 text-sm font-bold">Баланс кредитов</p>
@@ -241,6 +286,10 @@ export function ProfilePanel() {
                     defaultValue={profile.data.profile.displayName ?? ""}
                     maxLength={120}
                     aria-invalid={Boolean(update.error)}
+                    onChange={() => {
+                      update.reset();
+                      setCopyStatus(null);
+                    }}
                   />
                   <FieldError>{update.error?.message}</FieldError>
                 </Field>
@@ -266,22 +315,42 @@ export function ProfilePanel() {
                 <CheckCircle2 className="size-5 text-success" />
               </div>
               <div className="mt-5 flex gap-3">
-                <Button
+                <LoadingButton
                   onClick={() => update.mutate()}
-                  disabled={update.isPending}
+                  pending={update.isPending}
+                  pendingText="Сохраняем…"
                 >
-                  {update.isPending ? "Сохраняем…" : "Сохранить"}
-                </Button>
+                  Сохранить
+                </LoadingButton>
                 <Button
                   variant="ghost"
-                  onClick={() =>
-                    navigator.clipboard.writeText(profile.data.profile.email)
-                  }
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        profile.data.profile.email,
+                      );
+                      setCopyStatus("Email скопирован.");
+                    } catch {
+                      setCopyStatus("Не удалось скопировать email.");
+                    }
+                  }}
                 >
                   <Copy data-icon="inline-start" />
                   Копировать email
                 </Button>
               </div>
+              <p
+                className={`mt-3 min-h-5 text-xs ${
+                  copyStatus?.startsWith("Не удалось")
+                    ? "text-destructive"
+                    : "text-success"
+                }`}
+                role="status"
+                aria-live="polite"
+              >
+                {copyStatus ??
+                  (update.isSuccess ? "Изменения сохранены." : null)}
+              </p>
             </RuviePanel>
 
             <p className="px-2 text-xs leading-5 text-muted-foreground">
@@ -290,14 +359,27 @@ export function ProfilePanel() {
             <Button
               variant="ghost"
               className="justify-center text-muted-foreground hover:text-destructive"
-              onClick={async () => {
-                await apiData({ url: "/auth/logout", method: "POST" });
-                window.location.href = "/";
-              }}
+              disabled={logout.isPending}
+              onClick={() => logout.mutate()}
             >
-              <LogOut data-icon="inline-start" />
-              Выйти
+              {logout.isPending ? (
+                <LoaderCircle
+                  className="animate-spin"
+                  data-icon="inline-start"
+                />
+              ) : (
+                <LogOut data-icon="inline-start" />
+              )}
+              {logout.isPending ? "Выходим…" : "Выйти"}
             </Button>
+            {logout.error ? (
+              <p
+                className="px-2 text-center text-xs text-destructive"
+                role="alert"
+              >
+                {logout.error.message}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

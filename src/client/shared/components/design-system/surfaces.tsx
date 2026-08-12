@@ -51,7 +51,7 @@ export function RuvieSectionHeading({
     >
       <div>
         {eyebrow ? (
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
             {eyebrow}
           </p>
         ) : null}

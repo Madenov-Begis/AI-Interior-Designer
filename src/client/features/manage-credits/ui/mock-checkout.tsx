@@ -4,7 +4,12 @@ import { AlertCircle, Ban, CheckCircle2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/shared/ui";
-import { Button, buttonClassName } from "@/shared/ui";
+import {
+  Button,
+  buttonClassName,
+  LoadingButton,
+  LoadingRegion,
+} from "@/shared/ui";
 import {
   Card,
   CardContent,
@@ -102,13 +107,27 @@ export function MockCheckout({ orderId }: { orderId: string }) {
   });
 
   if (orderQuery.isLoading) {
-    return <Skeleton className="mx-auto min-h-[430px] max-w-xl rounded-xl" />;
+    return (
+      <LoadingRegion label="Загружаем тестовый заказ…">
+        <Skeleton className="mx-auto min-h-[430px] max-w-xl rounded-xl" />
+      </LoadingRegion>
+    );
   }
   if (!orderQuery.data) {
     return (
       <Card className="mx-auto max-w-xl border-destructive/30">
-        <CardContent className="p-5 text-sm text-destructive" role="alert">
-          {orderQuery.error?.message ?? "Не удалось загрузить заказ"}
+        <CardContent
+          className="grid justify-items-start gap-3 p-5 text-sm text-destructive"
+          role="alert"
+        >
+          <p>{orderQuery.error?.message ?? "Не удалось загрузить заказ"}</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void orderQuery.refetch()}
+          >
+            Повторить
+          </Button>
         </CardContent>
       </Card>
     );
@@ -161,35 +180,41 @@ export function MockCheckout({ orderId }: { orderId: string }) {
         </dl>
 
         <div className="mt-6 grid gap-3">
-          <Button
+          <LoadingButton
             className="min-h-11 w-full"
             disabled={controlsDisabled}
+            pending={outcome.isPending && outcome.variables === "PAID"}
+            pendingText="Обрабатываем…"
             onClick={() => outcome.mutate("PAID")}
             aria-label="Симулировать успешную оплату"
           >
             <CheckCircle2 className="size-4" />
             Симулировать успешную оплату
-          </Button>
-          <Button
+          </LoadingButton>
+          <LoadingButton
             variant="destructive"
             className="min-h-11 w-full"
             disabled={controlsDisabled}
+            pending={outcome.isPending && outcome.variables === "FAILED"}
+            pendingText="Обрабатываем…"
             onClick={() => outcome.mutate("FAILED")}
             aria-label="Симулировать ошибку оплаты"
           >
             <AlertCircle className="size-4" />
             Симулировать ошибку
-          </Button>
-          <Button
+          </LoadingButton>
+          <LoadingButton
             variant="outline"
             className="min-h-11 w-full"
             disabled={controlsDisabled}
+            pending={outcome.isPending && outcome.variables === "CANCELLED"}
+            pendingText="Обрабатываем…"
             onClick={() => outcome.mutate("CANCELLED")}
             aria-label="Отменить тестовую оплату"
           >
             <Ban className="size-4" />
             Отменить оплату
-          </Button>
+          </LoadingButton>
         </div>
 
         <div className="mt-5 min-h-12" aria-live="polite">

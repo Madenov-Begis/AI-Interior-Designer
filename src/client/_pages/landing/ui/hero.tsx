@@ -90,7 +90,7 @@ export function Hero() {
                 src="/images/interior-styles/japandi.webp"
                 alt="Интерьер, созданный в Ruvie"
                 fill
-                priority
+                preload
                 sizes="(min-width: 1024px) 52vw, 100vw"
                 className="object-cover"
               />

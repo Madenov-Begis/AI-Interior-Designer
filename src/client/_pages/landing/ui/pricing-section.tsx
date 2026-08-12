@@ -8,7 +8,7 @@ import {
   loadCreditPackages,
 } from "@/features/manage-credits";
 import { GENERATION_CREDIT_COST } from "@/shared/config";
-import { buttonClassName } from "@/shared/ui";
+import { buttonClassName, LoadingRegion, Skeleton } from "@/shared/ui";
 
 const priceFormatter = new Intl.NumberFormat("ru-RU");
 
@@ -35,11 +35,17 @@ export function PricingSection() {
         </div>
 
         {packagesQuery.isLoading ? (
-          <div className="mt-12 grid gap-4 md:grid-cols-3" aria-label="Загрузка пакетов">
+          <LoadingRegion
+            label="Загружаем пакеты кредитов…"
+            className="mt-12 grid gap-4 md:grid-cols-3"
+          >
             {[0, 1, 2].map((key) => (
-              <div key={key} className="min-h-[390px] animate-pulse rounded-[24px] bg-white/10 motion-reduce:animate-none" />
+              <Skeleton
+                key={key}
+                className="min-h-[390px] rounded-[24px] bg-white/10"
+              />
             ))}
-          </div>
+          </LoadingRegion>
         ) : null}
 
         {packagesQuery.isError ? (
@@ -47,7 +53,11 @@ export function PricingSection() {
             <p className="font-bold">Не удалось загрузить пакеты</p>
             <button
               type="button"
-              className={buttonClassName("outline", "mt-4 h-11 rounded-xl border-white text-white", "sm")}
+              className={buttonClassName(
+                "outline",
+                "mt-4 h-11 rounded-xl border-white text-white",
+                "sm",
+              )}
               onClick={() => void packagesQuery.refetch()}
             >
               <RefreshCw className="size-4" aria-hidden="true" />
@@ -62,30 +72,37 @@ export function PricingSection() {
               <article
                 key={pack.code}
                 className={`relative flex min-h-[390px] flex-col rounded-[24px] border bg-[#f2f3f1] p-6 text-[#1b1d1f] shadow-[0_24px_60px_rgba(0,0,0,0.22)] ${
-                  pack.popular ? "border-primary ring-2 ring-primary" : "border-white/10"
+                  pack.popular
+                    ? "border-primary ring-2 ring-primary"
+                    : "border-white/10"
                 }`}
               >
                 {pack.popular ? (
-                  <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-primary-foreground shadow-lg">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-primary-foreground shadow-lg">
                     Выбирают чаще
                   </div>
                 ) : null}
                 <div>
                   <h3 className="text-2xl font-black italic">{pack.name}</h3>
-                  <p className="mt-1 min-h-5 text-sm text-black/55">{pack.description}</p>
+                  <p className="mt-1 min-h-5 text-sm text-black/55">
+                    {pack.description}
+                  </p>
                 </div>
                 <div className="mt-5">
                   <p className="text-3xl font-black tracking-[-0.04em] tabular-nums">
                     {priceFormatter.format(pack.priceUzs)} сум
                   </p>
-                  <p className="mt-3 text-lg font-black">{pack.credits} кредитов</p>
+                  <p className="mt-3 text-lg font-black">
+                    {pack.credits} кредитов
+                  </p>
                 </div>
                 <div className="my-5 h-px bg-black/8" />
                 <div>
                   <p className="text-xs font-bold text-black/55">Хватит на</p>
                   <p className="mt-3 flex items-center gap-2 text-sm font-semibold">
                     <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
-                    {Math.floor(pack.credits / GENERATION_CREDIT_COST)} генераций или правок
+                    {Math.floor(pack.credits / GENERATION_CREDIT_COST)}{" "}
+                    генераций или правок
                   </p>
                   <p className="mt-3 flex items-center gap-2 text-sm text-black/60">
                     <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
@@ -113,9 +130,18 @@ export function PricingSection() {
         <div className="mt-8 flex flex-col gap-5 rounded-[24px] border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h3 className="font-bold">10 кредитов новым пользователям</h3>
-            <p className="mt-1 text-sm text-white/55">Хватит на 2 варианта. Банковская карта не нужна.</p>
+            <p className="mt-1 text-sm text-white/55">
+              Хватит на 2 варианта. Банковская карта не нужна.
+            </p>
           </div>
-          <Link href="/app" className={buttonClassName("outline", "h-11 shrink-0 rounded-xl border-white bg-white px-6 text-[#1b1d1f] hover:bg-white/90 hover:text-[#1b1d1f]", "sm")}>
+          <Link
+            href="/app"
+            className={buttonClassName(
+              "outline",
+              "h-11 shrink-0 rounded-xl border-white bg-white px-6 text-[#1b1d1f] hover:bg-white/90 hover:text-[#1b1d1f]",
+              "sm",
+            )}
+          >
             Попробовать бесплатно
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>

@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui";
 import { Badge } from "@/shared/ui";
-import { Button } from "@/shared/ui";
+import { Button, LoadingButton, LoadingRegion } from "@/shared/ui";
 import { RuviePanel } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 import {
@@ -61,9 +61,12 @@ export function CreditsGrid() {
 
   if (packagesQuery.isLoading) {
     return (
-      <div className="ruvie-grid min-h-[calc(100dvh-72px)] p-5 sm:p-8">
+      <LoadingRegion
+        label="Загружаем пакеты кредитов…"
+        className="ruvie-grid min-h-[calc(100dvh-72px)] p-5 sm:p-8"
+      >
         <Skeleton className="mx-auto h-[620px] max-w-[1280px] rounded-[30px]" />
-      </div>
+      </LoadingRegion>
     );
   }
   if (packagesQuery.error || !packagesQuery.data) {
@@ -72,7 +75,14 @@ export function CreditsGrid() {
         <Alert variant="destructive" className="mx-auto max-w-3xl">
           <AlertTitle>Не удалось загрузить кредиты</AlertTitle>
           <AlertDescription>
-            {packagesQuery.error?.message ?? "Повторите попытку позже"}
+            <p>{packagesQuery.error?.message ?? "Повторите попытку позже"}</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void packagesQuery.refetch()}
+            >
+              Повторить
+            </Button>
           </AlertDescription>
         </Alert>
       </div>
@@ -99,7 +109,7 @@ export function CreditsGrid() {
           </div>
           <div className="rounded-full border border-border bg-background px-4 py-2">
             <span>
-              <span className="block text-[11px] text-muted-foreground">
+              <span className="block text-xs text-muted-foreground">
                 Ваш баланс
               </span>
               <b
@@ -113,7 +123,7 @@ export function CreditsGrid() {
         </header>
 
         <div className="p-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3">
             {packages.map((item) => {
               const isCreating =
                 createOrder.isPending && createOrder.variables === item.code;
@@ -148,7 +158,7 @@ export function CreditsGrid() {
                     <CheckCircle2 className="size-5 fill-success text-white" />
                     Кредиты не сгорают
                   </p>
-                  <Button
+                  <LoadingButton
                     className={cn(
                       "mt-auto w-full",
                       item.popular
@@ -157,11 +167,13 @@ export function CreditsGrid() {
                     )}
                     size="lg"
                     disabled={disabled || createOrder.isPending}
+                    pending={isCreating}
+                    pendingText="Открываем…"
                     onClick={() => createOrder.mutate(item.code)}
                   >
                     <CreditCard className="size-4" />
-                    {isCreating ? "Открываем…" : "Купить"}
-                  </Button>
+                    Купить
+                  </LoadingButton>
                 </article>
               );
             })}
@@ -200,15 +212,22 @@ export function CreditsGrid() {
           Последние операции
         </h2>
         {transactionsQuery.isLoading ? (
-          <div className="mt-4 space-y-3" aria-label="Загружаем операции">
+          <LoadingRegion label="Загружаем операции…" className="mt-4 space-y-3">
             <Skeleton className="h-14 w-full" />
             <Skeleton className="h-14 w-full" />
-          </div>
+          </LoadingRegion>
         ) : transactionsQuery.error ? (
           <Alert variant="destructive" className="mt-4">
             <AlertTitle>Не удалось загрузить операции</AlertTitle>
             <AlertDescription>
-              {transactionsQuery.error.message}
+              <p>{transactionsQuery.error.message}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void transactionsQuery.refetch()}
+              >
+                Повторить
+              </Button>
             </AlertDescription>
           </Alert>
         ) : transactions.length === 0 ? (

@@ -4,7 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { DesignWorkspace } from "./design-workspace";
-import { Button, buttonClassName } from "@/shared/ui";
+import {
+  buttonClassName,
+  LoadingButton,
+  LoadingRegion,
+  Skeleton,
+} from "@/shared/ui";
 import { ApiClientError } from "@/shared/api";
 import { projectsQueries } from "@/shared/api/projects";
 
@@ -14,7 +19,11 @@ export function ProjectWorkspacePage() {
 
   if (workspace.data) {
     return (
-      <main className="h-full overflow-hidden bg-background text-foreground">
+      <main
+        id="main-content"
+        className="h-full overflow-hidden bg-background text-foreground"
+        tabIndex={-1}
+      >
         <DesignWorkspace {...workspace.data} />
       </main>
     );
@@ -24,7 +33,11 @@ export function ProjectWorkspacePage() {
     workspace.error instanceof ApiClientError && workspace.error.status === 404;
 
   return (
-    <main className="relative grid h-full place-items-center bg-background px-4 text-foreground">
+    <main
+      id="main-content"
+      className="relative grid h-full place-items-center bg-background px-4 text-foreground"
+      tabIndex={-1}
+    >
       <div className="grid max-w-md justify-items-center gap-4 text-center">
         {workspace.isError ? (
           <>
@@ -36,7 +49,13 @@ export function ProjectWorkspacePage() {
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {!notFound ? (
-                <Button onClick={() => workspace.refetch()}>Повторить</Button>
+                <LoadingButton
+                  pending={workspace.isFetching}
+                  pendingText="Пробуем снова…"
+                  onClick={() => workspace.refetch()}
+                >
+                  Повторить
+                </LoadingButton>
               ) : null}
               <Link href="/app/projects" className={buttonClassName("outline")}>
                 Все проекты
@@ -44,17 +63,37 @@ export function ProjectWorkspacePage() {
             </div>
           </>
         ) : (
-          <div
-            className="absolute inset-x-0 top-0 h-px overflow-hidden bg-border/30"
-            role="status"
-            aria-live="polite"
+          <LoadingRegion
+            label="Открываем проект и подготавливаем рабочее пространство…"
+            className="absolute inset-0 grid min-h-0 min-w-0 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]"
           >
-            <div
-              className="h-full w-full animate-pulse bg-primary/60"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Открываем проект…</span>
-          </div>
+            <section className="page-grid relative min-h-0 overflow-hidden">
+              <div className="absolute inset-0 grid place-items-center p-6">
+                <div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/25">
+                  <div className="flex h-16 items-center justify-between border-b border-border px-5">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                  <Skeleton className="aspect-[4/3] w-full rounded-none bg-secondary/70" />
+                </div>
+              </div>
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Skeleton className="size-11 rounded-xl" />
+                <Skeleton className="h-11 w-24 rounded-xl" />
+              </div>
+            </section>
+            <aside className="hidden min-h-0 border-l border-border bg-card p-5 min-[1200px]:block">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="mt-5 h-24 w-full rounded-xl" />
+              <Skeleton className="mt-5 h-32 w-full rounded-xl" />
+              <div className="mt-5 grid grid-cols-3 gap-2">
+                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-16 rounded-xl" />
+              </div>
+              <Skeleton className="mt-8 h-12 w-full rounded-xl" />
+            </aside>
+          </LoadingRegion>
         )}
       </div>
     </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, LoaderCircle, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -10,6 +10,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  LoadingButton,
 } from "@/shared/ui";
 import { generationWalletPresentation } from "@/features/generate-design";
 import {
@@ -196,8 +197,7 @@ export function GenerationRefinementComposer({
                 }}
               />
             </label>
-            <button
-              type="button"
+            <LoadingButton
               onClick={() => void submit()}
               disabled={
                 pending ||
@@ -205,18 +205,14 @@ export function GenerationRefinementComposer({
                 walletUnavailable ||
                 walletPresentation.balanceInsufficient
               }
-              className={buttonClassName(
-                "primary",
-                "ml-auto rounded-xl disabled:opacity-45",
-              )}
+              pending={pending}
+              pendingText="Создаём…"
+              variant="primary"
+              className="ml-auto rounded-xl"
             >
-              {pending ? (
-                <LoaderCircle size={17} className="animate-spin" />
-              ) : (
-                <ImagePlus size={17} />
-              )}
-              {pending ? "Создаём…" : walletPresentation.buttonLabel}
-            </button>
+              <ImagePlus size={17} aria-hidden="true" />
+              {walletPresentation.buttonLabel}
+            </LoadingButton>
           </div>
           {files.length > 0 ? (
             <p className="mt-2 text-xs text-muted" aria-live="polite">

@@ -24,8 +24,16 @@ export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
 
   if (!auth.data) {
     return (
-      <main className="grid min-h-dvh place-items-center bg-background px-4 text-foreground">
-        <div className="grid justify-items-center gap-4 text-center">
+      <main
+        id="main-content"
+        className="grid min-h-dvh place-items-center bg-background px-4 text-foreground"
+        tabIndex={-1}
+      >
+        <div
+          className="delayed-loading-indicator grid justify-items-center gap-4 text-center"
+          role="status"
+          aria-live="polite"
+        >
           <LoaderCircle
             className="size-7 animate-spin text-primary"
             aria-hidden="true"

@@ -23,7 +23,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
     <fieldset className="min-w-0 max-w-full overflow-hidden">
       <legend className="text-xs font-semibold text-foreground">Стиль</legend>
       <div className="mt-1 flex min-w-0 items-center justify-between gap-3">
-        <p className="min-w-0 text-[11px] leading-5 text-muted-foreground">
+        <p className="min-w-0 text-xs leading-5 text-muted-foreground">
           Один выбор — без сложных настроек.
         </p>
         <div className="flex shrink-0 items-center gap-1">
@@ -101,9 +101,11 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
                     src={style.imageUrl}
                     alt=""
                     className="size-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </span>
-                <span className="block truncate px-2 py-2 text-[11px] font-semibold">
+                <span className="block truncate px-2 py-2 text-xs font-semibold">
                   {style.name}
                 </span>
                 {selected && (

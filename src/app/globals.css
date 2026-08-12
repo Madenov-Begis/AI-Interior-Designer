@@ -175,6 +175,31 @@ body {
   cursor: pointer !important;
 }
 
+@keyframes ruvie-progress-sweep {
+  from {
+    transform: translateX(-115%);
+  }
+  to {
+    transform: translateX(230%);
+  }
+}
+
+.ruvie-progress-sweep {
+  animation: ruvie-progress-sweep 1.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes ruvie-delayed-reveal {
+  to {
+    opacity: 1;
+  }
+}
+
+.delayed-loading-indicator {
+  opacity: 0;
+  animation: ruvie-delayed-reveal 1ms linear 250ms forwards;
+}
+
 .canvas-generation-overlay {
   position: absolute;
   z-index: 30;
@@ -428,6 +453,24 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.75rem;
+  left: 0.75rem;
+  transform: translateY(calc(-100% - 1rem));
+  border-radius: 0.75rem;
+  background: var(--primary);
+  padding: 0.75rem 1rem;
+  color: var(--primary-foreground);
+  font-size: 0.875rem;
+  font-weight: 800;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+  transition: transform 160ms ease;
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
 :focus-visible:not([data-slot="input-group-control"]) {
   outline: 3px solid color-mix(in srgb, var(--accent) 72%, white);
   outline-offset: 3px;
@@ -500,14 +543,25 @@ a {
   }
 }
 
+@media (pointer: coarse) {
+  [data-slot="button"],
+  [data-slot="toggle"],
+  [data-slot="toggle-group-item"] {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  .canvas-item,
-  .workspace-toolbar__button,
-  .canvas-workspace .transition-colors,
-  .canvas-workspace .transition-transform {
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

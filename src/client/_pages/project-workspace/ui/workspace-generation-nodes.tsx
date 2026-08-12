@@ -21,6 +21,8 @@ type WorkspaceGenerationActions = ReturnType<
 type WorkspaceGenerationNodeProps = {
   item: WorkspaceGenerationInstance;
   selectedItemId: string;
+  frameWidth: number;
+  frameHeight: number;
   editorRef: RefObject<VisualPromptEditorHandle | null>;
   tool: VisualPromptTool;
   color: string;
@@ -39,6 +41,8 @@ type WorkspaceGenerationNodeProps = {
 export function WorkspaceGenerationNode({
   item,
   selectedItemId,
+  frameWidth,
+  frameHeight,
   editorRef,
   tool,
   color,
@@ -79,6 +83,8 @@ export function WorkspaceGenerationNode({
       generation={generation}
       variantNumber={variantNumber}
       selected={selectedItemId === nodeId}
+      frameWidth={frameWidth}
+      frameHeight={frameHeight}
       editorRef={editorRef}
       tool={tool}
       color={color}

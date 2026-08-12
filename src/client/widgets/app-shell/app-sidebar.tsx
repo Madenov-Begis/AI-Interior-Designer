@@ -47,7 +47,7 @@ export function AppSidebar({
         aria-label="Разделы приложения"
       >
         {!compact ? (
-          <p className="px-3 pt-3 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="px-3 pt-3 pb-2 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Разделы
           </p>
         ) : null}
@@ -66,6 +66,7 @@ export function AppSidebar({
                 prefetch={false}
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
+                aria-label={compact ? item.label : undefined}
               >
                 <Icon data-icon="inline-start" aria-hidden="true" />
                 {!compact ? <span>{item.label}</span> : null}

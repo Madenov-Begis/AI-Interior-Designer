@@ -14,6 +14,12 @@ export type CanvasInsets = {
   bottom: number;
   left: number;
 };
+export type ContainedMediaRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
 
 export const SOURCE_X = 80;
 export const SOURCE_Y = 80;
@@ -22,7 +28,7 @@ export const CARD_GAP = 72;
 export const RESULT_CARD_HEIGHT = 610;
 export const CARD_HEADER_HEIGHT = 70;
 
-export function generationCardHeight(
+export function canvasCardHeight(
   width: number | null | undefined,
   height: number | null | undefined,
 ) {
@@ -30,6 +36,36 @@ export function generationCardHeight(
     return RESULT_CARD_HEIGHT;
   }
   return CARD_HEADER_HEIGHT + (CARD_WIDTH * height) / width;
+}
+
+export function containedMediaRect(
+  frameWidth: number | null | undefined,
+  frameHeight: number | null | undefined,
+  mediaWidth: number | null | undefined,
+  mediaHeight: number | null | undefined,
+): ContainedMediaRect {
+  if (
+    !frameWidth ||
+    !frameHeight ||
+    !mediaWidth ||
+    !mediaHeight ||
+    frameWidth <= 0 ||
+    frameHeight <= 0 ||
+    mediaWidth <= 0 ||
+    mediaHeight <= 0
+  ) {
+    return { left: 0, top: 0, width: 100, height: 100 };
+  }
+
+  const frameAspectRatio = frameWidth / frameHeight;
+  const mediaAspectRatio = mediaWidth / mediaHeight;
+  if (mediaAspectRatio > frameAspectRatio) {
+    const height = (frameAspectRatio / mediaAspectRatio) * 100;
+    return { left: 0, top: (100 - height) / 2, width: 100, height };
+  }
+
+  const width = (mediaAspectRatio / frameAspectRatio) * 100;
+  return { left: (100 - width) / 2, top: 0, width, height: 100 };
 }
 
 function clamp(value: number, minimum: number, maximum: number) {

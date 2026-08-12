@@ -2,25 +2,29 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  Check,
   CircleAlert,
+  Clock3,
+  ExternalLink,
   ImageOff,
   LoaderCircle,
   RotateCcw,
   ShieldAlert,
+  Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import type { Ref } from "react";
+import { useEffect, useState, type Ref } from "react";
 import { VisualPromptEditor } from "./visual-prompt-editor";
 import type { WorkspaceGeneration } from "../model/workspace-types";
-import { buttonClassName } from "@/shared/ui";
+import { buttonClassName, LoadingButton } from "@/shared/ui";
 import type { GenerationActionErrorPresentation } from "@/features/generate-design";
 import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt";
 import { apiData } from "@/shared/api";
-import { CARD_HEADER_HEIGHT } from "../model/canvas-layout";
+import { CARD_HEADER_HEIGHT, containedMediaRect } from "../model/canvas-layout";
 
 type GenerationCanvasCardProps = {
   generation: WorkspaceGeneration;
@@ -29,6 +33,8 @@ type GenerationCanvasCardProps = {
   retryPending?: boolean;
   actionError?: GenerationActionErrorPresentation | null;
   selected: boolean;
+  frameWidth: number;
+  frameHeight: number;
   editorRef: Ref<VisualPromptEditorHandle>;
   tool: VisualPromptTool;
   color: string;
@@ -57,27 +63,81 @@ const statusLabels: Record<WorkspaceGeneration["status"], string> = {
   CANCELLED: "Отменено",
 };
 
+function formatElapsed(createdAt: string, now: number) {
+  const startedAt = new Date(createdAt).getTime();
+  if (!Number.isFinite(startedAt)) return null;
+  const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
+  if (seconds < 60) return `${seconds} сек`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return remainder > 0 ? `${minutes} мин ${remainder} сек` : `${minutes} мин`;
+}
+
+function useElapsedLabel(active: boolean, createdAt: string) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!active) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 5_000);
+    return () => window.clearInterval(interval);
+  }, [active]);
+
+  return active ? formatElapsed(createdAt, now) : null;
+}
+
 function CardHeader({
   variantNumber,
   status,
+  selected,
+  resultUrl,
+  onOpenResult,
 }: {
   variantNumber: string;
   status: WorkspaceGeneration["status"];
+  selected: boolean;
+  resultUrl?: string;
+  onOpenResult(resultUrl: string): void;
 }) {
   return (
     <header
       className="flex shrink-0 items-center justify-between border-b border-border px-5"
       style={{ height: CARD_HEADER_HEIGHT }}
     >
-      <div>
+      <div className="min-w-0">
         <p className="text-sm font-black">Вариант {variantNumber}</p>
-        <p className="mt-1 text-[11px] text-muted">
+        <p className="mt-1 text-xs text-muted-foreground">
           {status === "SUCCEEDED" ? "Готовый дизайн" : "AI-генерация"}
         </p>
       </div>
-      <span className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-        {statusLabels[status]}
-      </span>
+      <div className="flex shrink-0 items-center gap-2">
+        {selected ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent">
+            <Check size={14} strokeWidth={3} aria-hidden="true" />
+            Выбран
+          </span>
+        ) : null}
+        <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          {statusLabels[status]}
+        </span>
+        {resultUrl ? (
+          <button
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenResult(resultUrl);
+            }}
+            className={buttonClassName(
+              "secondary",
+              "h-10 rounded-lg px-3 text-xs",
+            )}
+            aria-label={`Открыть и скачать вариант ${variantNumber}`}
+          >
+            <ExternalLink size={15} aria-hidden="true" />
+            Открыть
+          </button>
+        ) : null}
+      </div>
     </header>
   );
 }
@@ -139,6 +199,8 @@ export function GenerationCanvasCard({
   retryPending = false,
   actionError,
   selected,
+  frameWidth,
+  frameHeight,
   editorRef,
   tool,
   color,
@@ -160,8 +222,18 @@ export function GenerationCanvasCard({
   });
   const resultUnavailable =
     generation.status === "SUCCEEDED" && !generation.resultUserId;
+  const elapsedLabel = useElapsedLabel(
+    generation.status === "QUEUED" || generation.status === "PROCESSING",
+    generation.createdAt,
+  );
   const resultWidth = generation.resultUser?.width ?? null;
   const resultHeight = generation.resultUser?.height ?? null;
+  const resultMediaRect = containedMediaRect(
+    frameWidth,
+    frameHeight,
+    resultWidth,
+    resultHeight,
+  );
   const announcementIsError =
     generation.status === "FAILED" ||
     generation.status === "REJECTED" ||
@@ -189,31 +261,25 @@ export function GenerationCanvasCard({
     case "QUEUED":
       content = (
         <StatusPanel
-          icon={
-            <LoaderCircle
-              size={30}
-              className="animate-spin text-accent"
-              aria-hidden="true"
-            />
-          }
+          icon={<Clock3 size={30} className="text-accent" aria-hidden="true" />}
           title="В очереди"
-          message="Запрос зарезервирован и ожидает запуска."
+          message={`Запрос зарезервирован и ожидает запуска.${
+            elapsedLabel ? ` Прошло ${elapsedLabel}.` : ""
+          }`}
         >
-          <button
-            type="button"
+          <LoadingButton
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               onCancel();
             }}
-            disabled={cancelPending}
-            className={buttonClassName(
-              "secondary",
-              "mt-2 rounded-xl disabled:opacity-40",
-            )}
+            pending={cancelPending}
+            pendingText="Отменяем…"
+            variant="secondary"
+            className="mt-2 rounded-xl"
           >
-            {cancelPending ? "Отменяем…" : "Отменить"}
-          </button>
+            Отменить
+          </LoadingButton>
           {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
       );
@@ -222,15 +288,24 @@ export function GenerationCanvasCard({
       content = (
         <StatusPanel
           icon={
-            <LoaderCircle
+            <Sparkles
               size={30}
-              className="animate-spin text-accent"
+              className="animate-pulse text-accent"
               aria-hidden="true"
             />
           }
-          title="AI создаёт интерьер"
-          message="Результат появится здесь автоматически."
-        />
+          title="Создаём интерьер"
+          message={`Результат появится здесь автоматически.${
+            elapsedLabel ? ` Прошло ${elapsedLabel}.` : ""
+          }`}
+        >
+          <div
+            className="h-1.5 w-44 overflow-hidden rounded-full bg-background/70"
+            aria-hidden="true"
+          >
+            <span className="ruvie-progress-sweep block h-full w-1/2 rounded-full bg-accent" />
+          </div>
+        </StatusPanel>
       );
       break;
     case "SUCCEEDED":
@@ -266,62 +341,63 @@ export function GenerationCanvasCard({
             title="Не удалось открыть изображение"
             message={resultQuery.error.message}
           >
-            <button
-              type="button"
+            <LoadingButton
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
                 void resultQuery.refetch();
               }}
-              className={buttonClassName("secondary", "mt-2 rounded-xl")}
+              pending={resultQuery.isFetching}
+              pendingText="Загружаем…"
+              variant="secondary"
+              className="mt-2 rounded-xl"
             >
               <RotateCcw size={16} aria-hidden="true" />
               Повторить загрузку
-            </button>
+            </LoadingButton>
           </StatusPanel>
         );
       } else {
         content = (
           <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
-            {/* Private signed URLs are short lived and intentionally bypass image optimization. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={resultQuery.data}
-              alt={`Готовый интерьер, вариант ${variantNumber}`}
-              className="absolute inset-0 size-full object-fill"
-              draggable={false}
-            />
-            {selected && resultWidth && resultHeight ? (
-              <div className="absolute inset-0">
-                <VisualPromptEditor
-                  ref={editorRef}
-                  editorWidth={resultWidth}
-                  editorHeight={resultHeight}
-                  sourceWidth={resultWidth}
-                  sourceHeight={resultHeight}
-                  initialState={null}
-                  tool={tool}
-                  color={color}
-                  strokeWidth={strokeWidth}
-                  onHistoryStateChange={onHistoryStateChange}
-                  onPersistenceStateChange={onEditorError}
-                />
-              </div>
-            ) : null}
-            <button
-              type="button"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                onOpenResult(resultQuery.data);
+            <div
+              className="absolute overflow-hidden"
+              style={{
+                left: `${resultMediaRect.left}%`,
+                top: `${resultMediaRect.top}%`,
+                width: `${resultMediaRect.width}%`,
+                height: `${resultMediaRect.height}%`,
               }}
-              className={buttonClassName(
-                "secondary",
-                "absolute right-4 bottom-4 rounded-xl bg-surface/95 shadow-xl",
-              )}
             >
-              Открыть и скачать
-            </button>
+              {/* Private signed URLs are short lived and intentionally bypass image optimization. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resultQuery.data}
+                alt={`Готовый интерьер, вариант ${variantNumber}`}
+                className="absolute inset-0 size-full object-contain"
+                draggable={false}
+                decoding="async"
+                loading={selected ? "eager" : "lazy"}
+                fetchPriority={selected ? "high" : "low"}
+              />
+              {selected && resultWidth && resultHeight ? (
+                <div className="absolute inset-0">
+                  <VisualPromptEditor
+                    ref={editorRef}
+                    editorWidth={resultWidth}
+                    editorHeight={resultHeight}
+                    sourceWidth={resultWidth}
+                    sourceHeight={resultHeight}
+                    initialState={null}
+                    tool={tool}
+                    color={color}
+                    strokeWidth={strokeWidth}
+                    onHistoryStateChange={onHistoryStateChange}
+                    onPersistenceStateChange={onEditorError}
+                  />
+                </div>
+              ) : null}
+            </div>
           </div>
         );
       }
@@ -339,22 +415,20 @@ export function GenerationCanvasCard({
           title="Не удалось создать интерьер"
           message={generation.errorMessage ?? "Произошла техническая ошибка."}
         >
-          <button
-            type="button"
+          <LoadingButton
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               onRetry();
             }}
-            disabled={retryPending}
-            className={buttonClassName(
-              "primary",
-              "rounded-xl disabled:opacity-40",
-            )}
+            pending={retryPending}
+            pendingText="Повторяем…"
+            variant="primary"
+            className="rounded-xl"
           >
             <RotateCcw size={16} aria-hidden="true" />
-            {retryPending ? "Повторяем…" : "Повторить"}
-          </button>
+            Повторить
+          </LoadingButton>
           {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
       );
@@ -375,22 +449,20 @@ export function GenerationCanvasCard({
             "Запрос не прошёл проверку безопасности. Измените описание и попробуйте снова."
           }
         >
-          <button
-            type="button"
+          <LoadingButton
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               onRetry();
             }}
-            disabled={retryPending}
-            className={buttonClassName(
-              "primary",
-              "rounded-xl disabled:opacity-40",
-            )}
+            pending={retryPending}
+            pendingText="Запускаем…"
+            variant="primary"
+            className="rounded-xl"
           >
             <RotateCcw size={16} aria-hidden="true" />
-            {retryPending ? "Запускаем…" : "Повторить"}
-          </button>
+            Повторить
+          </LoadingButton>
           {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
       );
@@ -415,7 +487,15 @@ export function GenerationCanvasCard({
       >
         {announcement}
       </span>
-      <CardHeader variantNumber={variantNumber} status={generation.status} />
+      <CardHeader
+        variantNumber={variantNumber}
+        status={generation.status}
+        selected={selected}
+        resultUrl={
+          generation.status === "SUCCEEDED" ? resultQuery.data : undefined
+        }
+        onOpenResult={onOpenResult}
+      />
       {content}
     </div>
   );

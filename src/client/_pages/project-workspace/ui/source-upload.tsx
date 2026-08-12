@@ -23,6 +23,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
   const controllerRef = useRef<AbortController>(null);
   const [file, setFile] = useState<File | null>(null);
   const [state, setState] = useState<UploadState>("idle");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
     requestIdRef.current = requestId;
 
     setState("uploading");
+    setUploadProgress(0);
     setMessage("");
 
     try {
@@ -46,6 +48,11 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
         projectId,
         file: nextFile,
         signal: controller.signal,
+        onProgress: (progress) => {
+          if (requestId === requestIdRef.current) {
+            setUploadProgress(progress);
+          }
+        },
       });
 
       if (requestId !== requestIdRef.current) return;
@@ -53,6 +60,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
         queryKey: projectsQueries.workspace(projectId).queryKey,
       });
       setState("idle");
+      setUploadProgress(null);
     } catch (error) {
       if (
         requestId !== requestIdRef.current ||
@@ -61,12 +69,23 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
         return;
       }
       setState("error");
+      setUploadProgress(null);
       setMessage(
         error instanceof Error
           ? error.message
           : "Не удалось загрузить фотографию",
       );
     }
+  }
+
+  function cancelUpload() {
+    requestIdRef.current += 1;
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setFile(null);
+    setState("idle");
+    setUploadProgress(null);
+    setMessage("");
   }
 
   function chooseFile(nextFile?: File) {
@@ -119,7 +138,13 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
             </span>
             <b className="mt-5 block text-lg">
               {state === "uploading"
-                ? "Загружаем фото…"
+                ? uploadProgress !== null && uploadProgress >= 1
+                  ? "Проверяем фотографию…"
+                  : `Загружаем фото${
+                      uploadProgress !== null
+                        ? ` — ${Math.round(uploadProgress * 100)}%`
+                        : "…"
+                    }`
                 : "Загрузите фото комнаты"}
             </b>
             <span className="mt-2 block text-sm leading-6 text-muted-foreground">
@@ -127,11 +152,44 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
                 ? "После загрузки сразу откроются холст и настройки"
                 : "Перетащите файл сюда или нажмите, чтобы выбрать"}
             </span>
+            {state === "uploading" ? (
+              <span className="mt-5 block w-full max-w-56">
+                <span
+                  className="block h-1.5 overflow-hidden rounded-full bg-secondary"
+                  role="progressbar"
+                  aria-label="Загрузка фотографии"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={
+                    uploadProgress !== null
+                      ? Math.round(uploadProgress * 100)
+                      : undefined
+                  }
+                >
+                  <span
+                    className="block h-full rounded-full bg-primary transition-transform duration-200"
+                    style={{
+                      transform: `scaleX(${uploadProgress ?? 0.08})`,
+                      transformOrigin: "left",
+                    }}
+                  />
+                </span>
+              </span>
+            ) : null}
             <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground">
               <UploadCloud className="size-3.5" aria-hidden="true" />
               JPG, PNG или WEBP · до 15 МБ
             </span>
           </button>
+          {state === "uploading" ? (
+            <button
+              type="button"
+              onClick={cancelUpload}
+              className="mx-auto mt-2 flex min-h-11 items-center justify-center rounded-lg px-4 text-xs font-bold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              Отменить загрузку
+            </button>
+          ) : null}
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Фото появится прямо на холсте
           </p>
@@ -179,7 +237,13 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
 
       <p className="sr-only" aria-live="polite">
         {state === "uploading"
-          ? "Фотография загружается. После загрузки откроется холст."
+          ? uploadProgress !== null && uploadProgress >= 1
+            ? "Фотография загружена и проверяется."
+            : `Фотография загружается${
+                uploadProgress !== null
+                  ? `: ${Math.floor(uploadProgress * 10) * 10} процентов.`
+                  : "."
+              }`
           : ""}
       </p>
     </div>

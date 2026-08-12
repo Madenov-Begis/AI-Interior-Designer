@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, LogOut, UserRound } from "lucide-react";
+import {
+  CreditCard,
+  FolderOpen,
+  LoaderCircle,
+  LogOut,
+  Plus,
+  UserRound,
+} from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import {
@@ -28,6 +36,12 @@ export function AccountMenu({
   user: RuvieUserSummary;
   creditBalance?: number | null;
 }) {
+  const logout = useMutation({
+    mutationFn: () => apiData({ url: "/auth/logout", method: "POST" }),
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+  });
   const initials =
     user.name
       .split(/\s+/)
@@ -69,6 +83,18 @@ export function AccountMenu({
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
+            <Link href="/app" prefetch={false}>
+              <Plus />
+              Создать проект
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/app/projects" prefetch={false}>
+              <FolderOpen />
+              Все проекты
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link href="/app/credits" prefetch={false}>
               <CreditCard />
               Пополнить баланс
@@ -85,15 +111,25 @@ export function AccountMenu({
         <DropdownMenuGroup>
           <DropdownMenuItem
             variant="destructive"
-            onSelect={async () => {
-              await apiData({ url: "/auth/logout", method: "POST" });
-              window.location.href = "/";
+            disabled={logout.isPending}
+            onSelect={(event) => {
+              event.preventDefault();
+              logout.mutate();
             }}
           >
-            <LogOut />
-            Выйти
+            {logout.isPending ? (
+              <LoaderCircle className="animate-spin" />
+            ) : (
+              <LogOut />
+            )}
+            {logout.isPending ? "Выходим…" : "Выйти"}
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        {logout.error ? (
+          <p className="px-2 py-1.5 text-xs text-destructive" role="alert">
+            {logout.error.message}
+          </p>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

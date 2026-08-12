@@ -1,16 +1,10 @@
 "use client";
 
-import {
-  AlertCircle,
-  Coins,
-  ImagePlus,
-  LoaderCircle,
-  ShieldCheck,
-} from "lucide-react";
+import { AlertCircle, Coins, ImagePlus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { ReferenceManager } from "./reference-manager";
 import { StylePicker } from "./style-picker";
-import { Button } from "@/shared/ui";
+import { LoadingButton } from "@/shared/ui";
 import { Textarea } from "@/shared/ui";
 import type { WorkspaceReference } from "../model/workspace-types";
 import {
@@ -165,14 +159,14 @@ export function DesignInspector({
                 className="sr-only"
               />
               <span>Как в исходнике</span>
-              <span className="font-mono text-[11px]">
+              <span className="font-mono text-xs">
                 {GENERATION_ASPECT_RATIO_LABELS[sourceAspectRatio]}
               </span>
             </label>
             {GENERATION_ASPECT_RATIOS.map((ratio) => (
               <label
                 key={ratio}
-                className={`workspace-focus-proxy inline-flex min-h-10 min-w-0 cursor-pointer items-center justify-center rounded-lg border px-2 py-2 font-mono text-[11px] font-semibold transition-colors ${
+                className={`workspace-focus-proxy inline-flex min-h-11 min-w-0 cursor-pointer items-center justify-center rounded-lg border px-2 py-2 font-mono text-xs font-semibold transition-colors ${
                   aspectRatio === ratio
                     ? "border-primary bg-primary/12 text-primary"
                     : "border-border bg-secondary/55 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
@@ -275,7 +269,7 @@ export function DesignInspector({
               {generationCost} кредита
             </span>
           </div>
-          <p className="mt-2 flex gap-2 text-[11px] leading-5 text-muted-foreground">
+          <p className="mt-2 flex gap-2 text-xs leading-5 text-muted-foreground">
             <ShieldCheck
               className="mt-0.5 size-3.5 shrink-0 text-success"
               aria-hidden="true"
@@ -284,23 +278,17 @@ export function DesignInspector({
           </p>
         </div>
 
-        <Button
+        <LoadingButton
           onClick={onGenerate}
           disabled={disabledReasons.length > 0}
+          pending={generationPending}
+          pendingText="Запускаем…"
           className="mt-3 w-full"
           size="lg"
         >
-          {generationPending ? (
-            <LoaderCircle
-              size={18}
-              className="animate-spin"
-              aria-hidden="true"
-            />
-          ) : (
-            <ImagePlus size={18} aria-hidden="true" />
-          )}
-          {generationPending ? "Запускаем…" : walletPresentation.buttonLabel}
-        </Button>
+          <ImagePlus size={18} aria-hidden="true" />
+          {walletPresentation.buttonLabel}
+        </LoadingButton>
       </div>
     </div>
   );

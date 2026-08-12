@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   calculateCanvasLayout,
+  canvasCardHeight,
+  containedMediaRect,
   constrainCanvasTransform,
-  generationCardHeight,
   generationPosition,
 } from "./canvas-layout.ts";
 import {
@@ -27,10 +28,37 @@ test("a manual format overrides the detected source format", () => {
   );
 });
 
-test("sizes a completed card from its actual result ratio", () => {
-  assert.equal(generationCardHeight(1024, 768), 640);
-  assert.equal(generationCardHeight(1024, 576), 497.5);
-  assert.equal(generationCardHeight(null, null), 610);
+test("sizes the shared comparison frame from the source ratio", () => {
+  assert.equal(canvasCardHeight(1024, 768), 640);
+  assert.equal(canvasCardHeight(1024, 576), 497.5);
+  assert.equal(canvasCardHeight(null, null), 610);
+});
+
+test("contains wide media inside a portrait frame without stretching", () => {
+  assert.deepEqual(containedMediaRect(900, 1200, 1600, 900), {
+    left: 0,
+    top: 28.90625,
+    width: 100,
+    height: 42.1875,
+  });
+});
+
+test("contains portrait media inside a wide frame without stretching", () => {
+  assert.deepEqual(containedMediaRect(1600, 900, 900, 1200), {
+    left: 28.90625,
+    top: 0,
+    width: 42.1875,
+    height: 100,
+  });
+});
+
+test("uses the entire frame when media dimensions are unavailable", () => {
+  assert.deepEqual(containedMediaRect(1600, 900, null, null), {
+    left: 0,
+    top: 0,
+    width: 100,
+    height: 100,
+  });
 });
 
 test("keeps up to four generations in one horizontal row", () => {

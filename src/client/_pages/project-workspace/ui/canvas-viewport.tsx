@@ -1,6 +1,6 @@
 "use client";
 
-import { Focus, Maximize2, Minus, Plus } from "lucide-react";
+import { Check, Focus, Maximize2, Minus, Plus } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -34,11 +34,11 @@ import {
 } from "../model/canvas-navigation";
 import {
   calculateCanvasLayout,
+  canvasCardHeight,
   canvasViewportInsets,
   CARD_HEADER_HEIGHT,
   CARD_WIDTH,
   constrainCanvasTransform,
-  RESULT_CARD_HEIGHT,
   SOURCE_X,
   SOURCE_Y,
   type CanvasSize,
@@ -66,7 +66,6 @@ type Source = {
 export type CanvasGenerationNode = {
   id: string;
   ariaLabel?: string;
-  height?: number;
   node: ReactNode;
   interactive?: boolean;
 };
@@ -133,12 +132,11 @@ export const CanvasViewport = forwardRef<
     [viewportSize.width],
   );
 
-  const sourceCardHeight =
-    CARD_HEADER_HEIGHT + (CARD_WIDTH * source.height) / source.width;
+  const sourceCardHeight = canvasCardHeight(source.width, source.height);
   const { generationPositions, worldBounds } = useMemo(
     () =>
       calculateCanvasLayout({
-        generationHeights: generations.map((generation) => generation.height),
+        generationHeights: generations.map(() => sourceCardHeight),
         sourceCardHeight,
         viewportWidth: viewportSize.width,
       }),
@@ -156,8 +154,7 @@ export const CanvasViewport = forwardRef<
         item: {
           ...selectedGenerationPosition,
           width: CARD_WIDTH,
-          height:
-            generations[selectedGenerationIndex]?.height ?? RESULT_CARD_HEIGHT,
+          height: sourceCardHeight,
         },
         transform,
       })
@@ -222,7 +219,7 @@ export const CanvasViewport = forwardRef<
       return {
         ...position,
         width: CARD_WIDTH,
-        height: generations[index]?.height ?? RESULT_CARD_HEIGHT,
+        height: sourceCardHeight,
       };
     },
     [generationPositions, generations, sourceCardHeight],
@@ -582,15 +579,23 @@ export const CanvasViewport = forwardRef<
             className="flex shrink-0 items-center justify-between border-b border-border px-5"
             style={{ height: CARD_HEADER_HEIGHT }}
           >
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-black">Исходное изображение</p>
-              <p className="mt-1 text-[11px] text-muted">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Разметка не изменяет оригинал
               </p>
             </div>
-            <span className="rounded-full bg-surface-elevated px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-              Оригинал
-            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              {selectedItemId === "source" ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent">
+                  <Check size={14} strokeWidth={3} aria-hidden="true" />
+                  Выбран
+                </span>
+              ) : null}
+              <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                Оригинал
+              </span>
+            </div>
           </header>
           <div
             className="relative overflow-hidden bg-black"
@@ -601,8 +606,10 @@ export const CanvasViewport = forwardRef<
             <img
               src={source.imageUrl}
               alt="Исходная фотография помещения"
-              className="absolute inset-0 size-full object-fill"
+              className="absolute inset-0 size-full object-contain"
               draggable={false}
+              decoding="async"
+              fetchPriority="high"
             />
             <div className="absolute inset-0">
               <VisualPromptEditor
@@ -643,7 +650,7 @@ export const CanvasViewport = forwardRef<
                 left: position.x,
                 top: position.y,
                 width: CARD_WIDTH,
-                height: generation.height ?? RESULT_CARD_HEIGHT,
+                height: sourceCardHeight,
               }}
               tabIndex={0}
               onClick={() => {

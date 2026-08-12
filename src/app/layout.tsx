@@ -29,6 +29,9 @@ export default function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable}`}
     >
       <body>
+        <a className="skip-link" href="#main-content">
+          Перейти к основному содержимому
+        </a>
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

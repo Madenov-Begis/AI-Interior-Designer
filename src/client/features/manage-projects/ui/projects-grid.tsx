@@ -26,9 +26,16 @@ import {
   AlertTitle,
   AppPagination,
 } from "@/shared/ui";
-import { Button } from "@/shared/ui";
+import { Button, LoadingButton, LoadingRegion } from "@/shared/ui";
 import { Card, CardContent } from "@/shared/ui";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -98,6 +105,8 @@ export function ProjectsGrid({
   const queryClient = useQueryClient();
   const [search, setSearch] = useState(initialSearch);
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [projectPendingDeletion, setProjectPendingDeletion] =
+    useState<ProjectItem | null>(null);
   const buildPageHref = useCallback(
     (nextPage: number) => projectsListHref(nextPage, initialSearch),
     [initialSearch],
@@ -147,6 +156,7 @@ export function ProjectsGrid({
         method: "DELETE",
       }),
     onSuccess: () => {
+      setProjectPendingDeletion(null);
       if (page > 1 && projects.data?.items.length === 1) {
         router.replace(buildPageHref(page - 1));
       }
@@ -160,19 +170,20 @@ export function ProjectsGrid({
 
   return (
     <div className="grid min-h-[calc(100dvh-72px)] lg:grid-cols-[292px_minmax(0,1fr)]">
-      <aside className="border-r border-border bg-card/75 p-5">
-        <Button
+      <aside className="hidden border-r border-border bg-card/75 p-5 lg:block">
+        <LoadingButton
           size="lg"
           variant="secondary"
           className="w-full justify-start"
           onClick={() => createProject.mutate()}
-          disabled={createProject.isPending}
+          pending={createProject.isPending}
+          pendingText="Создаём…"
         >
           <Plus className="size-5" />
-          {createProject.isPending ? "Создаём…" : "Создать проект"}
-        </Button>
+          Создать проект
+        </LoadingButton>
         <div className="mt-8">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
             Быстрый старт
           </p>
           <ol className="mt-4 space-y-4">
@@ -203,32 +214,46 @@ export function ProjectsGrid({
       </aside>
 
       <section className="min-w-0">
-        <div className="flex flex-col gap-3 border-b border-border p-5 md:flex-row md:items-center">
-          <InputGroup className="h-12 min-w-0 flex-1 bg-card has-[[data-slot=input-group-control]:focus-visible]:border-muted-foreground/60 has-[[data-slot=input-group-control]:focus-visible]:ring-0">
-            <InputGroupAddon align="inline-start">
-              <Search aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Поиск среди загруженных проектов"
-              aria-label="Поиск среди загруженных проектов"
-            />
-            {search ? (
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  size="icon-sm"
-                  aria-label="Очистить поиск"
-                  onClick={() => {
-                    setSearch("");
-                    router.replace(projectsListHref(1, ""), { scroll: false });
-                  }}
-                >
-                  <X />
-                </InputGroupButton>
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:p-5 md:flex-row md:items-center">
+          <div className="flex gap-3 lg:contents">
+            <LoadingButton
+              size="icon-lg"
+              variant="secondary"
+              className="shrink-0 lg:hidden"
+              onClick={() => createProject.mutate()}
+              pending={createProject.isPending}
+              aria-label="Создать проект"
+            >
+              <Plus />
+            </LoadingButton>
+            <InputGroup className="h-12 min-w-0 flex-1 bg-card has-[[data-slot=input-group-control]:focus-visible]:border-primary/70 has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-primary/20">
+              <InputGroupAddon align="inline-start">
+                <Search aria-hidden="true" />
               </InputGroupAddon>
-            ) : null}
-          </InputGroup>
+              <InputGroupInput
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Поиск среди загруженных проектов"
+                aria-label="Поиск среди загруженных проектов"
+              />
+              {search ? (
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-sm"
+                    aria-label="Очистить поиск"
+                    onClick={() => {
+                      setSearch("");
+                      router.replace(projectsListHref(1, ""), {
+                        scroll: false,
+                      });
+                    }}
+                  >
+                    <X />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
+          </div>
           <ToggleGroup
             type="single"
             value={view}
@@ -249,18 +274,36 @@ export function ProjectsGrid({
         </div>
 
         <div className="p-5">
+          {createProject.error ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Не удалось создать проект</AlertTitle>
+              <AlertDescription>{createProject.error.message}</AlertDescription>
+            </Alert>
+          ) : null}
           {projects.isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <LoadingRegion
+              label="Загружаем проекты…"
+              className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            >
               {Array.from({ length: 8 }, (_, index) => (
                 <Skeleton key={index} className="aspect-[4/5] rounded-[18px]" />
               ))}
-            </div>
+            </LoadingRegion>
           ) : null}
 
           {projects.error ? (
             <Alert variant="destructive">
               <AlertTitle>Не удалось загрузить проекты</AlertTitle>
-              <AlertDescription>{projects.error.message}</AlertDescription>
+              <AlertDescription>
+                <p>{projects.error.message}</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void projects.refetch()}
+                >
+                  Повторить
+                </Button>
+              </AlertDescription>
             </Alert>
           ) : null}
 
@@ -289,23 +332,32 @@ export function ProjectsGrid({
               </EmptyHeader>
               {!hasActiveSearch && !hasProjects ? (
                 <EmptyContent>
-                  <Button
+                  <LoadingButton
                     onClick={() => createProject.mutate()}
-                    disabled={createProject.isPending}
+                    pending={createProject.isPending}
+                    pendingText="Создаём…"
                   >
                     <Plus data-icon="inline-start" />
-                    {createProject.isPending ? "Создаём…" : "Создать проект"}
-                  </Button>
+                    Создать проект
+                  </LoadingButton>
                 </EmptyContent>
               ) : null}
             </Empty>
           ) : null}
 
+          <p
+            className="mb-3 min-h-5 text-xs text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            {projects.isFetching && !projects.isLoading
+              ? "Обновляем список проектов…"
+              : null}
+          </p>
           <div
             className={cn(
-              "grid transition-opacity",
+              "grid",
               view === "grid" ? "gap-4 sm:grid-cols-2 xl:grid-cols-4" : "gap-3",
-              projects.isFetching && !projects.isLoading && "opacity-60",
             )}
             aria-busy={projects.isFetching}
           >
@@ -332,13 +384,17 @@ export function ProjectsGrid({
                       src={project.previewUrl}
                       alt={project.name}
                       className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+                      width={project.previewWidth ?? undefined}
+                      height={project.previewHeight ?? undefined}
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <span className="grid size-full place-items-center">
                       <ImageIcon className="size-8 text-muted-foreground" />
                     </span>
                   )}
-                  <span className="absolute bottom-3 left-3 rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold backdrop-blur">
+                  <span className="absolute bottom-3 left-3 rounded-md bg-black/75 px-2 py-1 text-xs font-bold backdrop-blur">
                     {project.generationCount} результатов
                   </span>
                 </Link>
@@ -370,7 +426,10 @@ export function ProjectsGrid({
                         <DropdownMenuItem
                           variant="destructive"
                           disabled={removeProject.isPending}
-                          onSelect={() => removeProject.mutate(project.id)}
+                          onSelect={() => {
+                            removeProject.reset();
+                            setProjectPendingDeletion(project);
+                          }}
                         >
                           <Trash2 />
                           Удалить
@@ -392,6 +451,50 @@ export function ProjectsGrid({
           ) : null}
         </div>
       </section>
+      <Dialog
+        open={Boolean(projectPendingDeletion)}
+        onOpenChange={(open) => {
+          if (!open && !removeProject.isPending) {
+            setProjectPendingDeletion(null);
+            removeProject.reset();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Удалить проект?</DialogTitle>
+            <DialogDescription>
+              Проект «{projectPendingDeletion?.name}» и связанные с ним
+              изображения будут удалены без возможности восстановления.
+            </DialogDescription>
+          </DialogHeader>
+          {removeProject.error ? (
+            <p className="text-sm text-destructive" role="alert">
+              {removeProject.error.message}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={removeProject.isPending}>
+                Отмена
+              </Button>
+            </DialogClose>
+            <LoadingButton
+              variant="destructive"
+              pending={removeProject.isPending}
+              pendingText="Удаляем…"
+              onClick={() => {
+                if (projectPendingDeletion) {
+                  removeProject.mutate(projectPendingDeletion.id);
+                }
+              }}
+            >
+              <Trash2 />
+              Удалить проект
+            </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

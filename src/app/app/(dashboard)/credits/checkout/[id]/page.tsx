@@ -9,7 +9,7 @@ export default function CreditCheckoutPage() {
   return (
     <div className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <header className="mx-auto mb-7 max-w-xl">
-        <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-primary uppercase">
+        <p className="font-mono text-xs font-semibold tracking-[0.16em] text-primary uppercase">
           Тестовый заказ
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">

@@ -1,10 +1,10 @@
 "use client";
 
-import { Download, LoaderCircle, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { downloadWorkspaceGeneration } from "../api/workspace-generation-download";
 import type { WorkspaceGeneration } from "../model/workspace-types";
-import { buttonClassName } from "@/shared/ui";
+import { LoadingButton } from "@/shared/ui";
 
 export type ResultActionsProps = {
   generation: WorkspaceGeneration;
@@ -102,32 +102,22 @@ export function ResultActions({
             src={resultUrl}
             alt="Готовый интерьер"
             className="max-h-[65dvh] max-w-full object-contain"
+            decoding="async"
+            fetchPriority="high"
           />
         </div>
 
-        <button
-          type="button"
+        <LoadingButton
           onClick={() => void downloadResult()}
-          disabled={downloadPending}
-          className={buttonClassName(
-            "primary",
-            "justify-self-center rounded-lg text-center disabled:cursor-wait disabled:opacity-50",
-            "sm",
-          )}
+          pending={downloadPending}
+          pendingText="Подготавливаем…"
+          variant="primary"
+          size="sm"
+          className="justify-self-center rounded-lg text-center"
         >
-          {downloadPending ? (
-            <LoaderCircle
-              size={17}
-              className="animate-spin"
-              aria-hidden="true"
-            />
-          ) : (
-            <Download size={17} aria-hidden="true" />
-          )}
-          {downloadPending
-            ? "Подготавливаем скачивание…"
-            : "Скачать изображение"}
-        </button>
+          <Download size={17} aria-hidden="true" />
+          Скачать изображение
+        </LoadingButton>
         {downloadError ? (
           <p role="alert" className="text-sm text-red-300">
             {downloadError}

@@ -20,7 +20,6 @@ import {
 } from "../model/generation-aspect-ratio";
 import { useWorkspaceGenerationActions } from "../model/workspace-generation-actions";
 import { useWorkspaceGenerationFeed } from "../model/workspace-generation-feed";
-import { generationCardHeight } from "../model/canvas-layout";
 import { nextRefinementOverlayState } from "@/features/generate-design";
 import {
   ApiResponseError,
@@ -231,10 +230,6 @@ function ReadyDesignWorkspace({
   const canvasGenerations = canvasGenerationInstances.map((item) => ({
     id: item.nodeId,
     ariaLabel: `Вариант ${item.variantNumber}, статус ${item.generation.status}`,
-    height: generationCardHeight(
-      item.generation.resultUser?.width,
-      item.generation.resultUser?.height,
-    ),
     interactive:
       item.generation.status === "SUCCEEDED" &&
       Boolean(item.generation.resultUserId),
@@ -242,6 +237,8 @@ function ReadyDesignWorkspace({
       <WorkspaceGenerationNode
         item={item}
         selectedItemId={selectedCanvasItem}
+        frameWidth={source.width}
+        frameHeight={source.height}
         editorRef={refinementPromptRef}
         tool={tool}
         color={color}

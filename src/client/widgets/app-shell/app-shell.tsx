@@ -17,7 +17,9 @@ export function AppShell({
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <AppTopbar title={title} user={user} creditBalance={creditBalance} />
-      <main className="min-w-0 flex-1">{children}</main>
+      <main id="main-content" className="min-w-0 flex-1" tabIndex={-1}>
+        {children}
+      </main>
     </div>
   );
 }
