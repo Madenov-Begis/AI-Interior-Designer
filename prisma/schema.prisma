@@ -18,12 +18,6 @@ enum UserStatus {
   DELETED
 }
 
-enum SubscriptionStatus {
-  ACTIVE
-  EXPIRED
-  CANCELLED
-}
-
 enum ProjectStatus {
   DRAFT
   READY
@@ -92,26 +86,21 @@ enum PaymentOrderStatus {
 }
 
 model Profile {
-  id                  String     @id @db.Uuid
-  email               String?    @unique
-  phone               String?    @unique
-  firstName           String?
-  lastName            String?
-  displayName         String?
-  avatarUrl           String?
-  role                UserRole   @default(USER)
-  status              UserStatus @default(ACTIVE)
-  planId              String?    @db.Uuid
-  timezone            String     @default("Asia/Tashkent")
-  maxParallelOverride Int?
-  vipExpiresAt        DateTime?
-  lastLoginAt         DateTime?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-  deletedAt           DateTime?
+  id          String     @id @db.Uuid
+  email       String?    @unique
+  phone       String?    @unique
+  firstName   String?
+  lastName    String?
+  displayName String?
+  avatarUrl   String?
+  role        UserRole   @default(USER)
+  status      UserStatus @default(ACTIVE)
+  timezone    String     @default("Asia/Tashkent")
+  lastLoginAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
 
-  plan          Plan?          @relation(fields: [planId], references: [id])
-  subscriptions Subscription[]
   projects      Project[]
   mediaFiles    MediaFile[]
   generations   Generation[]
@@ -120,46 +109,7 @@ model Profile {
   paymentOrders PaymentOrder[]
 
   @@index([status])
-  @@index([planId])
   @@index([createdAt])
-}
-
-model Plan {
-  id                     String   @id @default(uuid()) @db.Uuid
-  code                   String   @unique
-  name                   String
-  description            String?
-  maxParallelGenerations Int      @default(1)
-  maxReferenceImages     Int      @default(10)
-  maxReferenceUrls       Int      @default(10)
-  maxUploadSizeMb        Int      @default(15)
-  maxOutputWidth         Int?
-  maxOutputHeight        Int?
-  priorityProcessing     Boolean  @default(false)
-  active                 Boolean  @default(true)
-  sortOrder              Int      @default(0)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-
-  users         Profile[]
-  subscriptions Subscription[]
-}
-
-model Subscription {
-  id        String             @id @default(uuid()) @db.Uuid
-  userId    String             @db.Uuid
-  planId    String             @db.Uuid
-  status    SubscriptionStatus @default(ACTIVE)
-  startsAt  DateTime           @default(now())
-  endsAt    DateTime?
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
-
-  user Profile @relation(fields: [userId], references: [id])
-  plan Plan    @relation(fields: [planId], references: [id])
-
-  @@index([userId, status, endsAt])
-  @@index([planId])
 }
 
 model Project {

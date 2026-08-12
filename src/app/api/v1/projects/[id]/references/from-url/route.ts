@@ -18,7 +18,7 @@ export async function POST(
     enforceRateLimit(request, "reference-url", 10, 60_000);
     const user = await requireCurrentUser();
     const { id } = await context.params;
-    const { urls } = importReferenceUrlsSchema.parse(await request.json());
+    const { urls } = importReferenceUrlsSchema().parse(await request.json());
     const results = await importReferenceUrls(
       user.id,
       projectIdSchema.parse(id),
@@ -45,7 +45,7 @@ export async function POST(
     if (error instanceof ZodError)
       return apiError(
         "VALIDATION_ERROR",
-        "Добавьте от 1 до 10 корректных URL",
+        "Проверьте количество и формат URL",
         requestId,
         400,
         error.flatten(),

@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
         profile,
         usage: {
           used: usage.used,
-          plan: { name: usage.plan.name },
         },
       },
       requestId,

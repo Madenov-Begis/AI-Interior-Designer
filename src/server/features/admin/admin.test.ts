@@ -4,12 +4,10 @@ import { getLocalAdminPhone } from "./admin-phone.ts";
 import { getAdminOrigins, isAdminOriginAllowed } from "./cors.ts";
 import {
   adminPeriodSchema,
-  createPlanSchema,
   creditAdjustmentSchema,
   creditTransactionsListSchema,
   generationsListSchema,
   paymentOrdersListSchema,
-  updatePlanSchema,
   updateUserSchema,
   usersListSchema,
 } from "./schemas.ts";
@@ -67,7 +65,6 @@ test("list schemas enforce page bounds, enums, UUID and date range", () => {
   assert.deepEqual(usersListSchema.parse({}), { page: 1, pageSize: 25 });
   assert.equal(usersListSchema.safeParse({ page: 0 }).success, false);
   assert.equal(usersListSchema.safeParse({ pageSize: 101 }).success, false);
-  assert.equal(usersListSchema.safeParse({ planId: "not-a-uuid" }).success, false);
   assert.equal(generationsListSchema.safeParse({ status: "UNKNOWN" }).success, false);
   assert.equal(
     paymentOrdersListSchema.safeParse({
@@ -81,23 +78,7 @@ test("list schemas enforce page bounds, enums, UUID and date range", () => {
   assert.equal(generationsListSchema.safeParse({ from: "yesterday" }).success, false);
 });
 
-test("mutation schemas reject unknown fields and immutable plan code", () => {
-  const validPlan = {
-    code: "pro_2026",
-    name: "Pro",
-    description: null,
-    maxParallelGenerations: 2,
-    maxReferenceImages: 10,
-    maxReferenceUrls: 10,
-    maxUploadSizeMb: 15,
-    maxOutputWidth: null,
-    maxOutputHeight: null,
-    priorityProcessing: true,
-    active: true,
-    sortOrder: 1,
-  };
-  assert.equal(createPlanSchema.safeParse(validPlan).success, true);
-  assert.equal(updatePlanSchema.safeParse({ name: "Новый", code: "CHANGED" }).success, false);
+test("mutation schemas reject unknown fields", () => {
   assert.equal(updateUserSchema.safeParse({}).success, false);
   assert.equal(updateUserSchema.safeParse({ status: "ACTIVE", unexpected: true }).success, false);
   assert.equal(

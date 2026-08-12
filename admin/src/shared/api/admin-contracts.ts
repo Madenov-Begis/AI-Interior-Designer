@@ -16,7 +16,6 @@ export type PageInfo = {
 };
 
 export type Paged<T> = { items: T[]; pageInfo: PageInfo };
-export type PlanSummary = { id: string; code: string; name: string };
 export type AdminSession = {
   admin: {
     id: string;
@@ -52,10 +51,7 @@ export type AdminUser = {
   phone: string | null;
   role: UserRole;
   status: UserStatus;
-  plan: PlanSummary | null;
   balance: number;
-  maxParallelOverride: number | null;
-  vipExpiresAt: string | null;
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -67,14 +63,6 @@ export type AdminUserDetail = AdminUser & {
   lastName: string | null;
   timezone: string;
   deletedAt: string | null;
-  subscriptions: Array<{
-    id: string;
-    status: string;
-    startsAt: string;
-    endsAt: string | null;
-    createdAt: string;
-    plan: PlanSummary | null;
-  }>;
 };
 
 export type AdminGeneration = {
@@ -159,23 +147,4 @@ export type CreditTransaction = {
   orderId: string | null;
   generationId: string | null;
   createdAt: string;
-};
-
-export type AdminPlan = {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  maxParallelGenerations: number;
-  maxReferenceImages: number;
-  maxReferenceUrls: number;
-  maxUploadSizeMb: number;
-  maxOutputWidth: number | null;
-  maxOutputHeight: number | null;
-  priorityProcessing: boolean;
-  active: boolean;
-  sortOrder: number;
-  userCount: number;
-  createdAt: string;
-  updatedAt: string;
 };

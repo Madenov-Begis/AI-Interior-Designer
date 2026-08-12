@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { REFERENCE_IMAGE_RULES } from "@/server/shared/config/storage";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 import { ImageValidationError } from "@/server/features/media/image-validation";
 import { projectIdSchema } from "@/server/features/projects/schemas";
 import {
@@ -19,10 +19,11 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
   try {
+    const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (
       contentLength >
-      REFERENCE_IMAGE_RULES.maxBytes * REFERENCE_IMAGE_RULES.maxCount +
+      limits.maxUploadSizeBytes * limits.maxReferenceImages +
         1024 * 1024
     ) {
       return apiError(

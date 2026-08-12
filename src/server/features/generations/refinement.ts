@@ -1,10 +1,11 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { REFERENCE_IMAGE_RULES, STORAGE_BUCKETS } from "@/server/shared/config/storage";
+import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import { validateReferenceImage } from "@/server/features/media/image-validation";
 import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 
 export class RefinementParentNotFoundError extends Error {}
 export class RefinementReferenceLimitError extends Error {}
@@ -15,9 +16,10 @@ export async function uploadRefinementReferences(
   files: File[],
 ) {
   if (files.length === 0) throw new Error("REFERENCE_REQUIRED");
-  if (files.length > REFERENCE_IMAGE_RULES.maxCount) {
+  const maxReferenceImages = getSystemLimits().maxReferenceImages;
+  if (files.length > maxReferenceImages) {
     throw new RefinementReferenceLimitError(
-      `Можно добавить не более ${REFERENCE_IMAGE_RULES.maxCount} референсов`,
+      `Можно добавить не более ${maxReferenceImages} референсов`,
     );
   }
 

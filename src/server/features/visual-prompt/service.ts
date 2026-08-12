@@ -10,19 +10,21 @@ import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 import type { VisualPromptCanvasState } from "@/server/features/visual-prompt/types";
 import { VisualPromptValidationError } from "@/server/features/visual-prompt/schema";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 
 export class VisualPromptProjectNotFoundError extends Error {}
 
 async function readOverlay(file: File, state: VisualPromptCanvasState) {
+  const limits = getSystemLimits();
   if (file.size <= 0)
     throw new VisualPromptValidationError(
       "OVERLAY_REQUIRED",
       "Разметка отсутствует",
     );
-  if (file.size > VISUAL_PROMPT_RULES.maxOverlayBytes)
+  if (file.size > limits.maxUploadSizeBytes)
     throw new VisualPromptValidationError(
       "OVERLAY_TOO_LARGE",
-      "Разметка превышает 15 МБ",
+      `Разметка превышает ${limits.maxUploadSizeMb} МБ`,
     );
 
   const buffer = Buffer.from(await file.arrayBuffer());

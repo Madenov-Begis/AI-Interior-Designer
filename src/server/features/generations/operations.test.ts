@@ -212,22 +212,6 @@ function createGenerationHarness(input?: {
           id: "user-1",
           status: "ACTIVE",
           timezone: "Asia/Tashkent",
-          maxParallelOverride: null,
-          plan: {
-            id: "plan-1",
-            maxParallelGenerations: 2,
-            maxReferenceImages: 10,
-          },
-          subscriptions: [],
-        };
-      },
-    },
-    plan: {
-      async findUniqueOrThrow() {
-        return {
-          id: "plan-1",
-          maxParallelGenerations: 2,
-          maxReferenceImages: 10,
         };
       },
     },
@@ -419,6 +403,7 @@ function reservationDependencies(
     buildRefinementPrompt: () => "refinement prompt",
     randomUUID: () => generationId,
     now: () => new Date("2026-07-29T00:00:00.000Z"),
+    limits: { maxParallelGenerations: 2, maxReferenceImages: 10 },
   };
 }
 

@@ -1,7 +1,5 @@
 import "server-only";
 
-import { getRequiredPlan } from "@/server/features/plans/defaults";
-import { resolveEffectivePlan } from "@/server/features/plans/resolve-plan";
 import {
   cancelOwnedGenerationWithDatabase,
   failGenerationWithDatabase,
@@ -11,35 +9,13 @@ import { getDb } from "@/server/shared/db/prisma";
 export async function getGenerationUsage(userId: string) {
   const profile = await getDb().profile.findUnique({
     where: { id: userId },
-    include: {
-      plan: true,
-      subscriptions: {
-        where: {
-          status: "ACTIVE",
-          OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }],
-        },
-        orderBy: { startsAt: "desc" },
-        take: 1,
-        include: { plan: true },
-      },
-    },
+    select: { id: true },
   });
   if (!profile) return null;
-  const plan = await resolveEffectivePlan(
-    profile.subscriptions[0]?.plan,
-    profile.plan,
-    () => getRequiredPlan("FREE"),
-  );
   const used = await getDb().usageEvent.count({
     where: { userId, status: "CONSUMED" },
   });
-  return {
-    used,
-    plan: {
-      code: plan.code,
-      name: plan.name,
-    },
-  };
+  return { used };
 }
 
 export async function getOwnedGeneration(userId: string, id: string) {

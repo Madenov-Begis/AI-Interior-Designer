@@ -28,7 +28,7 @@ export function SiteHeader() {
             className="transition-colors hover:text-foreground"
             href="#pricing"
           >
-            Тарифы
+            Пакеты
           </a>
         </nav>
         <Link

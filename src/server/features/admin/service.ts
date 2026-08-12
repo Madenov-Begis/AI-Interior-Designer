@@ -40,14 +40,6 @@ function pageInfo(page: number, pageSize: number, totalItems: number) {
   };
 }
 
-function planDto(plan: {
-  id: string;
-  code: string;
-  name: string;
-} | null) {
-  return plan ? { id: plan.id, code: plan.code, name: plan.name } : null;
-}
-
 function userListDto(user: {
   id: string;
   displayName: string | null;
@@ -55,10 +47,7 @@ function userListDto(user: {
   phone: string | null;
   role: "USER" | "ADMIN";
   status: "ACTIVE" | "BLOCKED" | "DELETED";
-  plan: { id: string; code: string; name: string } | null;
   creditWallet: { balance: number } | null;
-  maxParallelOverride: number | null;
-  vipExpiresAt: Date | null;
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -72,10 +61,7 @@ function userListDto(user: {
     phone: user.phone,
     role: user.role,
     status: user.status,
-    plan: planDto(user.plan),
     balance: user.creditWallet?.balance ?? 0,
-    maxParallelOverride: user.maxParallelOverride,
-    vipExpiresAt: iso(user.vipExpiresAt),
     lastLoginAt: iso(user.lastLoginAt),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
@@ -84,7 +70,6 @@ function userListDto(user: {
 }
 
 const userListInclude = {
-  plan: { select: { id: true, code: true, name: true } },
   creditWallet: { select: { balance: true } },
   _count: { select: { projects: true, generations: true, paymentOrders: true } },
 } satisfies Prisma.ProfileInclude;
@@ -171,12 +156,10 @@ export async function listAdminUsers(input: {
   query?: string;
   role?: "USER" | "ADMIN";
   status?: "ACTIVE" | "BLOCKED" | "DELETED";
-  planId?: string;
 }) {
   const where: Prisma.ProfileWhereInput = {
     role: input.role,
     status: input.status,
-    planId: input.planId,
     ...(input.query
       ? {
           OR: [
@@ -206,14 +189,7 @@ export async function listAdminUsers(input: {
 export async function getAdminUser(id: string) {
   const user = await getDb().profile.findUnique({
     where: { id },
-    include: {
-      ...userListInclude,
-      subscriptions: {
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        include: { plan: { select: { id: true, code: true, name: true } } },
-      },
-    },
+    include: userListInclude,
   });
   if (!user) throw new AdminServiceError("NOT_FOUND", "Пользователь не найден", 404);
   return {
@@ -222,14 +198,6 @@ export async function getAdminUser(id: string) {
     lastName: user.lastName,
     timezone: user.timezone,
     deletedAt: iso(user.deletedAt),
-    subscriptions: user.subscriptions.map((subscription) => ({
-      id: subscription.id,
-      status: subscription.status,
-      startsAt: subscription.startsAt.toISOString(),
-      endsAt: iso(subscription.endsAt),
-      createdAt: subscription.createdAt.toISOString(),
-      plan: planDto(subscription.plan),
-    })),
   };
 }
 
@@ -239,9 +207,6 @@ export async function updateAdminUser(
   input: {
     role?: "USER" | "ADMIN";
     status?: "ACTIVE" | "BLOCKED" | "DELETED";
-    planId?: string | null;
-    maxParallelOverride?: number | null;
-    vipExpiresAt?: string | null;
   },
 ) {
   await getDb().$transaction(async (tx) => {
@@ -275,14 +240,6 @@ export async function updateAdminUser(
       data: {
         role: input.role,
         status: input.status,
-        planId: input.planId,
-        maxParallelOverride: input.maxParallelOverride,
-        vipExpiresAt:
-          input.vipExpiresAt === undefined
-            ? undefined
-            : input.vipExpiresAt
-              ? new Date(input.vipExpiresAt)
-              : null,
         deletedAt:
           input.status === "DELETED" ? new Date() : input.status ? null : undefined,
       },
@@ -619,85 +576,6 @@ export async function listAdminCreditTransactions(input: {
     })),
     pageInfo: pageInfo(input.page, input.pageSize, totalItems),
   };
-}
-
-function fullPlanDto(plan: {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  maxParallelGenerations: number;
-  maxReferenceImages: number;
-  maxReferenceUrls: number;
-  maxUploadSizeMb: number;
-  maxOutputWidth: number | null;
-  maxOutputHeight: number | null;
-  priorityProcessing: boolean;
-  active: boolean;
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-  _count: { users: number };
-}) {
-  return {
-    id: plan.id,
-    code: plan.code,
-    name: plan.name,
-    description: plan.description,
-    maxParallelGenerations: plan.maxParallelGenerations,
-    maxReferenceImages: plan.maxReferenceImages,
-    maxReferenceUrls: plan.maxReferenceUrls,
-    maxUploadSizeMb: plan.maxUploadSizeMb,
-    maxOutputWidth: plan.maxOutputWidth,
-    maxOutputHeight: plan.maxOutputHeight,
-    priorityProcessing: plan.priorityProcessing,
-    active: plan.active,
-    sortOrder: plan.sortOrder,
-    userCount: plan._count.users,
-    createdAt: plan.createdAt.toISOString(),
-    updatedAt: plan.updatedAt.toISOString(),
-  };
-}
-
-const planCountInclude = { _count: { select: { users: true } } } satisfies Prisma.PlanInclude;
-
-export async function listAdminPlans() {
-  const plans = await getDb().plan.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: planCountInclude,
-  });
-  return { items: plans.map(fullPlanDto) };
-}
-
-type PlanInput = {
-  name: string;
-  description: string | null;
-  maxParallelGenerations: number;
-  maxReferenceImages: number;
-  maxReferenceUrls: number;
-  maxUploadSizeMb: number;
-  maxOutputWidth: number | null;
-  maxOutputHeight: number | null;
-  priorityProcessing: boolean;
-  active: boolean;
-  sortOrder: number;
-};
-
-export async function createAdminPlan(input: PlanInput & { code: string }) {
-  const plan = await getDb().plan.create({
-    data: { ...input, code: input.code.toUpperCase() },
-    include: planCountInclude,
-  });
-  return fullPlanDto(plan);
-}
-
-export async function updateAdminPlan(id: string, input: Partial<PlanInput>) {
-  const plan = await getDb().plan.update({
-    where: { id },
-    data: input,
-    include: planCountInclude,
-  });
-  return fullPlanDto(plan);
 }
 
 export async function getAdminMediaSignedUrl(id: string) {

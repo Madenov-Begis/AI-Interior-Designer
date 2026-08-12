@@ -72,6 +72,9 @@ Visual Prompting использует Fabric.js 7. Ластик подключё
 - `PAYMENT_PROVIDER=disabled` — production-режим оплаты до подключения Payme/Click.
 - `PAYMENT_PROVIDER=mock` — только локальная разработка и только вместе с `AI_PROVIDER=fake`.
 - `TRIGGER_SECRET_KEY` и `SENTRY_DSN` пока необязательны: ошибки и жизненный цикл генерации сохраняются через Prisma.
+- `MAX_PARALLEL_GENERATIONS`, `MAX_REFERENCE_IMAGES`, `MAX_REFERENCE_URLS`,
+  `MAX_UPLOAD_SIZE_MB`, `MAX_OUTPUT_WIDTH` и `MAX_OUTPUT_HEIGHT` задают одинаковые
+  продуктовые ограничения для всех пользователей. Тарифов, подписок и VIP-исключений нет.
 - Все секреты хранятся только в `.env.local`; файл исключён из Git.
 
 Mock-оплата позволяет локально завершать тестовые заказы без обращения к
@@ -94,7 +97,11 @@ pnpm admin:seed
 pnpm admin:dev
 ```
 
-Админка откроется на `http://localhost:5173`. В production вход выполняется через Supabase phone/password с publishable key; для hosted-проекта заранее включите **Authentication → Sign In / Providers → Phone**. Backend повторно проверяет `role = ADMIN` и `status = ACTIVE`. `AdminPhone` доступен только как dev-only fallback. Browser origins задаются точным списком `ADMIN_ORIGINS` через запятую; wildcard не поддерживается.
+Админка откроется на `http://localhost:5173`. В production вход выполняется по
+единому коду: backend проверяет `ADMIN_ACCESS_CODE` и возвращает подписанный
+admin-token. Секреты не попадают во frontend. `AdminPhone` доступен только как
+dev-only fallback. Browser origins задаются точным списком `ADMIN_ORIGINS` через
+запятую; wildcard не поддерживается.
 
 ## База данных
 

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 import { REFERENCE_IMAGE_RULES, SOURCE_IMAGE_RULES } from "@/server/shared/config/storage";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 
 export class ImageValidationError extends Error {
   constructor(
@@ -29,10 +30,14 @@ export type ValidatedSourceImage = {
 export async function validateSourceImage(
   file: File,
 ): Promise<ValidatedSourceImage> {
+  const limits = getSystemLimits();
   if (file.size <= 0)
     throw new ImageValidationError("IMAGE_EMPTY", "Файл пуст");
-  if (file.size > SOURCE_IMAGE_RULES.maxBytes)
-    throw new ImageValidationError("IMAGE_TOO_LARGE", "Файл превышает 15 МБ");
+  if (file.size > limits.maxUploadSizeBytes)
+    throw new ImageValidationError(
+      "IMAGE_TOO_LARGE",
+      `Файл превышает ${limits.maxUploadSizeMb} МБ`,
+    );
 
   const input = Buffer.from(await file.arrayBuffer());
   const detected = await fileTypeFromBuffer(input);
@@ -126,10 +131,14 @@ export async function validateSourceImage(
 export async function validateReferenceImage(
   file: File,
 ): Promise<ValidatedSourceImage> {
+  const limits = getSystemLimits();
   if (file.size <= 0)
     throw new ImageValidationError("IMAGE_EMPTY", "Файл пуст");
-  if (file.size > REFERENCE_IMAGE_RULES.maxBytes)
-    throw new ImageValidationError("IMAGE_TOO_LARGE", "Файл превышает 15 МБ");
+  if (file.size > limits.maxUploadSizeBytes)
+    throw new ImageValidationError(
+      "IMAGE_TOO_LARGE",
+      `Файл превышает ${limits.maxUploadSizeMb} МБ`,
+    );
 
   const input = Buffer.from(await file.arrayBuffer());
   const detected = await fileTypeFromBuffer(input);

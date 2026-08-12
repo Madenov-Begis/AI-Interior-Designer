@@ -4,7 +4,6 @@ import { getDb } from "@/server/shared/db/prisma";
 import { createSupabaseTokenClient } from "@/server/shared/integrations/supabase/token-client";
 import type { NextRequest } from "next/server";
 import { headers } from "next/headers";
-import { ensureSystemDefaults } from "@/server/features/plans/defaults";
 import { upsertProfileFromAuthUserWithDatabase } from "@/server/features/auth/profile-upsert";
 import {
   currentUserFromClaims,
@@ -66,6 +65,5 @@ export async function requireCurrentUserFromBearer(
 }
 
 export async function upsertProfileFromAuthUser(user: CurrentUser) {
-  const { freePlan } = await ensureSystemDefaults();
-  return upsertProfileFromAuthUserWithDatabase(getDb(), user, freePlan.id);
+  return upsertProfileFromAuthUserWithDatabase(getDb(), user);
 }

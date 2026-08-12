@@ -12,10 +12,7 @@ type ProfileRow = {
   avatarUrl: string | null;
   role: "USER" | "ADMIN";
   status: "ACTIVE" | "BLOCKED";
-  planId: string | null;
   timezone: string;
-  maxParallelOverride: number | null;
-  vipExpiresAt: Date | null;
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -63,7 +60,6 @@ function createProfileHarness() {
           displayName: string | null;
           avatarUrl: string | null;
           lastLoginAt: Date;
-          planId: string;
         };
         update: {
           email: string;
@@ -86,23 +82,11 @@ function createProfileHarness() {
           role: "USER",
           status: "ACTIVE",
           timezone: "Asia/Tashkent",
-          maxParallelOverride: null,
-          vipExpiresAt: null,
           createdAt: now,
           updatedAt: now,
           deletedAt: null,
         };
         state.profiles.set(profile.id, profile);
-        return profile;
-      },
-      update: async (args: {
-        where: { id: string };
-        data: { planId: string };
-      }) => {
-        const profile = state.profiles.get(args.where.id);
-        if (!profile) throw new Error("PROFILE_NOT_FOUND");
-        profile.planId = args.data.planId;
-        profile.updatedAt = new Date();
         return profile;
       },
     },
@@ -189,7 +173,6 @@ test("returns the upserted profile only after one signup wallet grant", async ()
   const firstUpsert = upsertProfileFromAuthUserWithDatabase(
     db,
     user,
-    "free-plan",
   ).finally(() => {
     settled = true;
   });
@@ -198,10 +181,9 @@ test("returns the upserted profile only after one signup wallet grant", async ()
 
   allowWalletGrant.resolve();
   const profile = await firstUpsert;
-  await upsertProfileFromAuthUserWithDatabase(db, user, "free-plan");
+  await upsertProfileFromAuthUserWithDatabase(db, user);
 
   assert.equal(profile.id, "user-1");
-  assert.equal(profile.planId, "free-plan");
   assert.equal(profile.displayName, "Ada Lovelace");
   assert.equal(state.wallets.get("user-1")?.balance, 10);
   assert.deepEqual(

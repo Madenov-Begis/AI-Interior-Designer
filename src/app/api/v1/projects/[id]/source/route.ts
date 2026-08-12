@@ -11,7 +11,7 @@ import {
   ProjectSourceAlreadyExistsError,
   uploadProjectSource,
 } from "@/server/features/media/source-upload";
-import { SOURCE_IMAGE_RULES } from "@/server/shared/config/storage";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
 
 export async function POST(
@@ -21,11 +21,12 @@ export async function POST(
   const requestId = getRequestId(request.headers);
   try {
     enforceRateLimit(request, "source-upload", 20, 60_000);
+    const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
-    if (contentLength > SOURCE_IMAGE_RULES.maxBytes + 1024 * 1024)
+    if (contentLength > limits.maxUploadSizeBytes + 1024 * 1024)
       return apiError(
         "IMAGE_TOO_LARGE",
-        "Файл превышает 15 МБ",
+        `Файл превышает ${limits.maxUploadSizeMb} МБ`,
         requestId,
         413,
       );

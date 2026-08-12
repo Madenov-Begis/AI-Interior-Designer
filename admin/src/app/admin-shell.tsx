@@ -17,7 +17,6 @@ import {
   IconChartBar,
   IconCoins,
   IconCreditCard,
-  IconFileText,
   IconMoon,
   IconPhoto,
   IconSun,
@@ -34,7 +33,6 @@ const nav = [
   { to: "/generations", label: "Генерации", icon: IconPhoto },
   { to: "/finance/orders", label: "Платежи", icon: IconCreditCard },
   { to: "/finance/transactions", label: "Кредиты", icon: IconCoins },
-  { to: "/plans", label: "Тарифы", icon: IconFileText },
 ] as const;
 
 export function AdminShell() {

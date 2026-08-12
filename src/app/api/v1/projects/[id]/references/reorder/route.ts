@@ -18,7 +18,7 @@ export async function PATCH(
   try {
     const user = await requireCurrentUser();
     const { id } = await context.params;
-    const body = reorderReferencesSchema.parse(await request.json());
+    const body = reorderReferencesSchema().parse(await request.json());
     await reorderReferences(
       user.id,
       projectIdSchema.parse(id),

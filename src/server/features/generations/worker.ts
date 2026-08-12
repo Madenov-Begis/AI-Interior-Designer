@@ -13,6 +13,8 @@ import { failGenerationWithDatabase } from "@/server/features/generations/operat
 import { getImageGenerationProvider } from "@/server/features/generations/provider";
 import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
+import { constrainOutputDimensions } from "@/server/features/generations/output-limits";
 
 type StoredFile = { bucket: string; path: string; mimeType: string };
 
@@ -94,7 +96,7 @@ export async function processGeneration(generationId: string) {
       },
       getImageGenerationProvider,
     );
-    const finalizedOutput = generation.parentGenerationId
+    const normalizedOutput = generation.parentGenerationId
       ? {
           ...output,
           ...(await normalizeRefinementOutput(
@@ -104,6 +106,10 @@ export async function processGeneration(generationId: string) {
           )),
         }
       : output;
+    const finalizedOutput = await constrainOutputDimensions(
+      normalizedOutput,
+      getSystemLimits(),
+    );
     const originalId = randomUUID();
     const userResultId = randomUUID();
     const originalPath = `users/${generation.userId}/generations/${generation.id}/original/${originalId}.webp`;

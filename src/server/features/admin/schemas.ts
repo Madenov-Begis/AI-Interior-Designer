@@ -25,7 +25,6 @@ export const usersListSchema = paginationSchema.extend({
   query: z.string().trim().max(120).optional(),
   role: z.enum(["USER", "ADMIN"]).optional(),
   status: z.enum(["ACTIVE", "BLOCKED", "DELETED"]).optional(),
-  planId: uuid.optional(),
 });
 
 export const generationsListSchema = withDateRange({
@@ -68,42 +67,7 @@ export const updateUserSchema = z
   .object({
     role: z.enum(["USER", "ADMIN"]).optional(),
     status: z.enum(["ACTIVE", "BLOCKED", "DELETED"]).optional(),
-    planId: uuid.nullable().optional(),
-    maxParallelOverride: z.number().int().min(1).max(20).nullable().optional(),
-    vipExpiresAt: z.iso.datetime({ offset: true }).nullable().optional(),
   })
-  .strict()
-  .refine((value) => Object.keys(value).length > 0, "Нет изменений");
-
-const planFields = {
-  name: z.string().trim().min(1).max(100),
-  description: z.string().trim().max(1000).nullable(),
-  maxParallelGenerations: z.number().int().min(1).max(20),
-  maxReferenceImages: z.number().int().min(0).max(30),
-  maxReferenceUrls: z.number().int().min(0).max(30),
-  maxUploadSizeMb: z.number().int().min(1).max(100),
-  maxOutputWidth: z.number().int().min(256).max(8192).nullable(),
-  maxOutputHeight: z.number().int().min(256).max(8192).nullable(),
-  priorityProcessing: z.boolean(),
-  active: z.boolean(),
-  sortOrder: z.number().int().min(-10_000).max(10_000),
-} satisfies z.ZodRawShape;
-
-export const createPlanSchema = z
-  .object({
-    code: z
-      .string()
-      .trim()
-      .min(2)
-      .max(40)
-      .regex(/^[A-Za-z0-9_-]+$/, "Код может содержать буквы, цифры, _ и -"),
-    ...planFields,
-  })
-  .strict();
-
-export const updatePlanSchema = z
-  .object(planFields)
-  .partial()
   .strict()
   .refine((value) => Object.keys(value).length > 0, "Нет изменений");
 

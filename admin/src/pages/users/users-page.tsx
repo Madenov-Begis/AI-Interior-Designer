@@ -2,7 +2,7 @@ import { Anchor, Group, Select, Stack, Text, TextInput } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useDeferredValue } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { adminApi, queryString, type AdminPlan, type AdminUser, type Paged } from "@/shared/api";
+import { adminApi, queryString, type AdminUser, type Paged } from "@/shared/api";
 import { formatDate, formatNumber } from "@/shared/lib";
 import { AsyncState, EnumBadge, PageFrame, PagePagination, ResourceTable, type ResourceColumn } from "@/shared/ui";
 
@@ -27,25 +27,21 @@ export function UsersPage() {
     query: deferredQuery,
     role: params.get("role"),
     status: params.get("status"),
-    planId: params.get("planId"),
   })}`;
   const users = useQuery({ queryKey: ["admin", "users", path], queryFn: () => adminApi<Paged<AdminUser>>(path) });
-  const plans = useQuery({ queryKey: ["admin", "plans", "filters"], queryFn: () => adminApi<{ items: AdminPlan[] }>("/api/v1/admin/plans") });
   const columns: Array<ResourceColumn<AdminUser>> = [
     { key: "account", label: "Пользователь", render: (user) => <Stack gap={1}><Anchor component={Link} to={`/users/${user.id}`} fw={600}>{user.account}</Anchor><Text size="xs" c="dimmed">{user.phone ?? user.email ?? "—"}</Text></Stack> },
     { key: "role", label: "Роль", render: (user) => <EnumBadge value={user.role} labels={roleLabels} /> },
-    { key: "plan", label: "Тариф", render: (user) => user.plan?.name ?? "—" },
     { key: "balance", label: "Баланс", render: (user) => `${formatNumber(user.balance)} кр.` },
     { key: "status", label: "Статус", render: (user) => <EnumBadge value={user.status} labels={statusLabels} colors={statusColors} /> },
     { key: "created", label: "Регистрация", render: (user) => formatDate(user.createdAt), mobile: false },
   ];
   return (
-    <PageFrame title="Пользователи" description="Аккаунты, доступ, тарифы и баланс">
+    <PageFrame title="Пользователи" description="Аккаунты, доступ и кредитный баланс">
       <Group align="flex-end" gap="sm">
         <TextInput label="Поиск" placeholder="Имя, email или телефон" value={params.get("query") ?? ""} onChange={(event) => update("query", event.currentTarget.value)} flex="1 1 260px" />
         <Select label="Роль" placeholder="Все" clearable value={params.get("role")} onChange={(value) => update("role", value ?? "")} data={[{ value: "USER", label: "Пользователь" }, { value: "ADMIN", label: "Администратор" }]} w={180} />
         <Select label="Статус" placeholder="Все" clearable value={params.get("status")} onChange={(value) => update("status", value ?? "")} data={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} w={190} />
-        <Select label="Тариф" placeholder="Все" clearable searchable value={params.get("planId")} onChange={(value) => update("planId", value ?? "")} data={(plans.data?.items ?? []).map((plan) => ({ value: plan.id, label: plan.name }))} w={190} />
       </Group>
       <AsyncState loading={users.isLoading} error={users.isError} empty={users.data?.items.length === 0} onRetry={() => void users.refetch()}>
         {users.data ? <ResourceTable items={users.data.items} columns={columns} getKey={(user) => user.id} /> : null}

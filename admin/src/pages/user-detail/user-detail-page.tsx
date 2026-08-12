@@ -2,14 +2,12 @@ import {
   Anchor,
   Button,
   Card,
-  Divider,
   Group,
   NumberInput,
   Select,
   SimpleGrid,
   Stack,
   Text,
-  TextInput,
   Textarea,
   Title,
 } from "@mantine/core";
@@ -19,7 +17,7 @@ import { notifications } from "@mantine/notifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { adminApi, type AdminPlan, type AdminUserDetail, type UserRole, type UserStatus } from "@/shared/api";
+import { adminApi, type AdminUserDetail, type UserRole, type UserStatus } from "@/shared/api";
 import { formatDateTime, formatNumber } from "@/shared/lib";
 import { AsyncState, EnumBadge, PageFrame } from "@/shared/ui";
 import {
@@ -31,9 +29,6 @@ import {
 type UserUpdate = {
   role: UserRole;
   status: UserStatus;
-  planId: string | null;
-  maxParallelOverride: number | string;
-  vipExpiresAt: string;
 };
 
 const roleLabels = { USER: "Пользователь", ADMIN: "Администратор" };
@@ -44,18 +39,14 @@ export function UserDetailPage() {
   const { id = "" } = useParams();
   const client = useQueryClient();
   const user = useQuery({ queryKey: ["admin", "users", id], queryFn: () => adminApi<AdminUserDetail>(`/api/v1/admin/users/${id}`) });
-  const plans = useQuery({ queryKey: ["admin", "plans"], queryFn: () => adminApi<{ items: AdminPlan[] }>("/api/v1/admin/plans") });
   const form = useForm<UserUpdate>({
-    initialValues: { role: "USER", status: "ACTIVE", planId: null, maxParallelOverride: "", vipExpiresAt: "" },
+    initialValues: { role: "USER", status: "ACTIVE" },
   });
   useEffect(() => {
     if (!user.data) return;
     form.setValues({
       role: user.data.role,
       status: user.data.status,
-      planId: user.data.plan?.id ?? null,
-      maxParallelOverride: user.data.maxParallelOverride ?? "",
-      vipExpiresAt: user.data.vipExpiresAt?.slice(0, 16) ?? "",
     });
     form.resetDirty();
     // The form intentionally follows the latest server snapshot.
@@ -66,12 +57,7 @@ export function UserDetailPage() {
     mutationFn: (values: UserUpdate) =>
       adminApi<AdminUserDetail>(`/api/v1/admin/users/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          ...values,
-          maxParallelOverride:
-            values.maxParallelOverride === "" ? null : Number(values.maxParallelOverride),
-          vipExpiresAt: values.vipExpiresAt ? new Date(values.vipExpiresAt).toISOString() : null,
-        }),
+        body: JSON.stringify(values),
       }),
     onSuccess: async () => {
       notifications.show({ color: "green", message: "Пользователь обновлён" });
@@ -136,7 +122,7 @@ export function UserDetailPage() {
   return (
     <PageFrame
       title={user.data?.account ?? "Пользователь"}
-      description="Профиль, доступ, тариф и кредитный баланс"
+      description="Профиль, доступ и кредитный баланс"
       actions={<Anchor component={Link} to="/users">← Все пользователи</Anchor>}
     >
       <AsyncState loading={user.isLoading} error={user.isError} onRetry={() => void user.refetch()}>
@@ -156,9 +142,6 @@ export function UserDetailPage() {
                   <Stack mt="lg">
                     <Select label="Роль" data={Object.entries(roleLabels).map(([value, label]) => ({ value, label }))} allowDeselect={false} {...form.getInputProps("role")} />
                     <Select label="Статус" data={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} allowDeselect={false} {...form.getInputProps("status")} />
-                    <Select label="Тариф" clearable searchable data={(plans.data?.items ?? []).map((plan) => ({ value: plan.id, label: `${plan.name} (${plan.code})` }))} {...form.getInputProps("planId")} />
-                    <NumberInput label="Parallel override" description="Оставьте пустым для лимита тарифа" min={1} max={20} allowDecimal={false} {...form.getInputProps("maxParallelOverride")} />
-                    <TextInput type="datetime-local" label="VIP до" {...form.getInputProps("vipExpiresAt")} />
                     <Button type="submit" loading={update.isPending} disabled={!form.isDirty()}>Сохранить изменения</Button>
                   </Stack>
                 </form>
@@ -185,16 +168,6 @@ export function UserDetailPage() {
                 <div><Text size="xs" c="dimmed">Заказы</Text><Text fw={700}>{user.data.counts.paymentOrders}</Text></div>
                 <div><Text size="xs" c="dimmed">Часовой пояс</Text><Text fw={700}>{user.data.timezone}</Text></div>
               </SimpleGrid>
-              <Divider my="lg" />
-              <Title order={3}>Подписки</Title>
-              <Stack mt="sm">
-                {user.data.subscriptions.length ? user.data.subscriptions.map((subscription) => (
-                  <Group key={subscription.id} justify="space-between">
-                    <Text>{subscription.plan?.name ?? "Тариф удалён"}</Text>
-                    <Text size="sm" c="dimmed">{subscription.status} · {formatDateTime(subscription.startsAt)} — {formatDateTime(subscription.endsAt)}</Text>
-                  </Group>
-                )) : <Text c="dimmed">Подписок нет</Text>}
-              </Stack>
             </Card>
           </Stack>
         ) : null}

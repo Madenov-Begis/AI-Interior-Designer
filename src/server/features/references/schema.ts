@@ -1,16 +1,21 @@
 import { z } from "zod";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 
-export const reorderReferencesSchema = z.object({
+export function reorderReferencesSchema() {
+  return z.object({
   referenceIds: z
     .array(z.uuid())
     .min(1)
-    .max(10)
+    .max(getSystemLimits().maxReferenceImages)
     .refine(
       (ids) => new Set(ids).size === ids.length,
       "Список содержит повторяющиеся элементы",
     ),
-});
+  });
+}
 
-export const importReferenceUrlsSchema = z.object({
-  urls: z.array(z.url()).min(1).max(10),
-});
+export function importReferenceUrlsSchema() {
+  return z.object({
+    urls: z.array(z.url()).min(1).max(getSystemLimits().maxReferenceUrls),
+  });
+}

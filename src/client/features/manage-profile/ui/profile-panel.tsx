@@ -33,9 +33,6 @@ type ProfilePayload = {
   };
   usage: {
     used: number;
-    plan: {
-      name: string;
-    };
   };
 };
 
@@ -288,7 +285,7 @@ export function ProfilePanel() {
             </RuviePanel>
 
             <p className="px-2 text-xs leading-5 text-muted-foreground">
-              {walletSummary.availableGenerationsText} · {usage.plan.name}
+              {walletSummary.availableGenerationsText}
             </p>
             <Button
               variant="ghost"

@@ -21,10 +21,7 @@ import {
 } from "@/server/features/generations/refinement";
 import { ImageValidationError } from "@/server/features/media/image-validation";
 import { deleteMediaFileIfUnreferenced } from "@/server/features/media/cleanup";
-import {
-  REFERENCE_IMAGE_RULES,
-  VISUAL_PROMPT_RULES,
-} from "@/server/shared/config/storage";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 import {
   parseVisualPromptCanvasState,
   VisualPromptValidationError,
@@ -54,10 +51,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   let unattachedReferenceIds: string[] = [];
   try {
     enforceRateLimit(request, "generation-refinement", 10, 60_000);
+    const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     const maximumBodySize =
-      REFERENCE_IMAGE_RULES.maxBytes * REFERENCE_IMAGE_RULES.maxCount +
-      VISUAL_PROMPT_RULES.maxOverlayBytes +
+      limits.maxUploadSizeBytes * (limits.maxReferenceImages + 1) +
       1024 * 1024;
     if (contentLength > maximumBodySize) {
       return apiError(
@@ -90,9 +87,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       referenceFileIds:
         typeof referenceValue === "string" ? JSON.parse(referenceValue) : [],
     });
-    if (existingInput.referenceFileIds.length + referenceFiles.length > 10) {
+    if (
+      existingInput.referenceFileIds.length + referenceFiles.length >
+      limits.maxReferenceImages
+    ) {
       throw new RefinementReferenceLimitError(
-        "Можно добавить не более 10 референсов",
+        `Можно добавить не более ${limits.maxReferenceImages} референсов`,
       );
     }
     const uploadedReferences = referenceFiles.length

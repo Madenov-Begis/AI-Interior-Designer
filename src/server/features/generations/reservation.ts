@@ -12,6 +12,7 @@ import {
   buildRefinementPrompt,
 } from "@/server/features/generations/prompt";
 import { getDb } from "@/server/shared/db/prisma";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 
 export {
   GenerationReservationError,
@@ -26,6 +27,7 @@ function reservationDependencies() {
     buildRefinementPrompt,
     randomUUID,
     now: () => new Date(),
+    limits: getSystemLimits(),
   };
 }
 

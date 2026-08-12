@@ -12,7 +12,6 @@ import {
   getGenerationModelConfig,
   supportedGenerationAspectRatios,
 } from "./model-config.ts";
-import { resolveEffectivePlan } from "../plans/resolve-plan.ts";
 import type { VisualPromptCanvasState } from "../visual-prompt/types.ts";
 
 type GenerationDatabase = {
@@ -40,6 +39,10 @@ type ReservationDependencies<TDatabase> = {
   buildRefinementPrompt: BuildFinalPrompt;
   randomUUID: () => string;
   now: () => Date;
+  limits: {
+    maxParallelGenerations: number;
+    maxReferenceImages: number;
+  };
 };
 
 export type RootGenerationReservationInput = {
@@ -203,18 +206,6 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
         const now = dependencies.now();
         const profile = await tx.profile.findUnique({
           where: { id: input.userId },
-          include: {
-            plan: true,
-            subscriptions: {
-              where: {
-                status: "ACTIVE",
-                OR: [{ endsAt: null }, { endsAt: { gt: now } }],
-              },
-              orderBy: { startsAt: "desc" },
-              take: 1,
-              include: { plan: true },
-            },
-          },
         });
         if (!profile || profile.status !== "ACTIVE") {
           throw new GenerationReservationError(
@@ -224,14 +215,6 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
             "Профиль недоступен",
           );
         }
-        const plan = await resolveEffectivePlan(
-          profile.subscriptions[0]?.plan,
-          profile.plan,
-          () => tx.plan.findUniqueOrThrow({ where: { code: "FREE" } }),
-        );
-        const maxParallel =
-          profile.maxParallelOverride ?? plan.maxParallelGenerations;
-
         const project = await tx.project.findFirst({
           where: {
             id: input.projectId,
@@ -289,7 +272,7 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
             deletedAt: null,
           },
         });
-        if (parallel >= maxParallel) {
+        if (parallel >= dependencies.limits.maxParallelGenerations) {
           throw new GenerationReservationError(
             "GENERATION_ALREADY_RUNNING",
             "Дождитесь завершения текущей генерации",
@@ -372,18 +355,6 @@ export async function reserveRefinementWithDependencies<TDatabase>(
         const now = dependencies.now();
         const profile = await tx.profile.findUnique({
           where: { id: input.userId },
-          include: {
-            plan: true,
-            subscriptions: {
-              where: {
-                status: "ACTIVE",
-                OR: [{ endsAt: null }, { endsAt: { gt: now } }],
-              },
-              orderBy: { startsAt: "desc" },
-              take: 1,
-              include: { plan: true },
-            },
-          },
         });
         if (!profile || profile.status !== "ACTIVE") {
           throw new GenerationReservationError(
@@ -394,11 +365,6 @@ export async function reserveRefinementWithDependencies<TDatabase>(
           );
         }
 
-        const plan = await resolveEffectivePlan(
-          profile.subscriptions[0]?.plan,
-          profile.plan,
-          () => tx.plan.findUniqueOrThrow({ where: { code: "FREE" } }),
-        );
         const model = getGenerationModelConfig(dependencies.aiProvider);
         const parent = await tx.generation.findFirst({
           where: {
@@ -432,10 +398,13 @@ export async function reserveRefinementWithDependencies<TDatabase>(
           );
         }
 
-        if (input.referenceFileIds.length > plan.maxReferenceImages) {
+        if (
+          input.referenceFileIds.length >
+          dependencies.limits.maxReferenceImages
+        ) {
           throw new GenerationReservationError(
             "REFERENCE_LIMIT_EXCEEDED",
-            `Можно использовать не более ${plan.maxReferenceImages} референсов`,
+            `Можно использовать не более ${dependencies.limits.maxReferenceImages} референсов`,
           );
         }
         const referenceFiles = input.referenceFileIds.length
@@ -475,8 +444,6 @@ export async function reserveRefinementWithDependencies<TDatabase>(
           }
         }
 
-        const maxParallel =
-          profile.maxParallelOverride ?? plan.maxParallelGenerations;
         const parallel = await tx.generation.count({
           where: {
             userId: input.userId,
@@ -484,7 +451,7 @@ export async function reserveRefinementWithDependencies<TDatabase>(
             deletedAt: null,
           },
         });
-        if (parallel >= maxParallel) {
+        if (parallel >= dependencies.limits.maxParallelGenerations) {
           throw new GenerationReservationError(
             "GENERATION_ALREADY_RUNNING",
             "Дождитесь завершения текущей генерации",

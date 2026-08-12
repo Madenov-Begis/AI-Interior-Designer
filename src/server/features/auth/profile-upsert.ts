@@ -5,7 +5,6 @@ import type { CurrentUser } from "./claims.ts";
 export async function upsertProfileFromAuthUserWithDatabase(
   db: PrismaClient,
   user: CurrentUser,
-  freePlanId: string,
 ) {
   if (!user.email) {
     throw new Error("Google account did not provide an email");
@@ -23,7 +22,7 @@ export async function upsertProfileFromAuthUserWithDatabase(
   const avatarUrl =
     typeof metadata.avatar_url === "string" ? metadata.avatar_url : null;
 
-  let profile = await db.profile.upsert({
+  const profile = await db.profile.upsert({
     where: { id: user.id },
     create: {
       id: user.id,
@@ -33,7 +32,6 @@ export async function upsertProfileFromAuthUserWithDatabase(
       displayName,
       avatarUrl,
       lastLoginAt: new Date(),
-      planId: freePlanId,
     },
     update: {
       email: user.email,
@@ -45,12 +43,6 @@ export async function upsertProfileFromAuthUserWithDatabase(
       deletedAt: null,
     },
   });
-  if (!profile.planId) {
-    profile = await db.profile.update({
-      where: { id: profile.id },
-      data: { planId: freePlanId },
-    });
-  }
   await db.$transaction((tx) => ensureCreditWallet(tx, profile.id));
   return profile;
 }

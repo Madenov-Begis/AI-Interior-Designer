@@ -1,11 +1,12 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { REFERENCE_IMAGE_RULES, STORAGE_BUCKETS } from "@/server/shared/config/storage";
+import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import { validateReferenceImage } from "@/server/features/media/image-validation";
 import { deleteMediaFileIfUnreferenced } from "@/server/features/media/cleanup";
 import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 
 export class ReferenceProjectNotFoundError extends Error {}
 export class ReferenceNotFoundError extends Error {}
@@ -43,14 +44,12 @@ async function getProjectCapacity(userId: string, projectId: string) {
     select: {
       id: true,
       _count: { select: { references: true } },
-      user: { select: { plan: { select: { maxReferenceImages: true } } } },
     },
   });
   if (!project) throw new ReferenceProjectNotFoundError("Проект не найден");
   return {
     count: project._count.references,
-    limit:
-      project.user.plan?.maxReferenceImages ?? REFERENCE_IMAGE_RULES.maxCount,
+    limit: getSystemLimits().maxReferenceImages,
   };
 }
 
@@ -61,11 +60,17 @@ export async function addReferenceFiles(
   sourceUrls?: Array<string | null>,
 ) {
   const capacity = await getProjectCapacity(userId, projectId);
+  const limits = getSystemLimits();
+  const incomingUrlCount = sourceUrls?.filter(Boolean).length ?? 0;
   if (files.length === 0)
     throw new ReferenceLimitError("Добавьте хотя бы один файл");
   if (capacity.count + files.length > capacity.limit)
     throw new ReferenceLimitError(
       `Можно добавить не более ${capacity.limit} референсов`,
+    );
+  if (incomingUrlCount > limits.maxReferenceUrls)
+    throw new ReferenceLimitError(
+      `Можно добавить не более ${limits.maxReferenceUrls} референсов по URL`,
     );
 
   const storage = getSupabaseAdmin().storage.from(
@@ -102,6 +107,15 @@ export async function addReferenceFiles(
       if (current + uploaded.length > capacity.limit)
         throw new ReferenceLimitError(
           `Можно добавить не более ${capacity.limit} референсов`,
+        );
+      const currentUrlCount = incomingUrlCount
+        ? await tx.projectReference.count({
+            where: { projectId, sourceUrl: { not: null } },
+          })
+        : 0;
+      if (currentUrlCount + incomingUrlCount > limits.maxReferenceUrls)
+        throw new ReferenceLimitError(
+          `Можно добавить не более ${limits.maxReferenceUrls} референсов по URL`,
         );
       const rows = [];
       for (const [index, item] of uploaded.entries()) {

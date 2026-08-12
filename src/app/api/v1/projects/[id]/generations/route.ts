@@ -1,6 +1,6 @@
 import { after, type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
-import { VISUAL_PROMPT_RULES } from "@/server/shared/config/storage";
+import { getSystemLimits } from "@/server/shared/config/system-limits";
 import {
   GenerationClientPayloadError,
   getGenerationClientPayload,
@@ -58,11 +58,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   let unattachedVisualPromptId: string | null = null;
   try {
     enforceRateLimit(request, "generation", 10, 60_000);
+    const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
-    if (contentLength > VISUAL_PROMPT_RULES.maxOverlayBytes + 1024 * 1024) {
+    if (contentLength > limits.maxUploadSizeBytes + 1024 * 1024) {
       return apiError(
         "OVERLAY_TOO_LARGE",
-        "Разметка превышает 15 МБ",
+        `Разметка превышает ${limits.maxUploadSizeMb} МБ`,
         requestId,
         413,
       );
