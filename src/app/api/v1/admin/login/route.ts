@@ -14,7 +14,7 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
-    enforceRateLimit(request, "admin-login", 5, 15 * 60_000);
+    enforceRateLimit(request, "admin-login", 10, 15 * 60_000);
     const input = loginSchema.parse(await parseAdminJson(request));
     const session = await loginAdminWithAccessCode(input.code);
     const response = apiSuccess(session, requestId);
@@ -24,4 +24,3 @@ export async function POST(request: NextRequest) {
     return adminApiError(error, requestId, "Не удалось выполнить вход");
   }
 }
-
