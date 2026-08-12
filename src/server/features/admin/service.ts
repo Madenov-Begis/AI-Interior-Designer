@@ -578,6 +578,88 @@ export async function listAdminCreditTransactions(input: {
   };
 }
 
+function creditPackageDto(item: {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  credits: number;
+  priceUzs: number;
+  popular: boolean;
+  active: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+  };
+}
+
+export async function listAdminCreditPackages() {
+  const items = await getDb().creditPackage.findMany({
+    orderBy: [{ sortOrder: "asc" }, { credits: "asc" }, { code: "asc" }],
+  });
+  return { items: items.map(creditPackageDto) };
+}
+
+type CreditPackageMutation = {
+  name: string;
+  description: string | null;
+  credits: number;
+  priceUzs: number;
+  popular: boolean;
+  active: boolean;
+  sortOrder: number;
+};
+
+export async function createAdminCreditPackage(
+  input: CreditPackageMutation & { code: string },
+) {
+  const item = await getDb().$transaction(async (tx) => {
+    if (input.popular && input.active) {
+      await tx.creditPackage.updateMany({
+        where: { popular: true },
+        data: { popular: false },
+      });
+    }
+    return tx.creditPackage.create({ data: input });
+  });
+  return creditPackageDto(item);
+}
+
+export async function updateAdminCreditPackage(
+  id: string,
+  input: Partial<CreditPackageMutation>,
+) {
+  const item = await getDb().$transaction(async (tx) => {
+    const current = await tx.creditPackage.findUnique({ where: { id } });
+    if (!current)
+      throw new AdminServiceError("NOT_FOUND", "Пакет не найден", 404);
+
+    const active = input.active ?? current.active;
+    const popular = active ? (input.popular ?? current.popular) : false;
+    if (popular) {
+      await tx.creditPackage.updateMany({
+        where: { popular: true, id: { not: id } },
+        data: { popular: false },
+      });
+    }
+    return tx.creditPackage.update({
+      where: { id },
+      data: { ...input, popular },
+    });
+  });
+  return creditPackageDto(item);
+}
+
+export async function deleteAdminCreditPackage(id: string) {
+  const item = await getDb().creditPackage.delete({ where: { id } });
+  return { id: item.id };
+}
+
 export async function getAdminMediaSignedUrl(id: string) {
   const file = await getDb().mediaFile.findFirst({ where: { id, deletedAt: null } });
   if (!file) throw new AdminServiceError("NOT_FOUND", "Файл не найден", 404);

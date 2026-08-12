@@ -6,9 +6,11 @@ import {
   adminPeriodSchema,
   creditAdjustmentSchema,
   creditTransactionsListSchema,
+  createCreditPackageSchema,
   generationsListSchema,
   paymentOrdersListSchema,
   updateUserSchema,
+  updateCreditPackageSchema,
   usersListSchema,
 } from "./schemas.ts";
 import { adminPeriodRange, zonedDateKey } from "./time.ts";
@@ -85,6 +87,21 @@ test("mutation schemas reject unknown fields", () => {
     creditAdjustmentSchema.safeParse({ amount: 0, reason: "Тест", idempotencyKey: crypto.randomUUID() }).success,
     false,
   );
+  const validPackage = {
+    code: "standard",
+    name: "Стандарт",
+    description: "Оптимально для ремонта",
+    credits: 60,
+    priceUzs: 69_000,
+    popular: true,
+    active: true,
+    sortOrder: 20,
+  };
+  assert.equal(createCreditPackageSchema.safeParse(validPackage).success, true);
+  assert.equal(createCreditPackageSchema.safeParse({ ...validPackage, code: "Standard" }).success, false);
+  assert.equal(createCreditPackageSchema.safeParse({ ...validPackage, active: false }).success, false);
+  assert.equal(updateCreditPackageSchema.safeParse({}).success, false);
+  assert.equal(updateCreditPackageSchema.safeParse({ code: "new-code" }).success, false);
 });
 
 test("admin access policy prevents self-lockout and removal of the last admin", () => {

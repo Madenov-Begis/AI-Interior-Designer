@@ -83,3 +83,41 @@ export const creditAdjustmentSchema = z
     idempotencyKey: uuid,
   })
   .strict();
+
+const creditPackageFields = {
+  name: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(240).nullable(),
+  credits: z.number().int().min(1).max(1_000_000),
+  priceUzs: z.number().int().min(1_000).max(2_000_000_000),
+  popular: z.boolean(),
+  active: z.boolean(),
+  sortOrder: z.number().int().min(-10_000).max(10_000),
+};
+
+export const createCreditPackageSchema = z
+  .object({
+    code: z.string().trim().min(2).max(32).regex(/^[a-z0-9-]+$/),
+    ...creditPackageFields,
+  })
+  .strict()
+  .refine((value) => value.active || !value.popular, {
+    path: ["popular"],
+    message: "Неактивный пакет не может быть популярным",
+  });
+
+export const updateCreditPackageSchema = z
+  .object({
+    name: creditPackageFields.name.optional(),
+    description: creditPackageFields.description.optional(),
+    credits: creditPackageFields.credits.optional(),
+    priceUzs: creditPackageFields.priceUzs.optional(),
+    popular: creditPackageFields.popular.optional(),
+    active: creditPackageFields.active.optional(),
+    sortOrder: creditPackageFields.sortOrder.optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, "Нет изменений")
+  .refine((value) => value.active !== false || value.popular !== true, {
+    path: ["popular"],
+    message: "Неактивный пакет не может быть популярным",
+  });

@@ -6,7 +6,7 @@ import {
   paymentOrderIdSchema,
 } from "./schema.ts";
 
-test("payment order input accepts only a server-known package code", () => {
+test("payment order input accepts a safe dynamic package code", () => {
   assert.deepEqual(
     paymentOrderCreateSchema.parse({ packageCode: "standard" }),
     {
@@ -21,10 +21,8 @@ test("payment order input accepts only a server-known package code", () => {
     }).success,
     true,
   );
-  assert.equal(
-    paymentOrderCreateSchema.safeParse({ packageCode: "enterprise" }).success,
-    false,
-  );
+  assert.equal(paymentOrderCreateSchema.safeParse({ packageCode: "enterprise" }).success, true);
+  assert.equal(paymentOrderCreateSchema.safeParse({ packageCode: "../../admin" }).success, false);
 });
 
 test("payment order path accepts UUIDs only", () => {

@@ -288,7 +288,7 @@ function seedOrder(overrides: Partial<OrderRow> = {}): OrderRow {
   };
 }
 
-const packageResolver = (code: string) =>
+const packageResolver = async (code: string) =>
   code === "standard"
     ? {
         code: "standard",

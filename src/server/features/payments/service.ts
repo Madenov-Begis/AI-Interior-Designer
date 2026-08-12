@@ -1,6 +1,5 @@
 import "server-only";
 
-import { getCreditPackage } from "@/server/shared/config/product";
 import { getDb } from "@/server/shared/db/prisma";
 import {
   applyPaymentEventWithDatabase,
@@ -13,6 +12,7 @@ import {
   MockPaymentProvider,
   type NormalizedPaymentEvent,
 } from "@/server/features/payments/provider";
+import { getActiveCreditPackage } from "@/server/features/payments/packages";
 
 export { PaymentServiceError } from "@/server/features/payments/service-operations";
 
@@ -36,7 +36,7 @@ export function createPaymentOrder(userId: string, packageCode: string) {
       db: getDb(),
       provider: new MockPaymentProvider(),
       paymentMode: mode,
-      getPackage: getCreditPackage,
+      getPackage: getActiveCreditPackage,
       now: () => new Date(),
     },
     userId,

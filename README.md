@@ -92,6 +92,10 @@ PAYMENT_PROVIDER=mock      # local development only; requires AI_PROVIDER=fake
 
 После первой авторизации администратора можно назначить через Prisma Studio: открыть `Profile`, выставить `role = ADMIN` и оставить `status = ACTIVE`. Административный UI является отдельным Vite-приложением; встроенного Next.js-маршрута `/admin` нет.
 
+Каталог пакетов кредитов хранится в Prisma и управляется в админке на
+`/finance/packages`. Лендинг и экран покупки читают один публичный каталог;
+заказы сохраняют неизменяемый snapshot выбранного пакета.
+
 ```bash
 pnpm admin:seed
 pnpm admin:dev

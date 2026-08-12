@@ -44,7 +44,9 @@ export async function createPaymentOrderWithDependencies(
     db: PaymentDatabase;
     provider: CheckoutProvider;
     paymentMode: "disabled" | "mock";
-    getPackage: (code: string) => CreditPackageSnapshotSource | null;
+    getPackage: (
+      code: string,
+    ) => CreditPackageSnapshotSource | null | Promise<CreditPackageSnapshotSource | null>;
     now: () => Date;
   },
   userId: string,
@@ -53,7 +55,7 @@ export async function createPaymentOrderWithDependencies(
   if (dependencies.paymentMode === "disabled") {
     throw new PaymentServiceError("PAYMENTS_DISABLED");
   }
-  const creditPackage = dependencies.getPackage(packageCode);
+  const creditPackage = await dependencies.getPackage(packageCode);
   if (!creditPackage) {
     throw new PaymentServiceError("CREDIT_PACKAGE_NOT_FOUND");
   }

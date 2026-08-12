@@ -1,0 +1,126 @@
+"use client";
+
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, RefreshCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  CREDIT_PACKAGES_QUERY_KEY,
+  loadCreditPackages,
+} from "@/features/manage-credits";
+import { GENERATION_CREDIT_COST } from "@/shared/config";
+import { buttonClassName } from "@/shared/ui";
+
+const priceFormatter = new Intl.NumberFormat("ru-RU");
+
+export function PricingSection() {
+  const packagesQuery = useQuery({
+    queryKey: CREDIT_PACKAGES_QUERY_KEY,
+    queryFn: ({ signal }) => loadCreditPackages(signal),
+  });
+  const packages = packagesQuery.data?.items ?? [];
+
+  return (
+    <section
+      id="pricing"
+      className="page-grid border-b border-border bg-[#101719] text-white"
+    >
+      <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 sm:py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-4xl font-black tracking-[-0.055em] sm:text-5xl">
+            Пакеты кредитов
+          </h2>
+          <p className="mt-4 text-base font-semibold text-white/70">
+            Кредиты — валюта Ruvie для генераций и правок
+          </p>
+        </div>
+
+        {packagesQuery.isLoading ? (
+          <div className="mt-12 grid gap-4 md:grid-cols-3" aria-label="Загрузка пакетов">
+            {[0, 1, 2].map((key) => (
+              <div key={key} className="min-h-[390px] animate-pulse rounded-[24px] bg-white/10 motion-reduce:animate-none" />
+            ))}
+          </div>
+        ) : null}
+
+        {packagesQuery.isError ? (
+          <div className="mx-auto mt-12 flex max-w-xl flex-col items-center rounded-[24px] border border-white/15 bg-white/[0.06] p-8 text-center">
+            <p className="font-bold">Не удалось загрузить пакеты</p>
+            <button
+              type="button"
+              className={buttonClassName("outline", "mt-4 h-11 rounded-xl border-white text-white", "sm")}
+              onClick={() => void packagesQuery.refetch()}
+            >
+              <RefreshCw className="size-4" aria-hidden="true" />
+              Повторить
+            </button>
+          </div>
+        ) : null}
+
+        {packages.length > 0 ? (
+          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {packages.map((pack) => (
+              <article
+                key={pack.code}
+                className={`relative flex min-h-[390px] flex-col rounded-[24px] border bg-[#f2f3f1] p-6 text-[#1b1d1f] shadow-[0_24px_60px_rgba(0,0,0,0.22)] ${
+                  pack.popular ? "border-primary ring-2 ring-primary" : "border-white/10"
+                }`}
+              >
+                {pack.popular ? (
+                  <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-primary-foreground shadow-lg">
+                    Выбирают чаще
+                  </div>
+                ) : null}
+                <div>
+                  <h3 className="text-2xl font-black italic">{pack.name}</h3>
+                  <p className="mt-1 min-h-5 text-sm text-black/55">{pack.description}</p>
+                </div>
+                <div className="mt-5">
+                  <p className="text-3xl font-black tracking-[-0.04em] tabular-nums">
+                    {priceFormatter.format(pack.priceUzs)} сум
+                  </p>
+                  <p className="mt-3 text-lg font-black">{pack.credits} кредитов</p>
+                </div>
+                <div className="my-5 h-px bg-black/8" />
+                <div>
+                  <p className="text-xs font-bold text-black/55">Хватит на</p>
+                  <p className="mt-3 flex items-center gap-2 text-sm font-semibold">
+                    <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
+                    {Math.floor(pack.credits / GENERATION_CREDIT_COST)} генераций или правок
+                  </p>
+                  <p className="mt-3 flex items-center gap-2 text-sm text-black/60">
+                    <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
+                    Кредиты не сгорают
+                  </p>
+                </div>
+                <Link
+                  href="/app/credits"
+                  className={buttonClassName(
+                    pack.popular ? "default" : "secondary",
+                    pack.popular
+                      ? "mt-auto h-11 w-full rounded-xl px-5"
+                      : "mt-auto h-11 w-full rounded-xl bg-[#2b2c2f] px-5 text-white hover:bg-[#1d1e20] hover:text-white",
+                    "sm",
+                  )}
+                >
+                  Купить
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-8 flex flex-col gap-5 rounded-[24px] border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <h3 className="font-bold">10 кредитов новым пользователям</h3>
+            <p className="mt-1 text-sm text-white/55">Хватит на 2 варианта. Банковская карта не нужна.</p>
+          </div>
+          <Link href="/app" className={buttonClassName("outline", "h-11 shrink-0 rounded-xl border-white bg-white px-6 text-[#1b1d1f] hover:bg-white/90 hover:text-[#1b1d1f]", "sm")}>
+            Попробовать бесплатно
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}

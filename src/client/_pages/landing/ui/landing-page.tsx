@@ -3,10 +3,10 @@ import { Hero } from "./hero";
 import {
   FaqSection,
   FinalCtaSection,
-  PricingSection,
   StoriesSection,
   WorkflowSection,
 } from "./landing-sections";
+import { PricingSection } from "./pricing-section";
 import { ProcessSection } from "./process-section";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";

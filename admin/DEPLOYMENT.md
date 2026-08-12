@@ -35,7 +35,7 @@ ADMIN_TOKEN_SECRET=<случайный secret, минимум 32 символа>
 ## Release flow
 
 1. Запустить `pnpm admin:test`, `pnpm admin:typecheck` и `pnpm admin:build` из корня репозитория.
-2. Создать Preview Deployment и проверить `/login`, `/users`, `/generations`, `/finance/orders` и `/finance/transactions`.
+2. Создать Preview Deployment и проверить `/login`, `/users`, `/generations`, `/finance/orders`, `/finance/transactions` и CRUD на `/finance/packages`.
 3. Для проверки API на preview использовать стабильный staging-origin, внесённый в staging `ADMIN_ORIGINS`; wildcard origins запрещены.
 4. После проверки назначить deployment production-домену `admin.ruvie.cc`.
 5. Проверить прямое открытие detail-маршрутов, вход, обновление сессии и отсутствие browser console errors.

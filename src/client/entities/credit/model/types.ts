@@ -1,6 +1,7 @@
 export type CreditPackage = {
   code: string;
   name: string;
+  description: string | null;
   credits: number;
   priceUzs: number;
   popular: boolean;

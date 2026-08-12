@@ -32,7 +32,7 @@ export function CreditTransactionsPage() {
     { key: "created", label: "Дата", render: (item) => formatDateTime(item.createdAt), mobile: false },
   ];
   return (
-    <PageFrame title="Кредитные операции" description="Все начисления, списания и возвраты" actions={<Group><Anchor component={Link} to="/finance/orders">Платежи</Anchor><Anchor component={Link} to="/finance/transactions" fw={700}>Операции</Anchor></Group>}>
+    <PageFrame title="Кредитные операции" description="Все начисления, списания и возвраты" actions={<Group><Anchor component={Link} to="/finance/orders">Платежи</Anchor><Anchor component={Link} to="/finance/transactions" fw={700}>Операции</Anchor><Anchor component={Link} to="/finance/packages">Пакеты</Anchor></Group>}>
       <Group align="flex-end" gap="sm">
         <TextInput label="Поиск" placeholder="Причина или пользователь" value={params.get("query") ?? ""} onChange={(event) => update("query", event.currentTarget.value)} flex="1 1 260px" />
         <Select label="Тип" placeholder="Все" searchable clearable value={params.get("kind")} onChange={(value) => update("kind", value ?? "")} data={Object.entries(kindLabels).map(([value, label]) => ({ value, label }))} w={250} />

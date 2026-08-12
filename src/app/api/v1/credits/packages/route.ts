@@ -1,22 +1,23 @@
 import type { NextRequest } from "next/server";
-import { requireCurrentUser } from "@/server/features/auth/current-user";
 import { paymentHttpError } from "@/server/features/payments/http";
+import { listActiveCreditPackages } from "@/server/features/payments/packages";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { CREDIT_PACKAGES } from "@/server/shared/config/product";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
-    await requireCurrentUser();
-    return apiSuccess(
+    const packages = await listActiveCreditPackages();
+    const response = apiSuccess(
       {
-        items: CREDIT_PACKAGES,
+        items: packages,
         paymentMode:
           process.env.PAYMENT_PROVIDER === "mock" ? "mock" : "disabled",
       },
       requestId,
     );
+    response.headers.set("cache-control", "no-store");
+    return response;
   } catch (error) {
     const mapped = paymentHttpError(error);
     return apiError(

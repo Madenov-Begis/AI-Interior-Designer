@@ -148,3 +148,17 @@ export type CreditTransaction = {
   generationId: string | null;
   createdAt: string;
 };
+
+export type CreditPackage = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  credits: number;
+  priceUzs: number;
+  popular: boolean;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};

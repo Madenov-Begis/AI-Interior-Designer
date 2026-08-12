@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import type { AdminGeneration, CreditTransaction } from "./admin-contracts";
+import type { AdminGeneration, CreditPackage, CreditTransaction } from "./admin-contracts";
 
 it("generation fixture uses the explicit contract without a model", () => {
   const generation: AdminGeneration = {
@@ -40,4 +40,22 @@ it("credit transaction fixture does not expose wallet or idempotency key", () =>
   };
   expect(transaction).not.toHaveProperty("wallet");
   expect(transaction).not.toHaveProperty("idempotencyKey");
+});
+
+it("credit package fixture exposes only editable catalog fields", () => {
+  const creditPackage: CreditPackage = {
+    id: "00000000-0000-4000-8000-000000000000",
+    code: "standard",
+    name: "Стандарт",
+    description: "Оптимально для ремонта",
+    credits: 60,
+    priceUzs: 69_000,
+    popular: true,
+    active: true,
+    sortOrder: 20,
+    createdAt: "2026-08-12T00:00:00.000Z",
+    updatedAt: "2026-08-12T00:00:00.000Z",
+  };
+  expect(creditPackage.code).toBe("standard");
+  expect(creditPackage).not.toHaveProperty("paymentOrders");
 });

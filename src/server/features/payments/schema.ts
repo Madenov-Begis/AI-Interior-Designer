@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const paymentOrderCreateSchema = z.object({
-  packageCode: z.enum(["mini", "standard", "pro"]),
+  packageCode: z.string().trim().min(2).max(32).regex(/^[a-z0-9-]+$/),
 });
 
 export const paymentOrderIdSchema = z.uuid();

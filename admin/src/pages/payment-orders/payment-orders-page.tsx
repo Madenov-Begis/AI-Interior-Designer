@@ -25,7 +25,7 @@ export function PaymentOrdersPage() {
     { key: "created", label: "Создан", render: (item) => formatDateTime(item.createdAt), mobile: false },
   ];
   return (
-    <PageFrame title="Платёжные заказы" description="Оплаты пакетов кредитов" actions={<Group><Anchor component={Link} to="/finance/orders" fw={700}>Платежи</Anchor><Anchor component={Link} to="/finance/transactions">Операции</Anchor></Group>}>
+    <PageFrame title="Платёжные заказы" description="Оплаты пакетов кредитов" actions={<Group><Anchor component={Link} to="/finance/orders" fw={700}>Платежи</Anchor><Anchor component={Link} to="/finance/transactions">Операции</Anchor><Anchor component={Link} to="/finance/packages">Пакеты</Anchor></Group>}>
       <Group align="flex-end" gap="sm">
         <TextInput label="Поиск" placeholder="ID, пакет, пользователь" value={params.get("query") ?? ""} onChange={(event) => update("query", event.currentTarget.value)} flex="1 1 260px" />
         <Select label="Статус" placeholder="Все" clearable value={params.get("status")} onChange={(value) => update("status", value ?? "")} data={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))} w={170} />

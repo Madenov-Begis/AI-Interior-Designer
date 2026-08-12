@@ -129,7 +129,7 @@ export function CreditsGrid() {
                   ) : null}
                   <h2 className="text-3xl font-black italic">{item.name}</h2>
                   <p className="mt-1 text-sm text-[#5e5e63]">
-                    Для {item.popular ? "активной работы" : "новых проектов"}
+                    {item.description ?? "Пакет кредитов Ruvie"}
                   </p>
                   <p className="mt-7 text-4xl font-black tabular-nums">
                     {formatUzs(item.priceUzs)}

@@ -4,6 +4,7 @@ import type { CreditTransactionKind } from "../model/presentation.ts";
 export type CreditPackage = {
   code: string;
   name: string;
+  description: string | null;
   credits: number;
   priceUzs: number;
   popular: boolean;

@@ -10,6 +10,14 @@ const migrationSql = readFileSync(
   "utf8",
 );
 
+const creditPackageMigrationSql = readFileSync(
+  new URL(
+    "../../../../prisma/migrations/20260812164500_add_credit_packages/migration.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+
 test("wallet migration applies every schema, backfill, grant, and policy step atomically", () => {
   const sql = migrationSql.trim();
 
@@ -47,4 +55,15 @@ test("signup journal backfill is derived from existing wallet rows and keeps own
   ]) {
     assert.match(migrationSql, new RegExp(`create policy "${policy}"`, "i"));
   }
+});
+
+test("credit package migration preserves the three existing offers", () => {
+  assert.match(creditPackageMigrationSql, /CREATE TABLE "CreditPackage"/);
+  assert.match(creditPackageMigrationSql, /'mini'[\s\S]*20[\s\S]*25000/);
+  assert.match(creditPackageMigrationSql, /'standard'[\s\S]*60[\s\S]*69000/);
+  assert.match(creditPackageMigrationSql, /'pro'[\s\S]*160[\s\S]*169000/);
+  assert.match(creditPackageMigrationSql, /CHECK \("credits" > 0\)/);
+  assert.match(creditPackageMigrationSql, /CHECK \("priceUzs" > 0\)/);
+  assert.match(creditPackageMigrationSql, /CHECK \(NOT "popular" OR "active"\)/);
+  assert.match(creditPackageMigrationSql, /CreditPackage_one_active_popular_key/);
 });

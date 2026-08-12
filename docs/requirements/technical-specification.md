@@ -126,7 +126,7 @@ Workspace `admin` запускается отдельно на Vite, работ�
 - `/login`, `/`;
 - `/users`, `/users/:id`;
 - `/generations`, `/generations/:id`;
-- `/finance/orders`, `/finance/transactions`.
+- `/finance/orders`, `/finance/transactions`, `/finance/packages`.
 
 Интерфейс использует системную light/dark тему Mantine и отдельную от клиентского приложения blue design system. Разрешённые browser origins задаются обязательным exact allowlist `ADMIN_ORIGINS`; localhost добавляется автоматически только в development.
 
@@ -311,6 +311,12 @@ environment при старте:
 | Стандарт |      60 |  69 000 UZS |
 | Про      |     160 | 169 000 UZS |
 
+Пакеты хранятся в `CreditPackage` и управляются из админки. Публичная витрина
+возвращает только активные записи в порядке `sortOrder`. В каждый
+`PaymentOrder` копируются код, название, кредиты и цена, поэтому изменение или
+удаление пакета не меняет историю уже созданных заказов. Код пакета после
+создания неизменяем.
+
 ### 8.4. Платежи
 
 `PaymentOrder` хранит snapshot пакета и проходит переход из `PENDING` только в один terminal status: `PAID`, `FAILED`, `CANCELLED` или `EXPIRED`.
@@ -341,7 +347,9 @@ environment при старте:
 
 ### 9.4. Финансы
 
-Поддерживаются просмотр payment orders и последних credit transactions.
+Поддерживаются просмотр payment orders и последних credit transactions, а
+также создание, просмотр, изменение, отключение и удаление пакетов кредитов.
+Одновременно популярным может быть только один активный пакет.
 
 Управление моделями, уведомлениями, глобальными настройками и audit log не входит в текущий admin scope.
 
@@ -419,6 +427,10 @@ GET    /api/v1/admin/generations/:id
 POST   /api/v1/admin/generations/:id/cancel
 GET    /api/v1/admin/payment-orders
 GET    /api/v1/admin/credit-transactions
+GET    /api/v1/admin/credit-packages
+POST   /api/v1/admin/credit-packages
+PATCH  /api/v1/admin/credit-packages/:id
+DELETE /api/v1/admin/credit-packages/:id
 GET    /api/v1/admin/media/:id/signed-url
 ```
 
@@ -449,6 +461,7 @@ Supabase SDK разрешён для:
 - `UsageEvent`;
 - `CreditWallet`;
 - `CreditTransaction`;
+- `CreditPackage`;
 - `PaymentOrder`;
 - `PaymentEvent`.
 
