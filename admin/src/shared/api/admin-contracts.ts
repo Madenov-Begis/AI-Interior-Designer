@@ -29,6 +29,12 @@ export type AdminSession = {
   };
 };
 
+export type AdminLoginSession = {
+  token: string;
+  expiresAt: string;
+  expiresIn: number;
+};
+
 export type AdminStats = {
   period: { key: "today" | "7d" | "30d"; from: string; to: string; timeZone: string };
   totals: { users: number; projects: number; generations: number };

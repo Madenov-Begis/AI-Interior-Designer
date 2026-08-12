@@ -15,6 +15,7 @@ import {
 } from "./schemas.ts";
 import { adminPeriodRange, zonedDateKey } from "./time.ts";
 import { adminAccessViolation, removesActiveAdminAccess } from "./user-access-policy.ts";
+import { issueAdminToken, matchesAdminAccessCode, verifyAdminToken } from "./admin-token.ts";
 
 test("AdminPhone is development-only and strictly formatted", () => {
   assert.deepEqual(getLocalAdminPhone("AdminPhone +998901234567", "development"), {
@@ -26,6 +27,32 @@ test("AdminPhone is development-only and strictly formatted", () => {
     disabled: true,
   });
   assert.equal(getLocalAdminPhone("AdminPhone 998901234567", "development").phone, null);
+});
+
+test("admin access code issues a signed expiring token", () => {
+  const previousCode = process.env.ADMIN_ACCESS_CODE;
+  const previousSecret = process.env.ADMIN_TOKEN_SECRET;
+  process.env.ADMIN_ACCESS_CODE = "abcde";
+  process.env.ADMIN_TOKEN_SECRET = "test-secret-that-is-longer-than-32-characters";
+  try {
+    assert.equal(matchesAdminAccessCode("abcde"), true);
+    assert.equal(matchesAdminAccessCode("wrong"), false);
+    const issued = issueAdminToken("admin-id", 1_000_000);
+    assert.equal(verifyAdminToken(issued.token, 1_000_001)?.subject, "admin-id");
+    assert.equal(
+      verifyAdminToken(`${issued.token.slice(0, -1)}x`, 1_000_001),
+      null,
+    );
+    assert.equal(
+      verifyAdminToken(issued.token, 1_000_000 + issued.expiresIn * 1_000),
+      null,
+    );
+  } finally {
+    if (previousCode === undefined) delete process.env.ADMIN_ACCESS_CODE;
+    else process.env.ADMIN_ACCESS_CODE = previousCode;
+    if (previousSecret === undefined) delete process.env.ADMIN_TOKEN_SECRET;
+    else process.env.ADMIN_TOKEN_SECRET = previousSecret;
+  }
 });
 
 test("admin CORS uses an exact production allowlist", () => {

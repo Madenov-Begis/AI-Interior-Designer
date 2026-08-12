@@ -2,44 +2,59 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => ({
   getAdminAuthorization: vi.fn(),
-  refreshAdminSession: vi.fn(),
+  clearAdminCredentials: vi.fn(),
 }));
 
-vi.mock("@/shared/auth/admin-supabase", () => auth);
+vi.mock("@/shared/auth/admin-session", () => auth);
 
-import { adminApi } from "./admin-api";
+import { adminApi, adminAxios } from "./admin-api";
 
-function response(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-describe("adminApi", () => {
+describe("adminApi Axios client", () => {
   beforeEach(() => {
-    auth.getAdminAuthorization.mockResolvedValue("Bearer token");
-    auth.refreshAdminSession.mockResolvedValue(true);
-  });
-  afterEach(() => vi.restoreAllMocks());
-
-  it("unwraps the standard API envelope", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ data: { ok: true }, meta: { requestId: "r1" } })));
-    await expect(adminApi<{ ok: boolean }>("/session")).resolves.toEqual({ ok: true });
+    auth.getAdminAuthorization.mockReset().mockReturnValue("Bearer token");
+    auth.clearAdminCredentials.mockReset();
   });
 
-  it("refreshes once after 401 and retries the same request", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(response({ error: { code: "UNAUTHORIZED", message: "Истекла сессия" }, meta: { requestId: "r1" } }, 401))
-      .mockResolvedValueOnce(response({ data: { ok: true }, meta: { requestId: "r2" } }));
-    vi.stubGlobal("fetch", fetchMock);
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("unwraps the API envelope and adds the token in the interceptor", async () => {
+    const adapter = vi.fn(async (config) => ({
+      data: { data: { ok: true }, meta: { requestId: "r1" } },
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    }));
+    adminAxios.defaults.adapter = adapter;
+
     await expect(adminApi<{ ok: boolean }>("/session")).resolves.toEqual({ ok: true });
-    expect(auth.refreshAdminSession).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(adapter.mock.calls[0]?.[0].headers.get("Authorization")).toBe("Bearer token");
   });
 
   it("preserves the backend error code and request id", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ error: { code: "LAST_ADMIN", message: "Нельзя" }, meta: { requestId: "request-42" } }, 409)));
+    adminAxios.defaults.adapter = async (config) => {
+      const error = new Error("Request failed") as Error & {
+        isAxiosError: boolean;
+        config: typeof config;
+        response: object;
+      };
+      error.isAxiosError = true;
+      error.config = config;
+      error.response = {
+        data: {
+          error: { code: "LAST_ADMIN", message: "Нельзя" },
+          meta: { requestId: "request-42" },
+        },
+        status: 409,
+        statusText: "Conflict",
+        headers: {},
+        config,
+      };
+      throw error;
+    };
+
     await expect(adminApi("/users/id", { method: "PATCH" })).rejects.toMatchObject({
       code: "LAST_ADMIN",
       status: 409,

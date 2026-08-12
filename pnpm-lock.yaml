@@ -157,15 +157,15 @@ importers:
       '@mantine/nprogress':
         specifier: ^8.3.0
         version: 8.3.18(@mantine/core@8.3.18(@mantine/hooks@8.3.18(react@19.2.7))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@mantine/hooks@8.3.18(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@supabase/supabase-js':
-        specifier: ^2.110.7
-        version: 2.110.7
       '@tabler/icons-react':
         specifier: ^3.34.0
         version: 3.46.0(react@19.2.7)
       '@tanstack/react-query':
         specifier: ^5.101.3
         version: 5.101.3(react@19.2.7)
+      axios:
+        specifier: ^1.19.0
+        version: 1.19.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       dayjs:
         specifier: ^1.11.13
         version: 1.11.21

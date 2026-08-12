@@ -20,29 +20,27 @@ describe("LoginPage", () => {
     auth.devLogin.mockReset().mockResolvedValue(undefined);
   });
 
-  it("validates the Uzbek phone format before Supabase login", async () => {
+  it("requires at least five characters", async () => {
     renderPage();
-    fireEvent.change(screen.getByLabelText("Номер телефона"), { target: { value: "123" } });
-    fireEvent.change(screen.getByLabelText("Пароль"), { target: { value: "secret" } });
+    fireEvent.change(screen.getByLabelText("Код доступа"), { target: { value: "1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Войти" }));
 
-    expect(await screen.findByText("Введите номер в формате +998XXXXXXXXX")).toBeInTheDocument();
+    expect(await screen.findByText("Код должен содержать минимум 5 символов")).toBeInTheDocument();
     expect(auth.login).not.toHaveBeenCalled();
   });
 
-  it("submits phone and password through the production auth flow", async () => {
+  it("submits the access code through the production auth flow", async () => {
     renderPage();
-    fireEvent.change(screen.getByLabelText("Номер телефона"), { target: { value: "+998901234567" } });
-    fireEvent.change(screen.getByLabelText("Пароль"), { target: { value: "secret" } });
+    fireEvent.change(screen.getByLabelText("Код доступа"), { target: { value: "abcde" } });
     fireEvent.click(screen.getByRole("button", { name: "Войти" }));
 
-    await waitFor(() => expect(auth.login).toHaveBeenCalledWith("+998901234567", "secret"));
+    await waitFor(() => expect(auth.login).toHaveBeenCalledWith("abcde"));
   });
 
   it("keeps the passwordless fallback explicitly dev-only", async () => {
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Dev-only вход без пароля" }));
-    expect(screen.queryByLabelText("Пароль")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Dev-only вход по телефону" }));
+    expect(screen.queryByLabelText("Код доступа")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Номер телефона"), { target: { value: "+998901234567" } });
     fireEvent.click(screen.getByRole("button", { name: "Войти" }));
 

@@ -9,13 +9,20 @@ import {
   type ReactNode,
 } from "react";
 import { adminApi, AdminApiError, type AdminSession } from "@/shared/api";
-import { adminSupabase, getDevAdminPhone, setDevAdminPhone } from "./admin-supabase";
+import type { AdminLoginSession } from "@/shared/api";
+import {
+  clearAdminCredentials,
+  getAdminToken,
+  getDevAdminPhone,
+  setDevAdminPhone,
+  storeAdminToken,
+} from "./admin-session";
 
 type AuthState = "loading" | "authenticated" | "unauthenticated" | "forbidden";
 type AuthContextValue = {
   state: AuthState;
   session: AdminSession | null;
-  login: (phone: string, password: string) => Promise<void>;
+  login: (code: string) => Promise<void>;
   devLogin: (phone: string) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -33,17 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    setDevAdminPhone(null);
-    await adminSupabase.auth.signOut();
+    clearAdminCredentials();
     setSession(null);
     setState("unauthenticated");
   }, []);
 
   useEffect(() => {
     let active = true;
-    void adminSupabase.auth.getSession().then(async ({ data }) => {
+    void Promise.resolve().then(async () => {
       if (!active) return;
-      if (!data.session && !getDevAdminPhone()) {
+      if (!getAdminToken() && !getDevAdminPhone()) {
         setState("unauthenticated");
         return;
       }
@@ -58,20 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const detail = (event as CustomEvent<{ forbidden?: boolean }>).detail;
       setSession(null);
       setState(detail?.forbidden ? "forbidden" : "unauthenticated");
-      void adminSupabase.auth.signOut();
-      setDevAdminPhone(null);
+      clearAdminCredentials();
     };
     window.addEventListener("ruvie-admin-auth-invalid", invalid);
-    const { data: authListener } = adminSupabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT" && !getDevAdminPhone()) {
-        setSession(null);
-        setState("unauthenticated");
-      }
-    });
     return () => {
       active = false;
       window.removeEventListener("ruvie-admin-auth-invalid", invalid);
-      authListener.subscription.unsubscribe();
     };
   }, [validate]);
 
@@ -79,14 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       state,
       session,
-      login: async (phone, password) => {
-        setDevAdminPhone(null);
-        const { error } = await adminSupabase.auth.signInWithPassword({ phone, password });
-        if (error) throw error;
+      login: async (code) => {
+        clearAdminCredentials();
+        const created = await adminApi<AdminLoginSession>("/api/v1/admin/login", {
+          method: "POST",
+          body: JSON.stringify({ code }),
+        });
+        storeAdminToken(created);
         try {
           await validate();
         } catch (error) {
-          await adminSupabase.auth.signOut();
+          clearAdminCredentials();
           throw error;
         }
       },
@@ -96,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await validate();
         } catch (error) {
-          setDevAdminPhone(null);
+          clearAdminCredentials();
           throw error;
         }
       },

@@ -4,33 +4,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   adminApi: vi.fn(),
-  getSession: vi.fn(),
-  signInWithPassword: vi.fn(),
-  signOut: vi.fn(),
+  getAdminToken: vi.fn(),
   getDevAdminPhone: vi.fn(),
   setDevAdminPhone: vi.fn(),
-  authCallback: null as ((event: string) => void) | null,
+  storeAdminToken: vi.fn(),
+  clearAdminCredentials: vi.fn(),
 }));
 
 vi.mock("@/shared/api", async () => {
   const actual = await vi.importActual<typeof import("@/shared/api")>("@/shared/api");
   return { ...actual, adminApi: mocks.adminApi };
 });
-
-vi.mock("./admin-supabase", () => ({
-  adminSupabase: {
-    auth: {
-      getSession: mocks.getSession,
-      signInWithPassword: mocks.signInWithPassword,
-      signOut: mocks.signOut,
-      onAuthStateChange: (callback: (event: string) => void) => {
-        mocks.authCallback = callback;
-        return { data: { subscription: { unsubscribe: vi.fn() } } };
-      },
-    },
-  },
+vi.mock("./admin-session", () => ({
+  getAdminToken: mocks.getAdminToken,
   getDevAdminPhone: mocks.getDevAdminPhone,
   setDevAdminPhone: mocks.setDevAdminPhone,
+  storeAdminToken: mocks.storeAdminToken,
+  clearAdminCredentials: mocks.clearAdminCredentials,
 }));
 
 import { AdminApiError, type AdminSession } from "@/shared/api";
@@ -54,7 +44,7 @@ function Probe() {
     <div>
       <span>{auth.state}</span>
       <span>{auth.session?.admin.account}</span>
-      <button onClick={() => void auth.login("+998901234567", "secret")}>login</button>
+      <button onClick={() => void auth.login("abcde")}>login</button>
       <button onClick={() => void auth.logout()}>logout</button>
     </div>
   );
@@ -71,16 +61,15 @@ function renderProvider() {
 describe("AuthProvider", () => {
   beforeEach(() => {
     mocks.adminApi.mockReset();
-    mocks.getSession.mockReset().mockResolvedValue({ data: { session: null } });
-    mocks.signInWithPassword.mockReset().mockResolvedValue({ error: null });
-    mocks.signOut.mockReset().mockResolvedValue({ error: null });
+    mocks.getAdminToken.mockReset().mockReturnValue(null);
     mocks.getDevAdminPhone.mockReset().mockReturnValue(null);
     mocks.setDevAdminPhone.mockReset();
-    mocks.authCallback = null;
+    mocks.storeAdminToken.mockReset();
+    mocks.clearAdminCredentials.mockReset();
   });
 
-  it("restores and validates an existing Supabase session", async () => {
-    mocks.getSession.mockResolvedValue({ data: { session: { access_token: "token" } } });
+  it("restores and validates an existing admin token", async () => {
+    mocks.getAdminToken.mockReturnValue("token");
     mocks.adminApi.mockResolvedValue(session);
     renderProvider();
 
@@ -90,30 +79,39 @@ describe("AuthProvider", () => {
   });
 
   it("shows forbidden when the backend rejects the current role", async () => {
-    mocks.getSession.mockResolvedValue({ data: { session: { access_token: "token" } } });
+    mocks.getAdminToken.mockReturnValue("token");
     mocks.adminApi.mockRejectedValue(new AdminApiError("FORBIDDEN", "Нет доступа", 403));
     renderProvider();
 
     expect(await screen.findByText("forbidden")).toBeInTheDocument();
   });
 
-  it("uses phone/password login, validates access, and clears both sessions on logout", async () => {
-    mocks.adminApi.mockResolvedValue(session);
+  it("exchanges the code for a token, validates it, and clears it on logout", async () => {
+    mocks.adminApi
+      .mockResolvedValueOnce({ token: "signed-token", expiresAt: "2099-01-01T00:00:00.000Z", expiresIn: 28_800 })
+      .mockResolvedValueOnce(session);
     renderProvider();
     expect(await screen.findByText("unauthenticated")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "login" }));
     expect(await screen.findByText("authenticated")).toBeInTheDocument();
-    expect(mocks.signInWithPassword).toHaveBeenCalledWith({ phone: "+998901234567", password: "secret" });
+    expect(mocks.adminApi).toHaveBeenNthCalledWith(1, "/api/v1/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ code: "abcde" }),
+    });
+    expect(mocks.storeAdminToken).toHaveBeenCalledWith({
+      token: "signed-token",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      expiresIn: 28_800,
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "logout" }));
     await waitFor(() => expect(screen.getByText("unauthenticated")).toBeInTheDocument());
-    expect(mocks.setDevAdminPhone).toHaveBeenLastCalledWith(null);
-    expect(mocks.signOut).toHaveBeenCalled();
+    expect(mocks.clearAdminCredentials).toHaveBeenCalled();
   });
 
   it("invalidates the UI immediately after a forbidden API event", async () => {
-    mocks.getSession.mockResolvedValue({ data: { session: { access_token: "token" } } });
+    mocks.getAdminToken.mockReturnValue("token");
     mocks.adminApi.mockResolvedValue(session);
     renderProvider();
     expect(await screen.findByText("authenticated")).toBeInTheDocument();
@@ -122,6 +120,6 @@ describe("AuthProvider", () => {
       window.dispatchEvent(new CustomEvent("ruvie-admin-auth-invalid", { detail: { forbidden: true } }));
     });
     expect(await screen.findByText("forbidden")).toBeInTheDocument();
-    expect(mocks.signOut).toHaveBeenCalled();
+    expect(mocks.clearAdminCredentials).toHaveBeenCalled();
   });
 });

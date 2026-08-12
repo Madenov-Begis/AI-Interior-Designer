@@ -1,4 +1,5 @@
-import { getAdminAuthorization, refreshAdminSession } from "@/shared/auth/admin-supabase";
+import axios, { AxiosHeaders } from "axios";
+import { clearAdminCredentials, getAdminAuthorization } from "@/shared/auth/admin-session";
 
 const apiBase = (import.meta.env.VITE_API_BASE_URL ?? "https://api.ruvie.cc").replace(/\/$/, "");
 
@@ -21,49 +22,77 @@ export class AdminApiError extends Error {
   }
 }
 
-async function execute<T>(path: string, init: RequestInit, retry: boolean): Promise<T> {
-  const authorization = await getAdminAuthorization();
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers: {
-      ...(authorization ? { Authorization: authorization } : {}),
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-      ...init.headers,
-    },
-  });
-  let body: ApiSuccess<T> | ApiFailure | null = null;
-  try {
-    body = (await response.json()) as ApiSuccess<T> | ApiFailure;
-  } catch {
-    // A proxy or network edge may return a non-JSON response.
-  }
-  if (response.status === 401 && retry && authorization?.startsWith("Bearer ")) {
-    if (await refreshAdminSession()) return execute<T>(path, init, false);
-  }
-  if (!response.ok || !body || "error" in body) {
-    const failure = body && "error" in body ? body.error : null;
-    const requestId = body?.meta.requestId ?? response.headers.get("x-request-id") ?? undefined;
-    const error = new AdminApiError(
-      failure?.code ?? "HTTP_ERROR",
-      failure?.message ?? "Не удалось выполнить запрос",
-      response.status,
-      requestId,
-      failure?.details,
-    );
-    if (response.status === 401 || response.status === 403) {
-      window.dispatchEvent(
-        new CustomEvent("ruvie-admin-auth-invalid", {
-          detail: { forbidden: response.status === 403 },
-        }),
-      );
+export const adminAxios = axios.create({
+  baseURL: apiBase,
+  timeout: 30_000,
+});
+
+adminAxios.interceptors.request.use((config) => {
+  const authorization = getAdminAuthorization();
+  if (authorization) config.headers.set("Authorization", authorization);
+  return config;
+});
+
+adminAxios.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 401 || status === 403) {
+        clearAdminCredentials();
+        window.dispatchEvent(
+          new CustomEvent("ruvie-admin-auth-invalid", {
+            detail: { forbidden: status === 403 },
+          }),
+        );
+      }
     }
-    throw error;
-  }
-  return body.data;
+    return Promise.reject(error);
+  },
+);
+
+function axiosHeaders(input: HeadersInit | undefined, hasBody: boolean) {
+  const headers = new AxiosHeaders();
+  new Headers(input).forEach((value, key) => headers.set(key, value));
+  if (hasBody && !headers.has("Content-Type"))
+    headers.set("Content-Type", "application/json");
+  return headers;
 }
 
 export function adminApi<T>(path: string, init: RequestInit = {}) {
-  return execute<T>(path, init, true);
+  return adminAxios
+    .request<ApiSuccess<T> | ApiFailure>({
+      url: path,
+      method: init.method ?? "GET",
+      data: init.body,
+      headers: axiosHeaders(init.headers, Boolean(init.body)),
+      signal: init.signal ?? undefined,
+    })
+    .then((response) => {
+      if ("error" in response.data) {
+        throw new AdminApiError(
+          response.data.error.code,
+          response.data.error.message,
+          response.status,
+          response.data.meta.requestId,
+          response.data.error.details,
+        );
+      }
+      return response.data.data;
+    })
+    .catch((error: unknown) => {
+      if (error instanceof AdminApiError) throw error;
+      if (!axios.isAxiosError<ApiFailure>(error)) throw error;
+      const failure = error.response?.data?.error;
+      throw new AdminApiError(
+        failure?.code ?? "HTTP_ERROR",
+        failure?.message ?? "Не удалось выполнить запрос",
+        error.response?.status ?? 0,
+        error.response?.data?.meta.requestId ??
+          error.response?.headers["x-request-id"],
+        failure?.details,
+      );
+    });
 }
 
 export function queryString(values: Record<string, string | number | null | undefined>) {

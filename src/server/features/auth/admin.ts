@@ -9,6 +9,7 @@ import {
 import type { NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { getLocalAdminPhone } from "@/server/features/admin/admin-phone";
+import { verifyAdminToken } from "@/server/features/admin/admin-token";
 
 export class ForbiddenError extends Error {
   constructor(message = "Недостаточно прав") {
@@ -36,7 +37,27 @@ export async function requireAdmin(request?: NextRequest) {
       profile,
     };
   }
-  const user = requestHeaders.get("authorization")
+  const authorization = requestHeaders.get("authorization");
+  const bearer = authorization?.match(/^Bearer\s+(.+)$/)?.[1];
+  if (bearer?.startsWith("ra1.")) {
+    const token = verifyAdminToken(bearer);
+    if (!token) throw new UnauthorizedError("Сессия администратора истекла");
+    const profile = await getDb().profile.findUnique({
+      where: { id: token.subject },
+    });
+    if (
+      !profile ||
+      profile.role !== "ADMIN" ||
+      profile.status !== "ACTIVE" ||
+      profile.deletedAt
+    )
+      throw new ForbiddenError();
+    return {
+      user: { id: profile.id, email: profile.email, user_metadata: {} },
+      profile,
+    };
+  }
+  const user = authorization
     ? await requireCurrentUserFromBearer(request ?? requestHeaders)
     : await requireCurrentUser();
   const profile = await getDb().profile.findUnique({ where: { id: user.id } });

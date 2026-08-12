@@ -99,11 +99,11 @@ Axios читает access token через `js-cookie` и отправляет �
 
 ### 4.2. Административный доступ
 
-Production-админка входит через Supabase `signInWithPassword({ phone, password })`, сохраняет и обновляет сессию штатным browser client flow и отправляет access token как Bearer. Publishable key является публичным, service-role key во frontend не передаётся. `GET /api/v1/admin/session` при старте повторно проверяет роль и статус профиля через Prisma.
+Production-админка входит по единому коду доступа длиной от 5 символов. `POST /api/v1/admin/login` проверяет код только на backend, применяет rate limit и возвращает подписанный admin-token со сроком жизни 8 часов. Frontend хранит token локально, Axios-интерцептор отправляет его как Bearer token, а `GET /api/v1/admin/session` при старте повторно проверяет роль и статус профиля через Prisma. Код и signing secret во frontend не передаются.
 
 Локальная desktop-админка может отправлять `Authorization: AdminPhone +998XXXXXXXXX` только при `NODE_ENV != production`. Этот режим предназначен для локальной разработки и обязан отклоняться в production.
 
-Административный Supabase Auth user создаётся или обновляется командой `pnpm admin:seed` с `ADMIN_PHONE_E164` и `ADMIN_PASSWORD`. Пароль должен содержать минимум 12 символов.
+Административный профиль создаётся или восстанавливается командой `pnpm admin:seed` с `ADMIN_ACCESS_CODE` и `ADMIN_TOKEN_SECRET`; `ADMIN_PHONE_E164` необязателен и используется только как идентификатор профиля. Код не записывается в базу и остаётся в защищённых переменных backend.
 
 ## 5. Карта интерфейсов
 
@@ -531,7 +531,7 @@ ADMIN_ORIGINS=https://admin.ruvie.cc
 
 Для Vertex AI требуются `GOOGLE_CLOUD_PROJECT_ID`, `GOOGLE_CLOUD_LOCATION` и credentials. Model ID может задаваться `VERTEX_IMAGE_MODEL`.
 
-Для `admin:seed` требуются `ADMIN_PHONE_E164` и `ADMIN_PASSWORD`.
+Для `admin:seed` требуются `ADMIN_ACCESS_CODE` (минимум 5 символов) и `ADMIN_TOKEN_SECRET` (минимум 32 символа). `ADMIN_PHONE_E164` необязателен.
 
 `TRIGGER_SECRET_KEY` и `SENTRY_DSN` остаются необязательными до подключения соответствующих runtime-интеграций.
 

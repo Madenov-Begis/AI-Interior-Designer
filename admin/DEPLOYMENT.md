@@ -16,11 +16,9 @@
 
 ```dotenv
 VITE_API_BASE_URL=https://api.ruvie.cc
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 ```
 
-`VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY` должны указывать на тот же Supabase-проект, что и основной клиент. Database URL, service-role и secret keys во frontend не добавляются.
+Админка не получает Supabase keys и другие server secrets. После входа backend выдаёт подписанный admin-token, который Axios-интерцептор отправляет как Bearer token.
 
 ## Backend synchronization
 
@@ -28,9 +26,11 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 
 ```dotenv
 ADMIN_ORIGINS=https://admin.ruvie.cc
+ADMIN_ACCESS_CODE=<единый код, минимум 5 символов>
+ADMIN_TOKEN_SECRET=<случайный secret, минимум 32 символа>
 ```
 
-После изменения переменной backend необходимо передеплоить. `api.ruvie.cc` должен быть привязан к backend-проекту и иметь рабочие DNS/HTTPS до browser-проверки админки.
+`ADMIN_ACCESS_CODE` и `ADMIN_TOKEN_SECRET` хранятся только в backend environment. После изменения переменных backend необходимо передеплоить. `api.ruvie.cc` должен быть привязан к backend-проекту и иметь рабочие DNS/HTTPS до browser-проверки админки.
 
 ## Release flow
 
