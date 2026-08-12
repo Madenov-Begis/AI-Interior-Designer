@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/server/shared/integrations/supabase/server";
 import { upsertProfileFromAuthUser } from "@/server/features/auth/current-user";
-import { safeReturnPath } from "@/server/features/auth/route-policy";
+import {
+  isLocalDevelopmentOrigin,
+  safeReturnOrigin,
+  safeReturnPath,
+} from "@/server/features/auth/route-policy";
 import {
   clearSessionCookies,
   storeSessionCookies,
@@ -11,7 +15,12 @@ import { serverEnv } from "@/server/shared/config/env";
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const safeNext = safeReturnPath(request.nextUrl.searchParams.get("next"));
-  const appUrl = serverEnv().APP_URL;
+  const env = serverEnv();
+  const appUrl = safeReturnOrigin(
+    request.nextUrl.searchParams.get("returnOrigin"),
+    env.APP_ORIGINS,
+    env.APP_URL,
+  );
 
   if (code) {
     const supabase = await createSupabaseServerClient();
@@ -22,9 +31,15 @@ export async function GET(request: NextRequest) {
         try {
           await upsertProfileFromAuthUser(session.user);
           await storeSessionCookies(session);
-          return NextResponse.redirect(
-            new URL(safeNext, appUrl),
-          );
+          const redirectUrl = new URL(safeNext, appUrl);
+          if (isLocalDevelopmentOrigin(appUrl)) {
+            redirectUrl.hash = new URLSearchParams({
+              oauth_access_token: session.access_token,
+              oauth_refresh_token: session.refresh_token,
+              oauth_expires_in: String(session.expires_in),
+            }).toString();
+          }
+          return NextResponse.redirect(redirectUrl);
         } catch {
           await clearSessionCookies();
           return NextResponse.redirect(
@@ -37,7 +52,5 @@ export async function GET(request: NextRequest) {
 
   await clearSessionCookies();
 
-  return NextResponse.redirect(
-    new URL("/login?error=oauth_callback", appUrl),
-  );
+  return NextResponse.redirect(new URL("/login?error=oauth_callback", appUrl));
 }

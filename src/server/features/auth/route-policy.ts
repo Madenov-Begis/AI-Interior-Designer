@@ -18,3 +18,35 @@ export function safeReturnPath(value: string | null, fallback = "/app") {
   }
   return value;
 }
+
+export function safeReturnOrigin(
+  value: string | null,
+  configuredOrigins: string | undefined,
+  fallback: string,
+) {
+  const fallbackOrigin = new URL(fallback).origin;
+  if (!value || CONTROL_CHARACTERS.test(value)) return fallbackOrigin;
+
+  let requestedOrigin: string;
+  try {
+    requestedOrigin = new URL(value).origin;
+  } catch {
+    return fallbackOrigin;
+  }
+
+  const allowedOrigins = new Set(
+    (configuredOrigins ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
+  return allowedOrigins.has(requestedOrigin) ? requestedOrigin : fallbackOrigin;
+}
+
+export function isLocalDevelopmentOrigin(origin: string) {
+  const url = new URL(origin);
+  return (
+    url.protocol === "http:" &&
+    (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+  );
+}

@@ -3,7 +3,7 @@
 import { KeyRound, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, type MouseEvent } from "react";
 import {
   buttonClassName,
   Card,
@@ -45,7 +45,20 @@ function LoginCard({
   next: string;
   checkingSession: boolean;
 }) {
-  const googleLoginUrl = apiUrl(`/auth/google?next=${encodeURIComponent(next)}`);
+  const googleLoginUrl = apiUrl(
+    `/auth/google?next=${encodeURIComponent(next)}`,
+  );
+
+  const startGoogleLogin = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (checkingSession) {
+      event.preventDefault();
+      return;
+    }
+    event.preventDefault();
+    const loginUrl = new URL(googleLoginUrl);
+    loginUrl.searchParams.set("returnOrigin", window.location.origin);
+    window.location.assign(loginUrl);
+  };
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
@@ -66,6 +79,7 @@ function LoginCard({
         <CardContent className="px-6 pb-6 sm:px-8 sm:pb-8">
           <Link
             href={googleLoginUrl}
+            onClick={startGoogleLogin}
             aria-disabled={checkingSession}
             tabIndex={checkingSession ? -1 : undefined}
             className={buttonClassName(
