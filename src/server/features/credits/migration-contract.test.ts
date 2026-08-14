@@ -18,6 +18,14 @@ const creditPackageMigrationSql = readFileSync(
   "utf8",
 );
 
+const internalTablesSecurityMigrationSql = readFileSync(
+  new URL(
+    "../../../../prisma/migrations/20260813170314_secure_internal_tables/migration.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+
 test("wallet migration applies every schema, backfill, grant, and policy step atomically", () => {
   const sql = migrationSql.trim();
 
@@ -66,4 +74,28 @@ test("credit package migration preserves the three existing offers", () => {
   assert.match(creditPackageMigrationSql, /CHECK \("priceUzs" > 0\)/);
   assert.match(creditPackageMigrationSql, /CHECK \(NOT "popular" OR "active"\)/);
   assert.match(creditPackageMigrationSql, /CreditPackage_one_active_popular_key/);
+});
+
+test("internal Prisma tables are not exposed through the Supabase Data API", () => {
+  for (const table of ["_prisma_migrations", "CreditPackage"]) {
+    assert.match(
+      internalTablesSecurityMigrationSql,
+      new RegExp(
+        `ALTER TABLE public\\."${table}" ENABLE ROW LEVEL SECURITY`,
+        "i",
+      ),
+    );
+    assert.match(
+      internalTablesSecurityMigrationSql,
+      new RegExp(
+        `REVOKE ALL PRIVILEGES ON TABLE public\\."${table}"[\\s\\S]*FROM anon, authenticated, service_role`,
+        "i",
+      ),
+    );
+  }
+
+  assert.match(
+    internalTablesSecurityMigrationSql,
+    /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public[\s\S]*REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES/i,
+  );
 });
