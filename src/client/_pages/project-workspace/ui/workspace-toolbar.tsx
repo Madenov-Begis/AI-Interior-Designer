@@ -128,7 +128,11 @@ export function WorkspaceToolbar({
   const hasColorSettings = tool !== "eraser";
 
   return (
-    <div className="workspace-toolbar" aria-label="Инструменты разметки">
+    <div
+      className="workspace-toolbar"
+      aria-label="Инструменты разметки"
+      data-onboarding="drawing-tools"
+    >
       <div className="workspace-toolbar__rail">
         {TOOLS.map(({ id, label, icon: Icon }) => (
           <ToolbarButton

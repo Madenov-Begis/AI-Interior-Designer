@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport, type CanvasViewportHandle } from "./canvas-viewport";
+import {
+  CanvasOnboarding,
+  CanvasOnboardingTrigger,
+} from "./canvas-onboarding";
 import { EmptySourceWorkspace } from "./empty-source-workspace";
 import { ResultActions } from "./result-actions";
 import { WorkspaceGenerationNode } from "./workspace-generation-nodes";
@@ -20,6 +24,8 @@ import {
 } from "../model/generation-aspect-ratio";
 import { useWorkspaceGenerationActions } from "../model/workspace-generation-actions";
 import { useWorkspaceGenerationFeed } from "../model/workspace-generation-feed";
+import { CANVAS_ONBOARDING_STEP } from "../model/canvas-onboarding";
+import { useCanvasOnboarding } from "../model/use-canvas-onboarding";
 import { nextRefinementOverlayState } from "@/features/generate-design";
 import {
   ApiResponseError,
@@ -63,6 +69,9 @@ function ReadyDesignWorkspace({
 }: ReadyDesignWorkspaceProps) {
   const source = project.source;
   const { wallet } = useAppSession();
+  const onboarding = useCanvasOnboarding();
+  const onboardingActive = onboarding.active;
+  const onboardingStep = onboarding.step;
   const visualPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const refinementPromptRef = useRef<VisualPromptEditorHandle | null>(null);
   const canvasViewportRef = useRef<CanvasViewportHandle | null>(null);
@@ -190,6 +199,31 @@ function ReadyDesignWorkspace({
     [indexedGenerations],
   );
   useEffect(() => {
+    if (!onboardingActive) return;
+
+    const inspectorStep =
+      onboardingStep >= CANVAS_ONBOARDING_STEP.references &&
+      onboardingStep <= CANVAS_ONBOARDING_STEP.generation;
+    if (inspectorStep && !desktopInspector && !inspectorOpen) {
+      openInspector();
+      return;
+    }
+    if (
+      onboardingStep === CANVAS_ONBOARDING_STEP.refinement &&
+      !desktopInspector &&
+      inspectorOpen
+    ) {
+      closeInspector();
+    }
+  }, [
+    closeInspector,
+    desktopInspector,
+    inspectorOpen,
+    onboardingActive,
+    onboardingStep,
+    openInspector,
+  ]);
+  useEffect(() => {
     if (
       !pendingCanvasFocusId ||
       !canvasGenerationInstances.some(
@@ -300,12 +334,19 @@ function ReadyDesignWorkspace({
     : undefined;
 
   return (
-    <div className="canvas-workspace flex h-full min-h-0 flex-col">
+    <div
+      className="canvas-workspace relative flex h-full min-h-0 flex-col overflow-hidden"
+      data-onboarding="canvas"
+    >
       <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
         <section
           className="relative min-h-0 overflow-hidden bg-background"
           aria-label="Холст проекта"
         >
+          <CanvasOnboardingTrigger
+            active={onboardingActive}
+            onStart={onboarding.replay}
+          />
           <WorkspaceInspectorTrigger
             triggerRef={inspectorTriggerRef}
             open={inspectorOpen}
@@ -410,6 +451,18 @@ function ReadyDesignWorkspace({
           onClose={() => setOpenedResult(null)}
         />
       ) : null}
+      <CanvasOnboarding
+        active={onboardingActive}
+        step={onboardingStep}
+        targetReady={
+          onboardingStep < CANVAS_ONBOARDING_STEP.references ||
+          (onboardingStep <= CANVAS_ONBOARDING_STEP.generation
+            ? desktopInspector || inspectorOpen
+            : desktopInspector || !inspectorOpen)
+        }
+        onAdvance={onboarding.advance}
+        onFinish={onboarding.finish}
+      />
     </div>
   );
 }

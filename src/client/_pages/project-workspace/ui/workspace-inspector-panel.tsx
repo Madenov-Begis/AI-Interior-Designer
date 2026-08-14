@@ -32,6 +32,7 @@ export function useWorkspaceInspectorPanel() {
     setOpen(false);
     restoreTriggerFocus();
   }, [restoreTriggerFocus]);
+  const show = useCallback(() => setOpen(true), []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -57,7 +58,7 @@ export function useWorkspaceInspectorPanel() {
     triggerRef,
     open,
     desktop,
-    show: () => setOpen(true),
+    show,
     close,
     onClosed: () => {
       setOpen(false);

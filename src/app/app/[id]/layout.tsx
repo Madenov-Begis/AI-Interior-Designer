@@ -8,7 +8,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const { user, wallet } = useAppSession();
 
   return (
-    <div className="flex h-dvh min-h-0 flex-col bg-background text-foreground">
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background text-foreground">
       <RuvieAppHeader user={user} creditBalance={wallet.balance} />
       <div className="min-h-0 flex-1">{children}</div>
     </div>

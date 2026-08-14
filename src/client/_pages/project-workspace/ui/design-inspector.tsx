@@ -75,7 +75,10 @@ export function DesignInspector({
   return (
     <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
       <div className="min-h-0 min-w-0 max-w-full flex-1 space-y-5 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4">
-        <section aria-labelledby="inspector-references-title">
+        <section
+          aria-labelledby="inspector-references-title"
+          data-onboarding="references"
+        >
           <div className="flex items-center justify-between gap-3">
             <h2
               id="inspector-references-title"
@@ -132,11 +135,13 @@ export function DesignInspector({
           )}
         </section>
 
-        <StylePicker
-          styles={styles}
-          value={styleCode}
-          onChange={onStyleChange}
-        />
+        <div data-onboarding="styles">
+          <StylePicker
+            styles={styles}
+            value={styleCode}
+            onChange={onStyleChange}
+          />
+        </div>
 
         <fieldset>
           <legend className="text-xs font-semibold text-foreground">
@@ -278,17 +283,19 @@ export function DesignInspector({
           </p>
         </div>
 
-        <LoadingButton
-          onClick={onGenerate}
-          disabled={disabledReasons.length > 0}
-          pending={generationPending}
-          pendingText="Запускаем…"
-          className="mt-3 w-full"
-          size="lg"
-        >
-          <ImagePlus size={18} aria-hidden="true" />
-          {walletPresentation.buttonLabel}
-        </LoadingButton>
+        <div data-onboarding="generate">
+          <LoadingButton
+            onClick={onGenerate}
+            disabled={disabledReasons.length > 0}
+            pending={generationPending}
+            pendingText="Запускаем…"
+            className="mt-3 w-full"
+            size="lg"
+          >
+            <ImagePlus size={18} aria-hidden="true" />
+            {walletPresentation.buttonLabel}
+          </LoadingButton>
+        </div>
       </div>
     </div>
   );

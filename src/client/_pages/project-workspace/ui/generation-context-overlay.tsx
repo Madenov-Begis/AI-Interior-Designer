@@ -65,6 +65,7 @@ export function GenerationContextOverlay({
           aria-controls="generation-refinement-dialog"
           aria-haspopup="dialog"
           data-active={editorOpen || undefined}
+          data-onboarding="refinement"
           onClick={onToggleEditor}
         >
           <SquarePen size={16} aria-hidden="true" />
