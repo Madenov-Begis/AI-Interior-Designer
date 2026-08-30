@@ -139,6 +139,9 @@ model Project {
 
   @@index([userId, createdAt])
   @@index([userId, status])
+  @@index([sourceImageId])
+  @@index([sourcePreviewId])
+  @@index([visualPromptId])
   @@index([deletedAt])
 }
 
@@ -237,6 +240,10 @@ model Generation {
   @@index([projectId, createdAt])
   @@index([parentGenerationId, createdAt])
   @@index([status, queuedAt])
+  @@index([sourceImageId])
+  @@index([visualPromptImageId])
+  @@index([resultOriginalId])
+  @@index([resultUserId])
   @@index([deletedAt])
 }
 
