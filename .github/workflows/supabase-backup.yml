@@ -126,25 +126,25 @@ jobs:
         run: |
           set -euo pipefail
           backup_name="supabase-production-$(date -u +%Y%m%dT%H%M%SZ)"
-          mkdir -p .backup-artifacts
-          tar -C .backup -czf ".backup-artifacts/${backup_name}.tar.gz" public.dump auth-storage.dump storage storage-manifest.json
+          mkdir -p backup-artifacts
+          tar -C .backup -czf "backup-artifacts/${backup_name}.tar.gz" public.dump auth-storage.dump storage storage-manifest.json
           openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
-            -in ".backup-artifacts/${backup_name}.tar.gz" \
-            -out ".backup-artifacts/${backup_name}.tar.gz.enc" \
+            -in "backup-artifacts/${backup_name}.tar.gz" \
+            -out "backup-artifacts/${backup_name}.tar.gz.enc" \
             -pass env:BACKUP_ENCRYPTION_PASSWORD
           openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
-            -in ".backup-artifacts/${backup_name}.tar.gz.enc" \
-            -out ".backup-artifacts/${backup_name}.verified.tar.gz" \
+            -in "backup-artifacts/${backup_name}.tar.gz.enc" \
+            -out "backup-artifacts/${backup_name}.verified.tar.gz" \
             -pass env:BACKUP_ENCRYPTION_PASSWORD
-          tar -tzf ".backup-artifacts/${backup_name}.verified.tar.gz" >/dev/null
-          sha256sum ".backup-artifacts/${backup_name}.tar.gz.enc" > ".backup-artifacts/${backup_name}.sha256"
-          rm ".backup-artifacts/${backup_name}.tar.gz" ".backup-artifacts/${backup_name}.verified.tar.gz"
+          tar -tzf "backup-artifacts/${backup_name}.verified.tar.gz" >/dev/null
+          sha256sum "backup-artifacts/${backup_name}.tar.gz.enc" > "backup-artifacts/${backup_name}.sha256"
+          rm "backup-artifacts/${backup_name}.tar.gz" "backup-artifacts/${backup_name}.verified.tar.gz"
 
       - name: Upload encrypted backup
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: supabase-production-backup-${{ github.run_id }}
-          path: .backup-artifacts/*
+          path: backup-artifacts/*
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
