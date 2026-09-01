@@ -19,23 +19,22 @@
 - Основное приложение и админка имеют готовые Production deployments.
 - Добавлена единая команда `pnpm release:check`; Node.js закреплен на ветке `24.x`.
 - Локальный `pnpm release:check` от 1 сентября прошел полностью: 200 основных тестов, 21 UI/unit-тест и 7 server-тестов админки, TypeScript, ESLint, обе production-сборки и проверка 17 миграций.
+- Release commit `c952cf3` опубликован, оба Vercel deployment имеют статус `READY`, post-deploy smoke и OAuth dry-run прошли; создан tag `closed-beta-2026-09-01`.
+- Production E2E happy path прошел: authenticated session, PNG upload, Vertex generation, списание 4 кредитов, refinement, повторное списание, reload persistence, admin login и credit adjustment с возвратом тестового баланса. Отчет: `docs/launch/production-e2e-2026-09-01.md`.
 
 ## Оставшиеся блокеры
 
-1. Закоммитить и задеплоить проверенный release-набор; затем зафиксировать release SHA.
-2. Выполнить authenticated production E2E: Google login → стартовые кредиты → проект → upload → Vertex generation → refinement → download → debit/refund/retry → admin credit adjustment.
-3. Провести Design QA при 375, 768 и 1440 px, включая клавиатуру и mobile, и изменить итог отчета с `blocked` на `passed`.
-4. Подключить внешний error/uptime monitoring, alerts зависших и неуспешных генераций, refund и Google Cloud budget; определить emergency stop.
-5. Заполнить реквизиты и сроки в юридических шаблонах, проверить их, опубликовать страницы и добавить фиксацию согласия.
-6. Подтвердить операционную безопасность: активный admin, self-lockout protection, MFA/резервный owner Supabase, минимальные Vertex IAM/quota и формальные RPO/RTO.
+1. Закрыть негативные E2E-сценарии: новый Google signup, cancel/refund/retry/insufficient balance и ручное подтверждение скачанного файла.
+2. Провести Design QA при 375, 768 и 1440 px, включая клавиатуру и mobile, и изменить итог отчета с `blocked` на `passed`.
+3. Подключить внешний error/uptime monitoring, alerts зависших и неуспешных генераций, refund и Google Cloud budget; определить emergency stop.
+4. Заполнить реквизиты и сроки в юридических шаблонах, проверить их, опубликовать страницы и добавить фиксацию согласия.
+5. Подтвердить операционную безопасность: self-lockout protection, MFA/резервный owner Supabase, минимальные Vertex IAM/quota и формальные RPO/RTO.
 
 ## Следующая последовательность
 
-1. Завершить release hygiene и запустить `pnpm release:check`.
-2. Отправить проверенный release commit и дождаться обоих Production deployments.
-3. Выполнить короткий публичный smoke test и authenticated E2E.
-4. Закрыть Design QA.
-5. Подключить monitoring и оформить юридический минимум.
+1. Закрыть Design QA.
+2. Проверить негативные E2E-сценарии без риска для пользовательских данных.
+3. Подключить monitoring и оформить юридический минимум.
 
 Новые функции из `docs/future-plans.md` не входят в beta и не должны задерживать этот выпуск.
 
