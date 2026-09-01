@@ -112,7 +112,7 @@ jobs:
       - name: Back up Storage and verify checksums
         shell: bash
         env:
-          STORAGE_RESTORE_CHECK: ${{ github.event_name == 'workflow_dispatch' && inputs.storage_restore_check }}
+          STORAGE_RESTORE_CHECK: ${{ github.event_name == 'schedule' || inputs.storage_restore_check }}
         run: |
           set -euo pipefail
           args=(.backup/storage)
