@@ -3,6 +3,7 @@ import "server-only";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { Agent, fetch } from "undici";
+import { createPinnedLookup } from "./safe-fetch-lookup";
 
 const MAX_REDIRECTS = 5;
 const TIMEOUT_MS = 15_000;
@@ -178,12 +179,7 @@ export async function safeDownload(value: string) {
     const target = current.addresses[0];
     const dispatcher = new Agent({
       connect: {
-        lookup: (_hostname, _options, callback) =>
-          callback(
-            null,
-            target.address,
-            "family" in target ? target.family : isIP(target.address),
-          ),
+        lookup: createPinnedLookup(target),
       },
     });
     try {
