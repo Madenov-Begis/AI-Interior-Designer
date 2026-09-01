@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  oauthCallbackUrl,
   safeReturnOrigin,
   safeReturnPath,
 } from "@/server/features/auth/route-policy";
@@ -15,12 +16,11 @@ export async function GET(request: NextRequest) {
     env.APP_ORIGINS,
     appUrl,
   );
-  const callbackUrl = new URL("/auth/callback", request.nextUrl.origin);
-  callbackUrl.searchParams.set(
-    "next",
+  const callbackUrl = oauthCallbackUrl(
+    request.nextUrl.origin,
     safeReturnPath(request.nextUrl.searchParams.get("next")),
+    returnOrigin,
   );
-  callbackUrl.searchParams.set("returnOrigin", returnOrigin);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {

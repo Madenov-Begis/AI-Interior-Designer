@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isLocalDevelopmentOrigin, safeReturnOrigin } from "./route-policy.ts";
+import {
+  isLocalDevelopmentOrigin,
+  oauthCallbackUrl,
+  safeReturnOrigin,
+} from "./route-policy.ts";
 
 const origins = [
   "https://www.ruvie.cc",
@@ -37,4 +41,26 @@ test("recognizes only HTTP localhost origins for the OAuth handoff", () => {
   assert.equal(isLocalDevelopmentOrigin("http://127.0.0.1:3000"), true);
   assert.equal(isLocalDevelopmentOrigin("https://localhost:3000"), false);
   assert.equal(isLocalDevelopmentOrigin("https://www.ruvie.cc"), false);
+});
+
+test("uses an exact production OAuth callback from the Supabase allowlist", () => {
+  assert.equal(
+    oauthCallbackUrl(
+      "https://api.ruvie.cc",
+      "/app/projects",
+      "https://ruvie.cc",
+    ).toString(),
+    "https://api.ruvie.cc/auth/callback",
+  );
+});
+
+test("keeps local OAuth handoff parameters for the frontend origin", () => {
+  assert.equal(
+    oauthCallbackUrl(
+      "http://localhost:3000",
+      "/app/projects",
+      "http://localhost:3000",
+    ).toString(),
+    "http://localhost:3000/auth/callback?next=%2Fapp%2Fprojects&returnOrigin=http%3A%2F%2Flocalhost%3A3000",
+  );
 });

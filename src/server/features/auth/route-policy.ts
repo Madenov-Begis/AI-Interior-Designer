@@ -50,3 +50,20 @@ export function isLocalDevelopmentOrigin(origin: string) {
     (url.hostname === "localhost" || url.hostname === "127.0.0.1")
   );
 }
+
+export function oauthCallbackUrl(
+  requestOrigin: string,
+  next: string,
+  returnOrigin: string,
+) {
+  const callbackUrl = new URL("/auth/callback", requestOrigin);
+
+  // Production must use the exact URL configured in the Supabase redirect
+  // allowlist. Local development keeps the cross-origin handoff parameters.
+  if (isLocalDevelopmentOrigin(requestOrigin)) {
+    callbackUrl.searchParams.set("next", safeReturnPath(next));
+    callbackUrl.searchParams.set("returnOrigin", returnOrigin);
+  }
+
+  return callbackUrl;
+}
