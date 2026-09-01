@@ -170,16 +170,15 @@ export async function listAdminUsers(input: {
         }
       : {}),
   };
-  const [totalItems, rows] = await getDb().$transaction([
-    getDb().profile.count({ where }),
-    getDb().profile.findMany({
-      where,
-      skip: (input.page - 1) * input.pageSize,
-      take: input.pageSize,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      include: userListInclude,
-    }),
-  ]);
+  const db = getDb();
+  const totalItems = await db.profile.count({ where });
+  const rows = await db.profile.findMany({
+    where,
+    skip: (input.page - 1) * input.pageSize,
+    take: input.pageSize,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    include: userListInclude,
+  });
   return {
     items: rows.map(userListDto),
     pageInfo: pageInfo(input.page, input.pageSize, totalItems),
@@ -345,16 +344,15 @@ export async function listAdminGenerations(input: {
         }
       : {}),
   };
-  const [totalItems, rows] = await getDb().$transaction([
-    getDb().generation.count({ where }),
-    getDb().generation.findMany({
-      where,
-      skip: (input.page - 1) * input.pageSize,
-      take: input.pageSize,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      include: generationInclude,
-    }),
-  ]);
+  const db = getDb();
+  const totalItems = await db.generation.count({ where });
+  const rows = await db.generation.findMany({
+    where,
+    skip: (input.page - 1) * input.pageSize,
+    take: input.pageSize,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    include: generationInclude,
+  });
   return {
     items: rows.map(generationListDto),
     pageInfo: pageInfo(input.page, input.pageSize, totalItems),
@@ -495,16 +493,15 @@ export async function listAdminPaymentOrders(input: {
         }
       : {}),
   };
-  const [totalItems, rows] = await getDb().$transaction([
-    getDb().paymentOrder.count({ where }),
-    getDb().paymentOrder.findMany({
-      where,
-      skip: (input.page - 1) * input.pageSize,
-      take: input.pageSize,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      include: { user: { select: { id: true, displayName: true, email: true, phone: true } } },
-    }),
-  ]);
+  const db = getDb();
+  const totalItems = await db.paymentOrder.count({ where });
+  const rows = await db.paymentOrder.findMany({
+    where,
+    skip: (input.page - 1) * input.pageSize,
+    take: input.pageSize,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    include: { user: { select: { id: true, displayName: true, email: true, phone: true } } },
+  });
   return {
     items: rows.map((order) => ({
       id: order.id,
@@ -552,16 +549,15 @@ export async function listAdminCreditTransactions(input: {
         }
       : {}),
   };
-  const [totalItems, rows] = await getDb().$transaction([
-    getDb().creditTransaction.count({ where }),
-    getDb().creditTransaction.findMany({
-      where,
-      skip: (input.page - 1) * input.pageSize,
-      take: input.pageSize,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      include: { wallet: { include: { user: { select: { id: true, displayName: true, email: true, phone: true } } } } },
-    }),
-  ]);
+  const db = getDb();
+  const totalItems = await db.creditTransaction.count({ where });
+  const rows = await db.creditTransaction.findMany({
+    where,
+    skip: (input.page - 1) * input.pageSize,
+    take: input.pageSize,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    include: { wallet: { include: { user: { select: { id: true, displayName: true, email: true, phone: true } } } } },
+  });
   return {
     items: rows.map((transaction) => ({
       id: transaction.id,

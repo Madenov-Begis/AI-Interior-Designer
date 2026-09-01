@@ -103,40 +103,38 @@ export async function listOwnedGenerations(
     status: input.status,
     projectId: input.projectId,
   };
-  const [total, rows] = await db.$transaction([
-    db.generation.count({ where }),
-    db.generation.findMany({
-      where,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: input.limit + 1,
-      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
-      select: {
-        id: true,
-        projectId: true,
-        parentGenerationId: true,
-        status: true,
-        prompt: true,
-        aspectRatio: true,
-        visualPromptUsed: true,
-        resultOriginalId: true,
-        errorCode: true,
-        errorMessage: true,
-        createdAt: true,
-        queuedAt: true,
-        completedAt: true,
-        durationMs: true,
-        project: { select: { name: true, sourcePreviewId: true } },
-        resultOriginal: {
-          select: { bucket: true, path: true, width: true, height: true },
-        },
-        references: {
-          orderBy: { position: "asc" },
-          select: { fileId: true, position: true },
-        },
-        _count: { select: { references: true } },
+  const total = await db.generation.count({ where });
+  const rows = await db.generation.findMany({
+    where,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: input.limit + 1,
+    ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+    select: {
+      id: true,
+      projectId: true,
+      parentGenerationId: true,
+      status: true,
+      prompt: true,
+      aspectRatio: true,
+      visualPromptUsed: true,
+      resultOriginalId: true,
+      errorCode: true,
+      errorMessage: true,
+      createdAt: true,
+      queuedAt: true,
+      completedAt: true,
+      durationMs: true,
+      project: { select: { name: true, sourcePreviewId: true } },
+      resultOriginal: {
+        select: { bucket: true, path: true, width: true, height: true },
       },
-    }),
-  ]);
+      references: {
+        orderBy: { position: "asc" },
+        select: { fileId: true, position: true },
+      },
+      _count: { select: { references: true } },
+    },
+  });
   const hasMore = rows.length > input.limit;
   const pageRows = hasMore ? rows.slice(0, input.limit) : rows;
   const items = pageRows.map((generation) => ({

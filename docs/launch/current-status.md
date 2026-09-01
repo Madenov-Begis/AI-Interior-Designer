@@ -41,4 +41,4 @@
 
 ## Rollback
 
-Если новый deployment не пройдет smoke test, оба Vercel-проекта нужно откатить на последний подтвержденный production commit `5d6eb8d`, затем повторить проверки root, login, credits API, auth API и admin. Миграция `20260830090000_add_foreign_key_indexes` совместима с предыдущим кодом и не требует отката базы при таком rollback.
+Если новый deployment не пройдет smoke test, оба Vercel-проекта нужно откатить на проверенный beta tag `closed-beta-2026-09-01` (commit `c952cf3`), затем повторить проверки root, login, credits API, auth API и admin. Миграция `20260830090000_add_foreign_key_indexes` совместима с предыдущим кодом и не требует отката базы при таком rollback.

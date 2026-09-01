@@ -105,18 +105,16 @@ export async function listProjects(
       ? { name: { contains: normalizedSearch, mode: "insensitive" } }
       : {}),
   };
-  const [rows, total] = await db.$transaction([
-    db.project.findMany({
-      where,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
-      ...(cursor
-        ? { cursor: { id: cursor }, skip: 1 }
-        : { skip: (page - 1) * limit }),
-      select: projectSummarySelect,
-    }),
-    db.project.count({ where }),
-  ]);
+  const rows = await db.project.findMany({
+    where,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
+    ...(cursor
+      ? { cursor: { id: cursor }, skip: 1 }
+      : { skip: (page - 1) * limit }),
+    select: projectSummarySelect,
+  });
+  const total = await db.project.count({ where });
 
   const hasMore = rows.length > limit;
   const items = hasMore ? rows.slice(0, limit) : rows;
