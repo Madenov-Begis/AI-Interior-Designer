@@ -138,4 +138,14 @@ pnpm admin:build
 validation и production build. Проверка миграций требует доступного PostgreSQL:
 сначала выполните `pnpm db:migrate:deploy`, затем `pnpm db:status`.
 
+Перед beta-релизом запустите единую проверку:
+
+```bash
+pnpm release:check
+```
+
+Текущий статус и обязательные внешние шаги находятся в
+[`docs/launch/current-status.md`](docs/launch/current-status.md), полный checklist —
+в [`docs/launch/closed-beta-checklist.md`](docs/launch/closed-beta-checklist.md).
+
 Актуальное ТЗ хранится в [`docs/requirements/technical-specification.md`](docs/requirements/technical-specification.md), а сводная история решений — в [`docs/project-history.md`](docs/project-history.md). Исходные материалы `superpowers` объединены в эту историю и при необходимости восстанавливаются из Git.

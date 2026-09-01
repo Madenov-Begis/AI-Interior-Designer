@@ -26,10 +26,13 @@ const serverEnvSchema = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
     GOOGLE_CLOUD_PROJECT_ID: z.string().min(1).optional(),
     GOOGLE_CLOUD_LOCATION: z.string().min(1).optional(),
+    GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1).optional(),
     GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
     TRIGGER_SECRET_KEY: z.string().min(1).optional(),
     SENTRY_DSN: z.url().optional(),
     ADMIN_ORIGINS: z.string().min(1).optional(),
+    ADMIN_ACCESS_CODE: z.string().trim().min(5).max(128).optional(),
+    ADMIN_TOKEN_SECRET: z.string().min(32).optional(),
     AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
   })
   .superRefine((env, context) => {
@@ -47,6 +50,34 @@ const serverEnvSchema = z
         message: "Обязателен exact allowlist origin для production-клиента",
       });
     }
+    if (env.NODE_ENV === "production" && !env.AUTH_COOKIE_DOMAIN) {
+      context.addIssue({
+        code: "custom",
+        path: ["AUTH_COOKIE_DOMAIN"],
+        message: "Обязателен общий production-domain для auth cookies",
+      });
+    }
+    if (env.NODE_ENV === "production" && !env.SUPABASE_SERVICE_ROLE_KEY) {
+      context.addIssue({
+        code: "custom",
+        path: ["SUPABASE_SERVICE_ROLE_KEY"],
+        message: "Обязателен для server-side Auth и Storage операций",
+      });
+    }
+    if (env.NODE_ENV === "production" && !env.ADMIN_ACCESS_CODE) {
+      context.addIssue({
+        code: "custom",
+        path: ["ADMIN_ACCESS_CODE"],
+        message: "Обязателен для production-входа администратора",
+      });
+    }
+    if (env.NODE_ENV === "production" && !env.ADMIN_TOKEN_SECRET) {
+      context.addIssue({
+        code: "custom",
+        path: ["ADMIN_TOKEN_SECRET"],
+        message: "Обязателен для подписи production admin-token",
+      });
+    }
     if (env.AI_PROVIDER === "vertex") {
       if (!env.GOOGLE_CLOUD_PROJECT_ID)
         context.addIssue({
@@ -59,6 +90,16 @@ const serverEnvSchema = z
           code: "custom",
           path: ["GOOGLE_CLOUD_LOCATION"],
           message: "Обязателен для Vertex AI",
+        });
+      if (
+        !env.GOOGLE_APPLICATION_CREDENTIALS_JSON &&
+        !env.GOOGLE_APPLICATION_CREDENTIALS
+      )
+        context.addIssue({
+          code: "custom",
+          path: ["GOOGLE_APPLICATION_CREDENTIALS_JSON"],
+          message:
+            "Для Vertex AI необходим GOOGLE_APPLICATION_CREDENTIALS_JSON или GOOGLE_APPLICATION_CREDENTIALS",
         });
     }
     try {
