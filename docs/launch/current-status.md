@@ -28,7 +28,7 @@
 
 ## Оставшиеся блокеры
 
-1. Закрыть негативные E2E-сценарии: новый Google signup, cancel/refund/retry/insufficient balance и ручное подтверждение скачанного файла.
+1. Исправить импорт публичного URL-референса: production возвращает HTTP 207 из-за несовместимого с `options.all=true` DNS callback в `safe-fetch.ts`. Затем продолжить негативные E2E-сценарии: новый Google signup и cancel/refund/retry/insufficient balance. Скачивание WebP уже подтверждено файлом на диске.
 2. Провести Design QA при 375, 768 и 1440 px, включая клавиатуру и mobile, и изменить итог отчета с `blocked` на `passed`.
 3. Подключить exception tracking и Google Cloud budget alert; определить emergency stop. Базовый uptime и generation-health monitoring уже добавлен в GitHub Actions.
 4. Заполнить реквизиты и сроки в юридических шаблонах, проверить их, опубликовать страницы и добавить фиксацию согласия.
