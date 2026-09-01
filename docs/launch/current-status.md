@@ -21,12 +21,13 @@
 - Локальный `pnpm release:check` от 1 сентября прошел полностью: 200 основных тестов, 21 UI/unit-тест и 7 server-тестов админки, TypeScript, ESLint, обе production-сборки и проверка 17 миграций.
 - Release commit `c952cf3` опубликован, оба Vercel deployment имеют статус `READY`, post-deploy smoke и OAuth dry-run прошли; создан tag `closed-beta-2026-09-01`.
 - Production E2E happy path прошел: authenticated session, PNG upload, Vertex generation, списание 4 кредитов, refinement, повторное списание, reload persistence, admin login и credit adjustment с возвратом тестового баланса. Отчет: `docs/launch/production-e2e-2026-09-01.md`.
+- Добавлен production monitoring каждые 15 минут: семь проверок доменов/API, агрегатные пороги `FAILED`, зависших `QUEUED/PROCESSING` и technical refund, а также автоматический GitHub incident issue. Runbook: `docs/launch/monitoring-runbook.md`.
 
 ## Оставшиеся блокеры
 
 1. Закрыть негативные E2E-сценарии: новый Google signup, cancel/refund/retry/insufficient balance и ручное подтверждение скачанного файла.
 2. Провести Design QA при 375, 768 и 1440 px, включая клавиатуру и mobile, и изменить итог отчета с `blocked` на `passed`.
-3. Подключить внешний error/uptime monitoring, alerts зависших и неуспешных генераций, refund и Google Cloud budget; определить emergency stop.
+3. Подключить exception tracking и Google Cloud budget alert; определить emergency stop. Базовый uptime и generation-health monitoring уже добавлен в GitHub Actions.
 4. Заполнить реквизиты и сроки в юридических шаблонах, проверить их, опубликовать страницы и добавить фиксацию согласия.
 5. Подтвердить операционную безопасность: self-lockout protection, MFA/резервный owner Supabase, минимальные Vertex IAM/quota и формальные RPO/RTO.
 

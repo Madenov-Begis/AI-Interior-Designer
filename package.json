@@ -17,6 +17,8 @@
     "admin:build": "pnpm --dir admin build",
     "admin:seed": "node --experimental-strip-types scripts/seed-admin.ts",
     "build": "prisma generate && next build",
+    "monitor:production": "node scripts/check-production-smoke.mjs",
+    "monitor:generations": "node scripts/check-generation-health.mjs",
     "release:check": "pnpm prisma:validate && pnpm test && pnpm typecheck && pnpm lint && pnpm build && pnpm admin:test && pnpm admin:server:test && pnpm admin:typecheck && pnpm admin:build && pnpm db:status && git diff HEAD --check",
     "start": "next start",
     "postinstall": "prisma generate",

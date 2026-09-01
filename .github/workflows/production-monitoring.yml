@@ -1,0 +1,84 @@
+name: Production monitoring
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-monitoring
+  cancel-in-progress: true
+
+jobs:
+  uptime-and-generation-health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 11.13.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check public production endpoints
+        run: pnpm monitor:production
+
+      - name: Validate database secret
+        shell: bash
+        run: |
+          if [ -z "${SUPABASE_DATABASE_URL:-}" ]; then
+            echo "Missing GitHub Actions secret: SUPABASE_DATABASE_URL" >&2
+            exit 1
+          fi
+
+      - name: Check generation and refund thresholds
+        run: pnpm monitor:generations
+
+      - name: Resolve previous monitoring incident
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          issue_number="$(gh issue list --state open --json number,title --jq '.[] | select(.title == "[monitoring] Production health check failed") | .number' | head -n 1)"
+          if [ -n "$issue_number" ]; then
+            gh issue close "$issue_number" --comment "Production checks recovered in run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
+
+  report-failure:
+    needs: uptime-and-generation-health
+    if: ${{ failure() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Open or update monitoring incident
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          title="[monitoring] Production health check failed"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          issue_number="$(gh issue list --state open --json number,title --jq '.[] | select(.title == "[monitoring] Production health check failed") | .number' | head -n 1)"
+          if [ -n "$issue_number" ]; then
+            gh issue comment "$issue_number" --body "Failure repeated: $run_url"
+          else
+            gh issue create --title "$title" --body "Production uptime or generation-health monitoring failed. Inspect the private Actions logs: $run_url"
+          fi
