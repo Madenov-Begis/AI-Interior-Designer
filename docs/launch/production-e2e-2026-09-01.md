@@ -51,7 +51,8 @@
 - reference files/URLs и инструменты разметки;
 - queued cancellation, technical failure refund, retry и insufficient balance;
 - фактическое появление скачанного WebP в папке загрузок;
-- responsive Design QA и keyboard/accessibility сценарии.
+- responsive Design QA и keyboard/accessibility сценарии (закрыты отдельным
+  production-прогоном 2 сентября 2026 года; см. `docs/design/design-qa.md`).
 
 Эти пункты остаются открытыми в `closed-beta-checklist.md`.
 
