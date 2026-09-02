@@ -164,10 +164,10 @@ export function ProfilePanel() {
         <div className="mt-12 grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
           <RuviePanel className="min-w-0 p-6">
             <h2 className="text-2xl font-black italic">Проекты</h2>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="mt-5 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
               <Link
                 href="/app"
-                className="flex min-h-36 items-center gap-4 rounded-[18px] border border-dashed border-border px-5 transition-colors hover:border-primary"
+                className="flex min-h-36 min-w-0 items-center gap-4 rounded-[18px] border border-dashed border-border px-5 transition-colors hover:border-primary"
               >
                 <Plus className="size-8 text-primary" />
                 <div>
@@ -183,7 +183,7 @@ export function ProfilePanel() {
                 <Link
                   key={project.id}
                   href={`/app/${project.id}`}
-                  className="flex min-h-36 items-center gap-4 rounded-[18px] border border-border p-3 transition-colors hover:border-muted-foreground/45"
+                  className="flex min-h-36 min-w-0 items-center gap-4 rounded-[18px] border border-border p-3 transition-colors hover:border-muted-foreground/45"
                 >
                   <span className="grid h-24 w-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary">
                     {project.previewUrl ? (

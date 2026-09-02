@@ -14,6 +14,11 @@ test("profile grid can shrink to the mobile viewport", () => {
   );
   assert.match(profileSource, /<RuviePanel className="min-w-0 p-6">/);
   assert.match(profileSource, /<div className="grid min-w-0 gap-5">/);
+  assert.match(
+    profileSource,
+    /mt-5 grid min-w-0 grid-cols-\[minmax\(0,1fr\)\] gap-3/,
+  );
+  assert.equal(profileSource.match(/flex min-h-36 min-w-0/g)?.length, 2);
 });
 
 test("profile actions stack on narrow screens", () => {
