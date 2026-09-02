@@ -25,3 +25,10 @@ test("generation prompt has a visible label and persistent guidance", () => {
   );
   assert.match(inspectorSource, /htmlFor="generation-prompt"/);
 });
+
+test("generation action panel keeps the primary action compact", () => {
+  assert.doesNotMatch(inspectorSource, /Стоимость генерации/);
+  assert.doesNotMatch(inspectorSource, /GENERATION_REFUND_MESSAGE/);
+  assert.doesNotMatch(inspectorSource, /availableGenerationsText/);
+  assert.match(inspectorSource, /walletPresentation\.buttonLabel/);
+});

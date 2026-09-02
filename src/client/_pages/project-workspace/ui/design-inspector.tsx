@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  AlertCircle,
-  Coins,
-  ImagePlus,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { AlertCircle, ImagePlus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { ReferenceManager } from "./reference-manager";
 import { StylePicker } from "./style-picker";
@@ -19,10 +13,6 @@ import {
   type GenerationAspectRatio,
   type GenerationAspectRatioSelection,
 } from "../model/generation-aspect-ratio";
-import {
-  GENERATION_CREDIT_COST,
-  GENERATION_REFUND_MESSAGE,
-} from "@/shared/config";
 import {
   type GenerationWallet,
   generationWalletPresentation,
@@ -76,8 +66,6 @@ export function DesignInspector({
     "root",
     generationErrorCode,
   );
-  const generationCost = credits?.generationCost ?? GENERATION_CREDIT_COST;
-
   return (
     <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
       <div className="min-h-0 min-w-0 max-w-full flex-1 space-y-5 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4">
@@ -217,36 +205,27 @@ export function DesignInspector({
         </fieldset>
       </div>
 
-      <div className="shrink-0 border-t border-border bg-card px-4 py-4">
-        <div className="flex items-center justify-between gap-4 text-xs">
-          <div>
-            <p className="font-semibold text-foreground">
-              {dataLoading
-                ? "Проверяем баланс…"
-                : walletPresentation.balanceText}
-            </p>
-            {walletPresentation.availableGenerationsText ? (
-              <p className="mt-1 text-muted">
-                {walletPresentation.availableGenerationsText}
-              </p>
-            ) : null}
-          </div>
+      <div className="shrink-0 border-t border-border bg-card px-4 py-3">
+        <div className="flex items-center justify-between gap-3 text-xs">
+          <p className="font-semibold text-foreground">
+            {dataLoading ? "Проверяем баланс…" : walletPresentation.balanceText}
+          </p>
           <Link
             href="/app/credits"
-            className="shrink-0 rounded-md border border-primary/25 px-2 py-1 font-semibold text-primary transition-colors hover:bg-primary/10"
+            className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-primary/25 px-3 font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            Кредиты
+            Пополнить
           </Link>
         </div>
 
         {disabledReasons.length > 0 && (
           <div
-            className="mt-3 flex gap-2 rounded-lg bg-secondary p-3 text-xs leading-5 text-muted-foreground"
+            className="mt-2 flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground"
             role="status"
           >
             <AlertCircle
               size={16}
-              className="mt-0.5 shrink-0 text-primary"
+              className="shrink-0 text-primary"
               aria-hidden="true"
             />
             <span>
@@ -289,32 +268,13 @@ export function DesignInspector({
           </p>
         ) : null}
 
-        <div className="mt-3 rounded-lg border border-primary/20 bg-primary/7 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 text-xs font-semibold">
-              <Coins className="size-4 text-primary" aria-hidden="true" />
-              Стоимость генерации
-            </span>
-            <span className="font-mono text-xs font-bold text-primary">
-              {generationCost} кредита
-            </span>
-          </div>
-          <p className="mt-2 flex gap-2 text-xs leading-5 text-muted-foreground">
-            <ShieldCheck
-              className="mt-0.5 size-3.5 shrink-0 text-success"
-              aria-hidden="true"
-            />
-            {GENERATION_REFUND_MESSAGE}
-          </p>
-        </div>
-
         <div data-onboarding="generate">
           <LoadingButton
             onClick={onGenerate}
             disabled={disabledReasons.length > 0}
             pending={generationPending}
             pendingText="Запускаем…"
-            className="mt-3 w-full"
+            className="mt-2 w-full"
             size="lg"
           >
             <ImagePlus size={18} aria-hidden="true" />

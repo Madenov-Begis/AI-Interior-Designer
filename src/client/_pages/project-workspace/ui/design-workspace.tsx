@@ -248,7 +248,7 @@ function ReadyDesignWorkspace({
     disabledReasons.push("Генерация уже запускается.");
   }
   if (prompt.trim().length < 3) {
-    disabledReasons.push("Опишите изменения минимум в трёх символах.");
+    disabledReasons.push("Добавьте описание — минимум 3 символа.");
   } else if (prompt.length > 4000) {
     disabledReasons.push("Сократите инструкцию до 4000 символов.");
   }
