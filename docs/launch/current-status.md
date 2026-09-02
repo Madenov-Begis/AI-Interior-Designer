@@ -1,9 +1,9 @@
 # Ruvie — текущий статус запуска
 
-- Дата: 1 сентября 2026 года
+- Дата: 2 сентября 2026 года
 - Целевой формат: закрытая бесплатная beta
 - Текущее решение: `NO-GO`
-- Причина: инфраструктурные блокеры закрыты, но обязательная пользовательская приемка, Design QA, monitoring и юридическая публикация еще не завершены
+- Причина: инфраструктурные блокеры и функциональная приемка закрыты, кроме нового Google signup; Design QA, exception tracking и юридическая публикация еще не завершены
 
 ## Что закрыто
 
@@ -18,9 +18,15 @@
 - HTTPS и маршрутизация проверены: root и admin отвечают, `www` перенаправляет на root, защищенный API без сессии возвращает ожидаемый `401`.
 - Основное приложение и админка имеют готовые Production deployments.
 - Добавлена единая команда `pnpm release:check`; Node.js закреплен на ветке `24.x`.
-- Локальный `pnpm release:check` от 1 сентября прошел полностью: 200 основных тестов, 21 UI/unit-тест и 7 server-тестов админки, TypeScript, ESLint, обе production-сборки и проверка 17 миграций.
+- Локальный `pnpm release:check` от 2 сентября прошел полностью: 207 основных тестов, 21 UI/unit-тест и 7 server-тестов админки, TypeScript, ESLint, обе production-сборки и проверка 17 миграций.
 - Release commit `c952cf3` опубликован, оба Vercel deployment имеют статус `READY`, post-deploy smoke и OAuth dry-run прошли; создан tag `closed-beta-2026-09-01`.
 - Production E2E happy path прошел: authenticated session, PNG upload, Vertex generation, списание 4 кредитов, refinement, повторное списание, reload persistence, admin login и credit adjustment с возвратом тестового баланса. Отчет: `docs/launch/production-e2e-2026-09-01.md`.
+- Дополнительная production-приемка закрыла logout/relogin, создание проекта,
+  JPEG/WebP и негативные uploads, exterior validation, canvas tools и reload,
+  все стили/formats, catalog, profile/history, insufficient credits,
+  cancellation/refund, technical refund, retry и cross-user isolation.
+  Найденные autosave и refinement-retry ошибки исправлены в commits `2b07566`
+  и `1f9e13a`; оба исправления повторно проверены в production.
 - Добавлен production monitoring каждые 15 минут: семь проверок доменов/API, агрегатные пороги `FAILED`, зависших `QUEUED/PROCESSING` и technical refund, а также автоматический GitHub incident issue. Runbook: `docs/launch/monitoring-runbook.md`.
 - Для beta утверждены RPO 30 часов, RTO 4 часа и 30-дневное хранение encrypted backup; назначена роль Beta Recovery Owner и сохранен recovery runbook. Подготовлены безопасные шаблоны ответов поддержки.
 - Production содержит одного активного администратора; backend в транзакции запрещает self-lockout и удаление/понижение последнего активного администратора, соответствующий server test проходит.
@@ -28,7 +34,7 @@
 
 ## Оставшиеся блокеры
 
-1. Продолжить негативные E2E-сценарии: новый Google signup и cancel/refund/retry/insufficient balance. Импорт публичного URL-референса исправлен и повторно подтвержден в production; скачивание WebP подтверждено файлом на диске.
+1. Выполнить единственный оставшийся E2E browser-flow: новый Google signup через отдельный новый Google-аккаунт. Production-аудит уже подтверждает ровно один grant на 10 кредитов у всех обычных профилей.
 2. Провести Design QA при 375, 768 и 1440 px, включая клавиатуру и mobile, и изменить итог отчета с `blocked` на `passed`.
 3. Подключить exception tracking и Google Cloud budget alert; определить emergency stop. Базовый uptime и generation-health monitoring уже добавлен в GitHub Actions.
 4. Заполнить реквизиты и сроки в юридических шаблонах, проверить их, опубликовать страницы и добавить фиксацию согласия.
@@ -37,7 +43,7 @@
 ## Следующая последовательность
 
 1. Закрыть Design QA.
-2. Проверить негативные E2E-сценарии без риска для пользовательских данных.
+2. Проверить новый Google signup с отдельной учетной записью.
 3. Подключить monitoring и оформить юридический минимум.
 
 Новые функции из `docs/future-plans.md` не входят в beta и не должны задерживать этот выпуск.

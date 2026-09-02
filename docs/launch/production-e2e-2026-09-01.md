@@ -97,3 +97,58 @@ URL-референса. Согласно правилу E2E проверка о�
   console не содержит ошибок.
 
 Результат повторной проверки URL-import boundary: `PASSED`.
+
+## Завершение функциональной приемки 2 сентября 2026 года
+
+- Logout и повторный Google OAuth-вход прошли. Исправлен fallback на Site URL:
+  production теперь передает Supabase точный разрешенный callback без dynamic
+  query string. Commit `8117571`, deployment `dpl_DNso8T4dK9wm1a5iRSKVPHiaWBJt`.
+- Создание новых проектов, JPEG и WebP upload прошли. Поддельный JPG, файл 16
+  МБ и фотография фасада получили ожидаемые локализованные отказы. Баланс при
+  отказах не изменился.
+- Ручка, маркер, прямоугольник, ластик, undo, redo и полная очистка работают.
+  Production E2E обнаружил отсутствие сохранения обычных штрихов после reload.
+  Добавлено debounced autosave source-разметки; повторный production-тест
+  подтвердил восстановление штриха и сохранение очистки. Commit `2b07566`,
+  deployment `dpl_HmAC39T4o6SizFV1VLg1xwHHgN3p`.
+- Последовательно выбраны все шесть стилей, формат «Как в исходнике» и все пять
+  ручных aspect ratio.
+- Поиск проектов, grid/list и переходы между страницами 1 и 2 прошли.
+- Профиль, баланс и последние кредитные операции отображаются. Экран кредитов
+  явно сообщает, что оплата временно недоступна.
+- Проверка production-связей подтвердила, что refinement использует clean
+  `resultOriginalId` родителя, а не пользовательский result.
+- На старом retry-коде повтор FAILED-refinement ошибочно создал новый root.
+  Route разделен на root/refinement планы; refinement retry сохраняет родителя,
+  исходные референсы и visual prompt. После исправления UI создал дочерний
+  `Вариант 1.1.3`, production-база подтвердила clean original и ровно один debit
+  `−4`. Commit `1f9e13a`, deployment
+  `dpl_EGFeJMdCmhxo2xnhFKmPNvbucNQg` со статусом `READY`.
+- Историческая FAILED-задача имеет ровно один `GENERATION_DEBIT −4` и один
+  `TECHNICAL_REFUND +4`; usage status `REFUNDED`, net 0.
+- Для детерминированной проверки отмены создан один controlled `QUEUED` fixture
+  без запуска worker. UI перевел его в `CANCELLED`, баланс вернулся `8 → 12`, а
+  база показала ровно `GENERATION_DEBIT −4` и `CANCELLATION_REFUND +4`, net 0.
+- При временном балансе 3 кредита кнопка генерации была disabled и предлагала
+  пополнение. Тестовая admin-корректировка полностью возвращена.
+- Оба созданных E2E-проекта архивированы. Их прямые URL показывают «Проект не
+  найден». Прямой URL активного проекта другого пользователя также вернул
+  «Проект не найден» без изображений или других данных.
+- Production-аудит signup journal: у всех 16 обычных профилей ровно один
+  `SIGNUP_GRANT` на 10 кредитов, повторных grant нет; профиль ADMIN ожидаемо не
+  имеет пользовательского grant. Новый Google signup через отдельный новый
+  аккаунт не выполнялся.
+- Три успешные тестовые генерации списали 12 кредитов; одной прозрачной
+  admin-корректировкой они возвращены. Финальный тестовый баланс: 24 кредита.
+- Финальный smoke: 7 из 7. Generation health: `recentFailed=0`,
+  `staleQueued=0`, `staleProcessing=0`, `recentTechnicalRefunds=0`.
+- `AdminPhone` в production отклонен HTTP 401 с сообщением «Локальный вход
+  отключён».
+- Vercel runtime scan за два часа не показал пользовательских сбоев. Есть одно
+  non-fatal `pg` deprecation warning на старом deployment при успешном HTTP 202;
+  его следует убрать до перехода на `pg@9`.
+
+Результат функциональной production-приемки: `PASSED WITH ONE EXTERNAL GAP`.
+Единственный непроверенный browser-flow — первоначальный Google signup через
+отдельный новый Google-аккаунт. Серверная идемпотентность grant и production
+данные подтверждены.
