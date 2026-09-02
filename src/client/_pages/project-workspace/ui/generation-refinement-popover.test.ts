@@ -106,6 +106,13 @@ test("trash clears all markup without a browser confirmation", () => {
   assert.doesNotMatch(workspaceSource, /window\.confirm/);
 });
 
+test("source markup is saved after canvas history changes", () => {
+  assert.match(visualPromptEditorSource, /const schedulePersist = useCallback/);
+  assert.match(visualPromptEditorSource, /if \(persistChange\) schedulePersist\(\)/);
+  assert.match(visualPromptEditorSource, /persistLatestRef\.current\(\)/);
+  assert.match(visualPromptEditorSource, /captureHistory\(false, false\)/);
+});
+
 test("refinement sends only new files for the selected generation", () => {
   assert.match(
     generationApiSource,

@@ -59,6 +59,8 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const historyStateCallbackRef = useRef(props.onHistoryStateChange);
     const persistenceStateCallbackRef = useRef(props.onPersistenceStateChange);
     const hasSavedPromptRef = useRef(props.initialState !== null);
+    const persistLatestRef = useRef<() => Promise<void>>(async () => undefined);
+    const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
       historyStateCallbackRef.current = props.onHistoryStateChange;
@@ -76,6 +78,22 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           historyIndexRef.current < historyRef.current.length - 1,
       });
     }, []);
+
+    const schedulePersist = useCallback(() => {
+      if (!props.projectId) return;
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+
+      persistTimerRef.current = setTimeout(() => {
+        persistTimerRef.current = null;
+        void persistLatestRef.current().catch((error: unknown) => {
+          persistenceStateCallbackRef.current(
+            error instanceof Error
+              ? `Не удалось сохранить разметку: ${error.message}`
+              : "Не удалось сохранить разметку",
+          );
+        });
+      }, 800);
+    }, [props.projectId]);
 
     const configureCanvas = useCallback(
       (
@@ -188,7 +206,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     );
 
     const captureHistory = useCallback(
-      (withinQueuedOperation = false) => {
+      (withinQueuedOperation = false, persistChange = true) => {
         const canvas = canvasRef.current;
         if (
           !canvas ||
@@ -208,8 +226,9 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         historyRef.current.push(snapshot);
         historyIndexRef.current = historyRef.current.length - 1;
         emitHistoryState();
+        if (persistChange) schedulePersist();
       },
-      [emitHistoryState],
+      [emitHistoryState, schedulePersist],
     );
 
     const loadSnapshot = useCallback(async (snapshot: string) => {
@@ -232,8 +251,9 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           historyIndexRef.current -= 1;
           emitHistoryState();
           await loadSnapshot(historyRef.current[historyIndexRef.current]);
+          schedulePersist();
         }),
-      [emitHistoryState, enqueueCanvasOperation, loadSnapshot],
+      [emitHistoryState, enqueueCanvasOperation, loadSnapshot, schedulePersist],
     );
 
     const redo = useCallback(
@@ -248,8 +268,9 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           historyIndexRef.current += 1;
           emitHistoryState();
           await loadSnapshot(historyRef.current[historyIndexRef.current]);
+          schedulePersist();
         }),
-      [emitHistoryState, enqueueCanvasOperation, loadSnapshot],
+      [emitHistoryState, enqueueCanvasOperation, loadSnapshot, schedulePersist],
     );
 
     const clear = useCallback(
@@ -272,6 +293,10 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     const persist = useCallback(
       () =>
         enqueueCanvasOperation(async () => {
+          if (persistTimerRef.current) {
+            clearTimeout(persistTimerRef.current);
+            persistTimerRef.current = null;
+          }
           const canvas = canvasRef.current;
           if (!canvas) {
             throw new Error("Редактор разметки ещё не готов");
@@ -323,6 +348,10 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         enqueueCanvasOperation,
       ],
     );
+
+    useEffect(() => {
+      persistLatestRef.current = persist;
+    }, [persist]);
 
     const snapshot = useCallback(
       () =>
@@ -641,7 +670,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             colorRef.current,
             strokeWidthRef.current,
           );
-          captureHistory();
+          captureHistory(false, false);
           if (migratedCoordinateSpace) {
             void persist().catch((error: unknown) => {
               persistenceStateCallbackRef.current(
@@ -656,6 +685,10 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
 
       return () => {
         disposed = true;
+        if (persistTimerRef.current) {
+          clearTimeout(persistTimerRef.current);
+          persistTimerRef.current = null;
+        }
         disposeEraserEnd?.();
         eraserBrush?.dispose();
         pencilBrushRef.current = null;
