@@ -90,14 +90,14 @@ export function DesignInspector({
 
         <section
           aria-labelledby="inspector-prompt-title"
-          className="rounded-2xl border border-primary/35 bg-primary/[0.07] p-4"
+          className="rounded-xl border border-border bg-secondary/25 p-3"
         >
           <div className="flex items-start gap-3">
             <span
               aria-hidden="true"
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/15 text-primary"
+              className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
             >
-              <Sparkles className="size-4" />
+              <Sparkles className="size-3.5" />
             </span>
             <div className="min-w-0 flex-1">
               <label
@@ -111,11 +111,11 @@ export function DesignInspector({
                 id="generation-prompt-help"
                 className="mt-1 text-xs leading-5 text-muted-foreground"
               >
-                Укажите, что заменить, добавить или обязательно сохранить.
+                Что изменить, добавить или сохранить.
               </p>
             </div>
             <span
-              className={`shrink-0 rounded-full border border-border/80 bg-background/70 px-2 py-1 text-[11px] tabular-nums ${
+              className={`shrink-0 pt-0.5 text-[11px] tabular-nums ${
                 prompt.length > 4000 ? "text-red-300" : "text-muted-foreground"
               }`}
             >
@@ -136,7 +136,7 @@ export function DesignInspector({
                 : "generation-prompt-help"
             }
             placeholder="Например: замените диван на светлый, добавьте тёплое освещение и сохраните расположение окон"
-            className="mt-3 min-h-36 resize-none border-primary/20 bg-background/90 text-base focus-visible:border-primary focus-visible:ring-primary/25"
+            className="mt-3 min-h-36 resize-none border-border bg-background text-base focus-visible:border-primary focus-visible:ring-primary/25"
           />
           {promptIsInvalid && (
             <p

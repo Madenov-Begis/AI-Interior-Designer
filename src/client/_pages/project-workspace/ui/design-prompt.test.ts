@@ -24,6 +24,8 @@ test("generation prompt has a visible label and persistent guidance", () => {
     /"generation-prompt-help generation-prompt-error"/,
   );
   assert.match(inspectorSource, /htmlFor="generation-prompt"/);
+  assert.match(inspectorSource, /bg-secondary\/25/);
+  assert.doesNotMatch(inspectorSource, /border-primary\/35 bg-primary/);
 });
 
 test("generation action panel keeps the primary action compact", () => {
