@@ -116,6 +116,12 @@ export function WorkspaceInspectorPanel({
         event.preventDefault();
         onClose();
       }}
+      onKeyDown={(event) => {
+        if (!desktop && event.key === "Escape") {
+          event.preventDefault();
+          onClose();
+        }
+      }}
       onClose={onClosed}
       onPointerDown={(event) => {
         if (desktop || event.target !== event.currentTarget) return;

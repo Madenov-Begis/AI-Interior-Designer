@@ -161,8 +161,8 @@ export function ProfilePanel() {
           </p>
         </div>
 
-        <div className="mt-12 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
-          <RuviePanel className="p-6">
+        <div className="mt-12 grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
+          <RuviePanel className="min-w-0 p-6">
             <h2 className="text-2xl font-black italic">Проекты</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Link
@@ -248,7 +248,7 @@ export function ProfilePanel() {
             </Link>
           </RuviePanel>
 
-          <div className="grid gap-5">
+          <div className="grid min-w-0 gap-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <RuviePanel className="border-primary bg-primary p-6 text-primary-foreground">
                 <p className="text-4xl font-black italic">{wallet.balance}</p>
@@ -314,16 +314,18 @@ export function ProfilePanel() {
                 </span>
                 <CheckCircle2 className="size-5 text-success" />
               </div>
-              <div className="mt-5 flex gap-3">
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                 <LoadingButton
                   onClick={() => update.mutate()}
                   pending={update.isPending}
                   pendingText="Сохраняем…"
+                  className="w-full sm:w-auto"
                 >
                   Сохранить
                 </LoadingButton>
                 <Button
                   variant="ghost"
+                  className="w-full sm:w-auto"
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(

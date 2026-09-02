@@ -38,6 +38,10 @@ const toolbarSource = readFileSync(
   new URL("./workspace-toolbar.tsx", import.meta.url),
   "utf8",
 );
+const globalStylesSource = readFileSync(
+  new URL("../../../../app/globals.css", import.meta.url),
+  "utf8",
+);
 const visualPromptEditorSource = readFileSync(
   new URL("./visual-prompt-editor.tsx", import.meta.url),
   "utf8",
@@ -166,4 +170,18 @@ test("inspector drawer closes only when the backdrop is pressed", () => {
   assert.match(inspectorSource, /event\.target !== event\.currentTarget/);
   assert.match(inspectorSource, /event\.clientX < bounds\.left/);
   assert.match(inspectorSource, /if \(outsidePanel\) onClose\(\)/);
+});
+
+test("mobile inspector has an explicit Escape fallback", () => {
+  assert.match(inspectorSource, /onKeyDown/);
+  assert.match(inspectorSource, /event\.key === "Escape"/);
+  assert.match(inspectorSource, /event\.preventDefault\(\)/);
+  assert.match(inspectorSource, /onClose\(\)/);
+});
+
+test("mobile workspace toolbar keeps 44px touch targets", () => {
+  assert.match(
+    globalStylesSource,
+    /\.workspace-toolbar__button\s*\{[\s\S]*flex: 0 0 2\.75rem;[\s\S]*width: 2\.75rem;[\s\S]*height: 2\.75rem;/,
+  );
 });
