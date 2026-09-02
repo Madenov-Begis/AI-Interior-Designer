@@ -4,9 +4,12 @@ import {
   GenerationClientPayloadError,
   getGenerationClientPayload,
 } from "@/server/features/generations/client-payload";
-import { isInteriorStyleCode } from "@/server/features/generations/interior-styles";
 import { GenerationReservationError } from "@/server/features/generations/operations";
-import { reserveRootGeneration } from "@/server/features/generations/reservation";
+import {
+  reserveRefinement,
+  reserveRootGeneration,
+} from "@/server/features/generations/reservation";
+import { buildRetryReservationPlan } from "@/server/features/generations/retry-reservation";
 import { retryReservationHttpStatus } from "@/server/features/generations/reservation-policy";
 import { recoverExpiredGenerationReservations } from "@/server/features/generations/recovery";
 import {
@@ -42,9 +45,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       where: { id, userId: user.id, deletedAt: null },
       select: {
         projectId: true,
+        parentGenerationId: true,
         prompt: true,
         styleCode: true,
         aspectRatio: true,
+        visualPromptImageId: true,
+        references: {
+          orderBy: { position: "asc" },
+          select: { fileId: true },
+        },
         status: true,
         usageEvent: true,
       },
@@ -69,17 +78,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const styleCode = isInteriorStyleCode(generation.styleCode)
-      ? generation.styleCode
-      : undefined;
-    const reserved = await reserveRootGeneration({
-      userId: user.id,
-      projectId: generation.projectId,
-      prompt: generation.prompt,
-      aspectRatio: generation.aspectRatio,
-      styleCode,
-      idempotencyKey: namespaceRetryIdempotencyKey(id, clientIdempotencyKey),
-    });
+    const idempotencyKey = namespaceRetryIdempotencyKey(
+      id,
+      clientIdempotencyKey,
+    );
+    const plan = buildRetryReservationPlan(generation);
+    const reserved =
+      plan.kind === "refinement"
+        ? await reserveRefinement({
+            userId: user.id,
+            idempotencyKey,
+            ...plan.input,
+          })
+        : await reserveRootGeneration({
+            userId: user.id,
+            idempotencyKey,
+            ...plan.input,
+          });
     if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
       after(() => processGeneration(reserved.generation.id));
     }
