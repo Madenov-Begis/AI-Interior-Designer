@@ -1,6 +1,12 @@
 "use client";
 
-import { AlertCircle, Coins, ImagePlus, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  Coins,
+  ImagePlus,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { ReferenceManager } from "./reference-manager";
 import { StylePicker } from "./style-picker";
@@ -94,18 +100,35 @@ export function DesignInspector({
           />
         </section>
 
-        <section aria-labelledby="inspector-prompt-title">
-          <div className="flex items-center justify-between gap-3">
-            <label
-              id="inspector-prompt-title"
-              htmlFor="generation-prompt"
-              className="text-xs font-semibold text-foreground"
-            >
-              Что изменить?
-            </label>
+        <section
+          aria-labelledby="inspector-prompt-title"
+          className="rounded-2xl border border-primary/35 bg-primary/[0.07] p-4"
+        >
+          <div className="flex items-start gap-3">
             <span
-              className={`text-xs tabular-nums ${
-                prompt.length > 4000 ? "text-red-300" : "text-muted"
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/15 text-primary"
+            >
+              <Sparkles className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <label
+                id="inspector-prompt-title"
+                htmlFor="generation-prompt"
+                className="block text-sm font-semibold text-foreground"
+              >
+                Опишите желаемый результат
+              </label>
+              <p
+                id="generation-prompt-help"
+                className="mt-1 text-xs leading-5 text-muted-foreground"
+              >
+                Укажите, что заменить, добавить или обязательно сохранить.
+              </p>
+            </div>
+            <span
+              className={`shrink-0 rounded-full border border-border/80 bg-background/70 px-2 py-1 text-[11px] tabular-nums ${
+                prompt.length > 4000 ? "text-red-300" : "text-muted-foreground"
               }`}
             >
               {prompt.length} / 4000
@@ -120,10 +143,12 @@ export function DesignInspector({
             maxLength={4000}
             aria-invalid={promptIsInvalid}
             aria-describedby={
-              promptIsInvalid ? "generation-prompt-error" : undefined
+              promptIsInvalid
+                ? "generation-prompt-help generation-prompt-error"
+                : "generation-prompt-help"
             }
-            placeholder="Например: замените диван, добавьте тёплое освещение и сохраните расположение окон"
-            className="mt-2 min-h-32 resize-none bg-background"
+            placeholder="Например: замените диван на светлый, добавьте тёплое освещение и сохраните расположение окон"
+            className="mt-3 min-h-36 resize-none border-primary/20 bg-background/90 text-base focus-visible:border-primary focus-visible:ring-primary/25"
           />
           {promptIsInvalid && (
             <p

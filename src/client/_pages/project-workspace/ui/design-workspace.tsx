@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport, type CanvasViewportHandle } from "./canvas-viewport";
-import {
-  CanvasOnboarding,
-  CanvasOnboardingTrigger,
-} from "./canvas-onboarding";
+import { CanvasOnboarding, CanvasOnboardingTrigger } from "./canvas-onboarding";
 import { EmptySourceWorkspace } from "./empty-source-workspace";
 import { ResultActions } from "./result-actions";
 import { WorkspaceGenerationNode } from "./workspace-generation-nodes";
@@ -38,9 +35,6 @@ import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt";
-
-const DEFAULT_PROMPT =
-  "Сделай современный ремонт. Используй предметы интерьера из референсов. Не меняй ракурс, пропорции и геометрию помещения.";
 
 type ReadyDesignWorkspaceProps = Omit<DesignWorkspaceProps, "project"> & {
   project: DesignWorkspaceProps["project"] & {
@@ -87,7 +81,7 @@ function ReadyDesignWorkspace({
   const [pendingCanvasFocusId, setPendingCanvasFocusId] = useState<
     string | null
   >(null);
-  const [prompt, setPrompt] = useState(project.prompt ?? DEFAULT_PROMPT);
+  const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] =
     useState<GenerationAspectRatioSelection>("SOURCE");
   const sourceAspectRatio = nearestGenerationAspectRatio(
