@@ -22,6 +22,10 @@ const serverEnvSchema = z
     DATABASE_URL: z.string().min(1),
     DIRECT_URL: z.string().min(1),
     AI_PROVIDER: z.enum(["fake", "vertex"]).default("fake"),
+    GENERATIONS_ENABLED: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((value) => value === "true"),
     PAYMENT_PROVIDER: z.enum(["disabled", "mock"]).default("disabled"),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
     GOOGLE_CLOUD_PROJECT_ID: z.string().min(1).optional(),

@@ -35,6 +35,10 @@ import {
   enforceRateLimit,
   RateLimitError,
 } from "@/server/shared/security/rate-limit";
+import {
+  ensureGenerationsEnabled,
+  GenerationEmergencyStopError,
+} from "@/server/features/generations/emergency-stop";
 
 const visualPromptInputSchema = z
   .object({
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (existing) {
       return generationResponse(user.id, existing.id, true, requestId);
     }
+    ensureGenerationsEnabled();
 
     const formData = await request.formData();
     const overlay = formData.get("overlay");
@@ -144,6 +149,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     if (error instanceof RateLimitError) {
       return apiError("RATE_LIMITED", error.message, requestId, 429);
+    }
+    if (error instanceof GenerationEmergencyStopError) {
+      return apiError(error.code, error.message, requestId, 503);
     }
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

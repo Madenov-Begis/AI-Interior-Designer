@@ -399,8 +399,7 @@ export async function reserveRefinementWithDependencies<TDatabase>(
         }
 
         if (
-          input.referenceFileIds.length >
-          dependencies.limits.maxReferenceImages
+          input.referenceFileIds.length > dependencies.limits.maxReferenceImages
         ) {
           throw new GenerationReservationError(
             "REFERENCE_LIMIT_EXCEEDED",

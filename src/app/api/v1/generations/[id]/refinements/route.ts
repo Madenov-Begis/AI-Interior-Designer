@@ -41,6 +41,10 @@ import {
   enforceRateLimit,
   RateLimitError,
 } from "@/server/shared/security/rate-limit";
+import {
+  ensureGenerationsEnabled,
+  GenerationEmergencyStopError,
+} from "@/server/features/generations/emergency-stop";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -65,6 +69,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
     const user = await requireCurrentUser();
+    ensureGenerationsEnabled();
     uploadOwnerId = user.id;
     await recoverExpiredGenerationReservations(user.id);
     const parentGenerationId = z.uuid().parse((await context.params).id);
@@ -180,6 +185,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     if (error instanceof RateLimitError) {
       return apiError("RATE_LIMITED", error.message, requestId, 429);
+    }
+    if (error instanceof GenerationEmergencyStopError) {
+      return apiError(error.code, error.message, requestId, 503);
     }
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

@@ -11,6 +11,7 @@ import {
   storeSessionCookies,
 } from "@/server/shared/auth/session-cookies";
 import { serverEnv } from "@/server/shared/config/env";
+import { consumeLegalAcceptance } from "@/server/features/auth/legal-acceptance";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
       if (session.user) {
         try {
           await upsertProfileFromAuthUser(session.user);
+          await consumeLegalAcceptance(session.user.id);
           await storeSessionCookies(session);
           const redirectUrl = new URL(safeNext, appUrl);
           if (isLocalDevelopmentOrigin(appUrl)) {

@@ -85,6 +85,10 @@ enum PaymentOrderStatus {
   EXPIRED
 }
 
+enum LegalAcceptanceMethod {
+  OAUTH_LOGIN_CHECKBOX
+}
+
 model Profile {
   id                          String     @id @db.Uuid
   email                       String?    @unique
@@ -103,15 +107,30 @@ model Profile {
   updatedAt                   DateTime   @updatedAt
   deletedAt                   DateTime?
 
-  projects      Project[]
-  mediaFiles    MediaFile[]
-  generations   Generation[]
-  usageEvents   UsageEvent[]
-  creditWallet  CreditWallet?
-  paymentOrders PaymentOrder[]
+  projects         Project[]
+  mediaFiles       MediaFile[]
+  generations      Generation[]
+  usageEvents      UsageEvent[]
+  creditWallet     CreditWallet?
+  paymentOrders    PaymentOrder[]
+  legalAcceptances LegalAcceptance[]
 
   @@index([status])
   @@index([createdAt])
+}
+
+model LegalAcceptance {
+  id                   String                @id @default(uuid()) @db.Uuid
+  userId               String                @db.Uuid
+  privacyPolicyVersion String
+  publicOfferVersion   String
+  method               LegalAcceptanceMethod
+  acceptedAt           DateTime              @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, privacyPolicyVersion, publicOfferVersion])
+  @@index([userId, acceptedAt])
 }
 
 model Project {

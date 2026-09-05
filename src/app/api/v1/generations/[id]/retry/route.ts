@@ -28,6 +28,10 @@ import {
   enforceRateLimit,
   RateLimitError,
 } from "@/server/shared/security/rate-limit";
+import {
+  ensureGenerationsEnabled,
+  GenerationEmergencyStopError,
+} from "@/server/features/generations/emergency-stop";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -36,6 +40,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     enforceRateLimit(request, "generation-retry", 10, 60_000);
     const user = await requireCurrentUser();
+    ensureGenerationsEnabled();
     await recoverExpiredGenerationReservations(user.id);
     const id = z.uuid().parse((await context.params).id);
     const clientIdempotencyKey = parseRetryIdempotencyKey(
@@ -110,6 +115,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
+    }
+    if (error instanceof GenerationEmergencyStopError) {
+      return apiError(error.code, error.message, requestId, 503);
     }
     if (error instanceof RateLimitError) {
       return apiError("RATE_LIMITED", error.message, requestId, 429);

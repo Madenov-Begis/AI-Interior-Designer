@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { APP_NAME } from "@/shared/config";
 import { RuvieLogo } from "@/shared/ui";
+import { LEGAL_ROUTES } from "@config/legal";
 
 export function SiteFooter() {
   return (
@@ -28,9 +29,15 @@ export function SiteFooter() {
           <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-foreground">
             Документы
           </p>
-          <span>Конфиденциальность</span>
-          <span>Условия использования</span>
-          <span>Поддержка</span>
+          <Link href={LEGAL_ROUTES.privacy} className="hover:text-foreground">
+            Политика конфиденциальности
+          </Link>
+          <Link href={LEGAL_ROUTES.offer} className="hover:text-foreground">
+            Публичная оферта
+          </Link>
+          <a href="mailto:support@ruvie.cc" className="hover:text-foreground">
+            support@ruvie.cc
+          </a>
         </div>
       </div>
       <div className="mx-auto flex max-w-[1440px] flex-col gap-3 border-t border-border px-5 py-6 text-xs text-muted-foreground sm:px-8 md:flex-row md:items-center md:justify-between">

@@ -86,6 +86,7 @@ Mock-оплата позволяет локально завершать тес�
 Безопасные переключатели для операторов:
 
 ```dotenv
+GENERATIONS_ENABLED=false # emergency stop for all new AI operations
 PAYMENT_PROVIDER=disabled  # production until Payme/Click is connected
 PAYMENT_PROVIDER=mock      # local development only; requires AI_PROVIDER=fake
 ```
