@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+const canvasToolsSource = readFileSync(
+  new URL("../model/canvas-tools.ts", import.meta.url),
+  "utf8",
+);
+
 const source = readFileSync(
   new URL("./generation-refinement-composer.tsx", import.meta.url),
   "utf8",
@@ -95,9 +100,10 @@ test("context actions keep refinement without generation removal", () => {
 test("eraser uses the Fabric 7 compatible erasing brush", () => {
   assert.match(toolbarSource, /id: "eraser"/);
   assert.match(toolbarSource, /Стирать разметку/);
-  assert.match(visualPromptEditorSource, /nextTool === "eraser"/);
-  assert.match(visualPromptEditorSource, /freeDrawingCursor/);
-  assert.match(visualPromptEditorSource, /cursors\/eraser\.svg/);
+  assert.match(canvasToolsSource, /nextTool === "eraser"/);
+  assert.match(canvasToolsSource, /freeDrawingCursor/);
+  assert.match(canvasToolsSource, /cursors\/eraser\.svg/);
+  assert.match(visualPromptEditorSource, /configureCanvasTools\(canvas/);
   assert.match(visualPromptEditorSource, /new EraserBrush\(canvas\)/);
   assert.match(visualPromptEditorSource, /await eraserBrush\.commit/);
 });
@@ -112,7 +118,10 @@ test("trash clears all markup without a browser confirmation", () => {
 
 test("source markup is saved after canvas history changes", () => {
   assert.match(visualPromptEditorSource, /const schedulePersist = useCallback/);
-  assert.match(visualPromptEditorSource, /if \(persistChange\) schedulePersist\(\)/);
+  assert.match(
+    visualPromptEditorSource,
+    /if \(persistChange\) schedulePersist\(\)/,
+  );
   assert.match(visualPromptEditorSource, /persistLatestRef\.current\(\)/);
   assert.match(visualPromptEditorSource, /captureHistory\(false, false\)/);
 });

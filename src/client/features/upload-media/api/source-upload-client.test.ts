@@ -24,9 +24,13 @@ test("uploads the selected file immediately to the project source endpoint", asy
   });
 
   assert.equal(calls.length, 1);
+  const requestUrl = new URL(String(calls[0]?.input));
+  assert.equal(requestUrl.pathname, "/api/v1/projects/project-1/source");
   assert.equal(
-    calls[0]?.input,
-    "https://api.ruvie.cc/api/v1/projects/project-1/source",
+    requestUrl.origin,
+    new URL(
+      process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "https://api.ruvie.cc",
+    ).origin,
   );
   assert.equal(calls[0]?.init?.method, "POST");
   assert.equal(data.mediaId, "media-1");
