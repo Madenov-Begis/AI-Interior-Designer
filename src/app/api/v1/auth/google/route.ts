@@ -6,6 +6,11 @@ import {
 } from "@/server/features/auth/route-policy";
 import { createSupabaseServerClient } from "@/server/shared/integrations/supabase/server";
 import { serverEnv } from "@/server/shared/config/env";
+import {
+  isCurrentLegalAcceptance,
+  LEGAL_ACCEPTANCE_COOKIE,
+  LEGAL_ACCEPTANCE_COOKIE_VALUE,
+} from "@/server/features/auth/legal-acceptance";
 
 export async function GET(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
@@ -21,6 +26,13 @@ export async function GET(request: NextRequest) {
     safeReturnPath(request.nextUrl.searchParams.get("next")),
     returnOrigin,
   );
+  if (
+    !isCurrentLegalAcceptance(
+      request.nextUrl.searchParams.get("legalAcceptance"),
+    )
+  ) {
+    return NextResponse.redirect(new URL("/login?error=legal_consent", appUrl));
+  }
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -33,5 +45,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=oauth_start", appUrl));
   }
 
-  return NextResponse.redirect(data.url);
+  const response = NextResponse.redirect(data.url);
+  response.cookies.set(LEGAL_ACCEPTANCE_COOKIE, LEGAL_ACCEPTANCE_COOKIE_VALUE, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: env.NODE_ENV === "production",
+    path: "/",
+    domain: env.AUTH_COOKIE_DOMAIN || undefined,
+    maxAge: 15 * 60,
+  });
+  return response;
 }

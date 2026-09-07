@@ -1,3 +1,4 @@
+import { readUploadFormData } from "@/server/features/media/staged-upload";
 import { after, type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
 import {
@@ -41,8 +42,14 @@ import {
   enforceRateLimit,
   RateLimitError,
 } from "@/server/shared/security/rate-limit";
+import {
+  ensureGenerationsEnabled,
+  GenerationEmergencyStopError,
+} from "@/server/features/generations/emergency-stop";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
@@ -50,12 +57,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   let unattachedVisualPromptId: string | null = null;
   let unattachedReferenceIds: string[] = [];
   try {
-    enforceRateLimit(request, "generation-refinement", 10, 60_000);
     const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     const maximumBodySize =
-      limits.maxUploadSizeBytes * (limits.maxReferenceImages + 1) +
-      1024 * 1024;
+      limits.maxUploadSizeBytes * (limits.maxReferenceImages + 1) + 1024 * 1024;
     if (contentLength > maximumBodySize) {
       return apiError(
         "FILE_TOO_LARGE",
@@ -65,13 +70,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
     const user = await requireCurrentUser();
+    await enforceRateLimit(
+      request,
+      "generation-refinement",
+      10,
+      60_000,
+      user.id,
+    );
+    ensureGenerationsEnabled();
     uploadOwnerId = user.id;
     await recoverExpiredGenerationReservations(user.id);
     const parentGenerationId = z.uuid().parse((await context.params).id);
     const idempotencyKey = idempotencyKeySchema.parse(
       request.headers.get("idempotency-key"),
     );
-    const formData = await request.formData();
+    const formData = await readUploadFormData(request, user.id);
     const overlay = formData.get("overlay");
     const canvasStateValue = formData.get("canvasState");
     refinementVisualPromptPairSchema.parse({
@@ -179,7 +192,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
     if (error instanceof RateLimitError) {
-      return apiError("RATE_LIMITED", error.message, requestId, 429);
+      const response = apiError("RATE_LIMITED", error.message, requestId, 429);
+      response.headers.set("retry-after", String(error.retryAfter));
+      return response;
+    }
+    if (error instanceof GenerationEmergencyStopError) {
+      return apiError(error.code, error.message, requestId, 503);
     }
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

@@ -4,7 +4,7 @@ import { generationDownloadFilename } from "@/server/features/generations/genera
 import { generationIdSchema } from "@/server/features/generations/schema";
 import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
-import { apiError } from "@/server/shared/api/responses";
+import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
 import {
   requireCurrentUser,
@@ -35,32 +35,60 @@ export async function GET(
         requestId,
         404,
       );
-    const downloaded = await getSupabaseAdmin()
+    const filename = generationDownloadFilename(
+      generation.createdAt,
+      generation.resultOriginal.mimeType,
+    );
+    // Existing clients still request a binary attachment. New clients explicitly
+    // request a signed URL so large files never cross the Function response limit.
+    if (request.nextUrl.searchParams.get("signed") !== "1") {
+      if (generation.resultOriginal.sizeBytes > 4 * 1024 * 1024)
+        return apiError(
+          "CLIENT_UPDATE_REQUIRED",
+          "Обновите страницу, чтобы скачать большой файл",
+          requestId,
+          409,
+        );
+      const downloaded = await getSupabaseAdmin()
+        .storage.from(generation.resultOriginal.bucket)
+        .download(generation.resultOriginal.path);
+      if (downloaded.error || !downloaded.data)
+        return apiError(
+          "DOWNLOAD_FAILED",
+          "Не удалось скачать результат",
+          requestId,
+          502,
+        );
+      return new Response(await downloaded.data.arrayBuffer(), {
+        headers: {
+          "content-type": generation.resultOriginal.mimeType,
+          "content-disposition": `attachment; filename="${filename}"`,
+          "cache-control": "private, no-store",
+          "x-request-id": requestId,
+        },
+      });
+    }
+    const signed = await getSupabaseAdmin()
       .storage.from(generation.resultOriginal.bucket)
-      .download(generation.resultOriginal.path);
-    if (downloaded.error || !downloaded.data)
+      .createSignedUrl(generation.resultOriginal.path, 60, {
+        download: filename,
+      });
+    if (signed.error || !signed.data?.signedUrl)
       return apiError(
         "DOWNLOAD_FAILED",
         "Не удалось скачать результат",
         requestId,
         502,
       );
-
-    const storedImage = Buffer.from(await downloaded.data.arrayBuffer());
-    const filename = generationDownloadFilename(
-      generation.createdAt,
-      generation.resultOriginal.mimeType,
-    );
-
-    return new Response(new Uint8Array(storedImage), {
-      headers: {
-        "content-type": generation.resultOriginal.mimeType,
-        "content-length": String(storedImage.byteLength),
-        "content-disposition": `attachment; filename="${filename}"`,
-        "cache-control": "private, no-store",
-        "x-request-id": requestId,
+    return apiSuccess(
+      {
+        url: signed.data.signedUrl,
+        filename,
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
       },
-    });
+      requestId,
+      { headers: { "cache-control": "private, no-store" } },
+    );
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

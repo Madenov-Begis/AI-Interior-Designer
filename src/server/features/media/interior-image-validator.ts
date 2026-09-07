@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ensureGenerationsEnabled } from "@/server/features/generations/emergency-stop";
 import { Modality } from "@google/genai";
 import { resolveRequiredProvider } from "@/server/features/generations/reservation-policy";
 import type { ValidatedSourceImage } from "@/server/features/media/image-validation";
@@ -28,6 +29,7 @@ function validationModelId() {
 export async function validateInteriorSourceImage(image: ValidatedSourceImage) {
   const provider = resolveRequiredProvider(process.env.AI_PROVIDER ?? "fake");
   if (provider === "FAKE") return;
+  ensureGenerationsEnabled();
 
   try {
     const ai = await createVertexGenAi(VALIDATION_TIMEOUT_SECONDS);

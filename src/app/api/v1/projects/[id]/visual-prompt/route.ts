@@ -1,3 +1,4 @@
+import { readUploadFormData } from "@/server/features/media/staged-upload";
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
@@ -13,9 +14,14 @@ import {
 } from "@/server/features/visual-prompt/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+export const maxDuration = 300;
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
@@ -34,7 +40,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const user = await requireCurrentUser();
     const { id } = await context.params;
     const projectId = projectIdSchema.parse(id);
-    const formData = await request.formData();
+    const formData = await readUploadFormData(request, user.id);
     const overlay = formData.get("overlay");
     if (!(overlay instanceof File))
       return apiError(

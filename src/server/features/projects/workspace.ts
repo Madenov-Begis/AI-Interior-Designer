@@ -61,6 +61,8 @@ export async function getProjectWorkspace(
   const source =
     sourceUrl && project.sourceImage && project.sourcePreview
       ? {
+          fileId: project.sourcePreview.id,
+          expiresAt: new Date(Date.now() + 600_000).toISOString(),
           url: sourceUrl,
           width: project.sourcePreview.width ?? 1600,
           height: project.sourcePreview.height ?? 900,
@@ -83,6 +85,7 @@ export async function getProjectWorkspace(
     initialGenerations: {
       items: generationsWithUrls.map((generation) => ({
         id: generation.id,
+        variantNumber: generation.variantNumber,
         parentGenerationId: generation.parentGenerationId,
         status: generation.status,
         prompt: generation.prompt,

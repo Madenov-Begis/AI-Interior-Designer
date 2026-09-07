@@ -1,0 +1,69 @@
+name: Pull request quality
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ruvie_refactor_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ruvie_refactor_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ruvie_refactor_test
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/ruvie_refactor_test
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ruvie_refactor_test
+      APP_URL: https://example.invalid
+      APP_ORIGINS: https://example.invalid
+      ADMIN_ORIGINS: https://admin.example.invalid
+      AUTH_COOKIE_DOMAIN: .example.invalid
+      ADMIN_ACCESS_CODE: ci-only-test-code
+      ADMIN_TOKEN_SECRET: ci-only-signing-secret-with-at-least-32-characters
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      NEXT_PUBLIC_API_BASE_URL: https://example.invalid
+      AI_PROVIDER: fake
+      PAYMENT_PROVIDER: disabled
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prepare isolated database roles
+        run: psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT NULL::uuid$$;'
+      - run: pnpm prisma:validate
+      - run: pnpm db:migrate:deploy
+      - run: pnpm test:integration
+      - run: pnpm legal:check
+      - run: pnpm test
+      - run: pnpm test:ui
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm admin:test
+      - run: pnpm admin:typecheck
+      - run: pnpm admin:build

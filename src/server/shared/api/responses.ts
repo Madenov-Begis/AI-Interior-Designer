@@ -1,3 +1,4 @@
+import { captureMessage } from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
 import type { ApiFailure, ApiSuccess } from "./types.ts";
@@ -18,6 +19,8 @@ export function apiError(
   status: number,
   details?: unknown,
 ) {
+  if (status >= 500)
+    captureMessage(code, { level: "error", tags: { requestId } });
   const error =
     details === undefined ? { code, message } : { code, message, details };
   const response = NextResponse.json<ApiFailure>(

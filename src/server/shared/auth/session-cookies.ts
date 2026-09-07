@@ -33,6 +33,7 @@ export async function storeSessionCookies(session: Session) {
   });
   cookieStore.set(REFRESH_TOKEN_COOKIE, session.refresh_token, {
     ...commonOptions,
+    httpOnly: true,
     maxAge: 400 * 24 * 60 * 60,
   });
 }

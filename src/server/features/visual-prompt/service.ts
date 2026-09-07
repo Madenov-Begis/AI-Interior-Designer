@@ -4,8 +4,14 @@ import { randomUUID } from "node:crypto";
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 import { Prisma } from "@/generated/prisma/client";
-import { STORAGE_BUCKETS, VISUAL_PROMPT_RULES } from "@/server/shared/config/storage";
-import { deleteMediaFileIfUnreferenced } from "@/server/features/media/cleanup";
+import {
+  STORAGE_BUCKETS,
+  VISUAL_PROMPT_RULES,
+} from "@/server/shared/config/storage";
+import {
+  deleteMediaFileIfUnreferenced,
+  discardUploadedObjects,
+} from "@/server/features/media/cleanup";
 import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 import type { VisualPromptCanvasState } from "@/server/features/visual-prompt/types";
@@ -137,10 +143,12 @@ export async function saveVisualPrompt(
 
       if (options.attachToProject !== false) {
         await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
-        const current = await tx.project.findUnique({
-          where: { id: projectId },
+        const current = await tx.project.findFirst({
+          where: { id: projectId, userId, deletedAt: null },
           select: { visualPromptId: true },
         });
+        if (!current)
+          throw new VisualPromptProjectNotFoundError("Проект не найден");
         await tx.project.update({
           where: { id: projectId },
           data: {
@@ -156,13 +164,10 @@ export async function saveVisualPrompt(
       }
       return { media, replacedVisualPromptId: null };
     });
-    await deleteMediaFileIfUnreferenced(
-      userId,
-      saved.replacedVisualPromptId,
-    );
+    await deleteMediaFileIfUnreferenced(userId, saved.replacedVisualPromptId);
     return saved.media;
   } catch (error) {
-    await storage.storage.from(bucket).remove([path]);
+    await discardUploadedObjects([{ bucket, path }]);
     throw error;
   }
 }
@@ -253,7 +258,7 @@ export async function saveGenerationRefinementVisualPrompt(
       },
     });
   } catch (error) {
-    await storage.storage.from(bucket).remove([path]);
+    await discardUploadedObjects([{ bucket, path }]);
     throw error;
   }
 }
@@ -268,10 +273,12 @@ export async function removeVisualPrompt(userId: string, projectId: string) {
 
   const removedVisualPromptId = await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
-    const current = await tx.project.findUniqueOrThrow({
-      where: { id: projectId },
+    const current = await tx.project.findFirst({
+      where: { id: projectId, userId, deletedAt: null },
       select: { visualPromptId: true },
     });
+    if (!current)
+      throw new VisualPromptProjectNotFoundError("Проект не найден");
     await tx.project.update({
       where: { id: projectId },
       data: {

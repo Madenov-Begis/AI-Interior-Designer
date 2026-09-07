@@ -10,6 +10,7 @@ allowBuilds:
   protobufjs: false
   sharp: true
   unrs-resolver: true
+  "@sentry/cli": false
 minimumReleaseAgeExclude:
   - undici@8.8.0
   - "@tanstack/query-core@5.101.3"

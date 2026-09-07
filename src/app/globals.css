@@ -59,6 +59,40 @@ body {
   color: var(--foreground);
 }
 
+.legal-document {
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.legal-document h1,
+.legal-document h2,
+.legal-document h3 {
+  color: var(--foreground);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+
+.legal-document h1 { margin-block: 0 1.5rem; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; }
+.legal-document h2 { margin-block: 2.5rem 1rem; font-size: 1.5rem; }
+.legal-document h3 { margin-block: 1.75rem 0.75rem; font-size: 1.15rem; }
+.legal-document p,
+.legal-document ul,
+.legal-document ol,
+.legal-document table,
+.legal-document blockquote { margin-block: 0.9rem; }
+.legal-document ul,
+.legal-document ol { padding-left: 1.5rem; }
+.legal-document ul { list-style: disc; }
+.legal-document ol { list-style: decimal; }
+.legal-document a { color: var(--primary); text-decoration: underline; text-underline-offset: 0.2em; }
+.legal-document strong { color: var(--foreground); }
+.legal-document blockquote { border-left: 3px solid var(--warning); padding-left: 1rem; color: var(--foreground); }
+.legal-document table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.legal-document th,
+.legal-document td { border: 1px solid var(--border); padding: 0.65rem; text-align: left; vertical-align: top; }
+.legal-document th { background: var(--surface); color: var(--foreground); }
+
 ::selection {
   background: color-mix(in srgb, var(--primary) 72%, transparent);
   color: var(--primary-foreground);

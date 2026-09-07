@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  type GenerationDatabase,
   cancelOwnedGenerationWithDatabase,
   failGenerationWithDatabase,
   GenerationReservationError,
@@ -385,7 +386,7 @@ function createGenerationHarness(input?: {
   }
 
   return {
-    db,
+    db: db as unknown as GenerationDatabase,
     state,
     beginUserLock,
     waitForLockWaiter,

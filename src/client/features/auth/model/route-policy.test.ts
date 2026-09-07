@@ -72,7 +72,7 @@ test("protected routes use a client guard and axios sends the session token", as
   );
   assert.match(homePage, /LandingPage/);
   assert.match(apiClient, /getAccessToken\(\)/);
-  assert.match(apiClient, /getRefreshToken\(\)/);
+  assert.doesNotMatch(apiClient, /getRefreshToken\(\)/);
   assert.match(apiClient, /\/auth\/refresh/);
   assert.match(apiClient, /Authorization/);
   assert.match(apiClient, /Bearer/);

@@ -6,8 +6,14 @@ import { importReferenceUrls } from "@/server/features/references/url-import";
 import { attachReferencePreviewUrls } from "@/server/features/references/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
-import { enforceRateLimit, RateLimitError } from "@/server/shared/security/rate-limit";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
+import {
+  enforceRateLimit,
+  RateLimitError,
+} from "@/server/shared/security/rate-limit";
 
 export async function POST(
   request: NextRequest,
@@ -15,8 +21,8 @@ export async function POST(
 ) {
   const requestId = getRequestId(request.headers);
   try {
-    enforceRateLimit(request, "reference-url", 10, 60_000);
     const user = await requireCurrentUser();
+    await enforceRateLimit(request, "reference-url", 10, 60_000, user.id);
     const { id } = await context.params;
     const { urls } = importReferenceUrlsSchema().parse(await request.json());
     const results = await importReferenceUrls(
@@ -38,8 +44,11 @@ export async function POST(
       status: results.some((result) => !result.success) ? 207 : 201,
     });
   } catch (error) {
-    if (error instanceof RateLimitError)
-      return apiError("RATE_LIMITED", error.message, requestId, 429);
+    if (error instanceof RateLimitError) {
+      const response = apiError("RATE_LIMITED", error.message, requestId, 429);
+      response.headers.set("retry-after", String(error.retryAfter));
+      return response;
+    }
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
     if (error instanceof ZodError)

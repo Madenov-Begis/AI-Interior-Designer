@@ -1,5 +1,6 @@
 import "server-only";
 
+import { discardUploadedObjects } from "@/server/features/media/cleanup";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
@@ -15,6 +16,7 @@ import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
 import { constrainOutputDimensions } from "@/server/features/generations/output-limits";
+import { settleFailedGeneration } from "./failure-cleanup";
 
 type StoredFile = { bucket: string; path: string; mimeType: string };
 
@@ -111,9 +113,7 @@ export async function processGeneration(generationId: string) {
       getSystemLimits(),
     );
     const originalId = randomUUID();
-    const userResultId = randomUUID();
     const originalPath = `users/${generation.userId}/generations/${generation.id}/original/${originalId}.webp`;
-    const resultPath = `users/${generation.userId}/generations/${generation.id}/result/${userResultId}.webp`;
 
     const originalUpload = await getSupabaseAdmin()
       .storage.from(STORAGE_BUCKETS.generationOriginals)
@@ -127,19 +127,6 @@ export async function processGeneration(generationId: string) {
       bucket: STORAGE_BUCKETS.generationOriginals,
       path: originalPath,
     });
-    const resultUpload = await getSupabaseAdmin()
-      .storage.from(STORAGE_BUCKETS.generationResults)
-      .upload(resultPath, finalizedOutput.image, {
-        contentType: "image/webp",
-        cacheControl: "31536000",
-        upsert: false,
-      });
-    if (resultUpload.error) throw resultUpload.error;
-    uploaded.push({
-      bucket: STORAGE_BUCKETS.generationResults,
-      path: resultPath,
-    });
-
     await db.$transaction(async (tx) => {
       await tx.mediaFile.createMany({
         data: [
@@ -156,19 +143,6 @@ export async function processGeneration(generationId: string) {
             height: finalizedOutput.height,
             type: "GENERATION_ORIGINAL",
           },
-          {
-            id: userResultId,
-            ownerId: generation.userId,
-            bucket: STORAGE_BUCKETS.generationResults,
-            path: resultPath,
-            originalName: `interior-design-${generation.id}.webp`,
-            mimeType: "image/webp",
-            extension: "webp",
-            sizeBytes: finalizedOutput.image.byteLength,
-            width: finalizedOutput.width,
-            height: finalizedOutput.height,
-            type: "GENERATION_RESULT",
-          },
         ],
       });
       const completed = await tx.generation.updateMany({
@@ -176,7 +150,7 @@ export async function processGeneration(generationId: string) {
         data: {
           status: "SUCCEEDED",
           resultOriginalId: originalId,
-          resultUserId: userResultId,
+          resultUserId: originalId,
           providerRequestId: output.providerRequestId,
           durationMs: Date.now() - startedAt,
           completedAt: new Date(),
@@ -191,9 +165,24 @@ export async function processGeneration(generationId: string) {
       });
     });
   } catch (error) {
-    for (const item of uploaded)
-      await getSupabaseAdmin().storage.from(item.bucket).remove([item.path]);
     const failure = classifyGenerationFailure(error);
-    await markFailed(generationId, failure.code, failure.message);
+    const cleanup = await settleFailedGeneration({
+      markFailed: () => markFailed(generationId, failure.code, failure.message),
+      readStatus: async () =>
+        (
+          await db.generation.findUnique({
+            where: { id: generationId },
+            select: { status: true },
+          })
+        )?.status ?? null,
+      files: uploaded,
+      removeFile: (item) => discardUploadedObjects([item]),
+    });
+    if (cleanup.cleanupFailures) {
+      console.error("Generation output cleanup incomplete", {
+        generationId,
+        ...cleanup,
+      });
+    }
   }
 }

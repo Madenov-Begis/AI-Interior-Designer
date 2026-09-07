@@ -7,16 +7,8 @@ import { CreditBalanceError } from "@/server/features/credits/service";
 import { apiError } from "@/server/shared/api/responses";
 import { RateLimitError } from "@/server/shared/security/rate-limit";
 
-export class AdminServiceError extends Error {
-  constructor(
-    readonly code: string,
-    message: string,
-    readonly status: 400 | 404 | 409 | 502,
-  ) {
-    super(message);
-    this.name = "AdminServiceError";
-  }
-}
+import { AdminServiceError } from "./errors";
+export { AdminServiceError } from "./errors";
 
 export async function parseAdminJson(request: NextRequest) {
   try {
@@ -26,7 +18,11 @@ export async function parseAdminJson(request: NextRequest) {
   }
 }
 
-export function adminApiError(error: unknown, requestId: string, fallback: string) {
+export function adminApiError(
+  error: unknown,
+  requestId: string,
+  fallback: string,
+) {
   if (error instanceof UnauthorizedError)
     return apiError("UNAUTHORIZED", error.message, requestId, 401);
   if (error instanceof ForbiddenError)
@@ -57,7 +53,12 @@ export function adminApiError(error: unknown, requestId: string, fallback: strin
     if (error.code === "P2025")
       return apiError("NOT_FOUND", "Запись не найдена", requestId, 404);
     if (error.code === "P2002")
-      return apiError("CONFLICT", "Такая запись уже существует", requestId, 409);
+      return apiError(
+        "CONFLICT",
+        "Такая запись уже существует",
+        requestId,
+        409,
+      );
   }
   console.error("Unexpected admin API error", {
     requestId,
@@ -67,7 +68,8 @@ export function adminApiError(error: unknown, requestId: string, fallback: strin
 }
 
 export function adminMutationLimit(request: NextRequest) {
-  return import("@/server/shared/security/rate-limit").then(({ enforceRateLimit }) =>
-    enforceRateLimit(request, "admin-mutation", 60, 60_000),
+  return import("@/server/shared/security/rate-limit").then(
+    ({ enforceRateLimit }) =>
+      enforceRateLimit(request, "admin-mutation", 60, 60_000),
   );
 }

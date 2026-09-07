@@ -3,7 +3,7 @@
 import { KeyRound, LoaderCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, type MouseEvent } from "react";
+import { Suspense, useEffect, useState, type MouseEvent } from "react";
 import {
   buttonClassName,
   Card,
@@ -14,6 +14,11 @@ import {
 import { useCurrentAuthUser } from "@/features/auth";
 import { safeReturnPath } from "@/features/auth";
 import { apiUrl } from "@/shared/api/url";
+import {
+  LEGAL_ROUTES,
+  PRIVACY_POLICY_VERSION,
+  PUBLIC_OFFER_VERSION,
+} from "@config/legal";
 
 export function LoginPage() {
   return (
@@ -45,18 +50,23 @@ function LoginCard({
   next: string;
   checkingSession: boolean;
 }) {
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const googleLoginUrl = apiUrl(
     `/auth/google?next=${encodeURIComponent(next)}`,
   );
 
   const startGoogleLogin = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (checkingSession) {
+    if (checkingSession || !legalAccepted) {
       event.preventDefault();
       return;
     }
     event.preventDefault();
     const loginUrl = new URL(googleLoginUrl);
     loginUrl.searchParams.set("returnOrigin", window.location.origin);
+    loginUrl.searchParams.set(
+      "legalAcceptance",
+      `${PRIVACY_POLICY_VERSION}:${PUBLIC_OFFER_VERSION}`,
+    );
     window.location.assign(loginUrl);
   };
 
@@ -81,12 +91,37 @@ function LoginCard({
           </p>
         </CardHeader>
         <CardContent className="px-6 pb-6 sm:px-8 sm:pb-8">
+          <label className="mb-4 flex cursor-pointer items-start gap-3 text-sm leading-5 text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={legalAccepted}
+              onChange={(event) => setLegalAccepted(event.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span>
+              Я принимаю{" "}
+              <Link
+                className="text-foreground underline hover:text-primary"
+                href={LEGAL_ROUTES.offer}
+              >
+                Публичную оферту
+              </Link>{" "}
+              и даю согласие на обработку данных согласно{" "}
+              <Link
+                className="text-foreground underline hover:text-primary"
+                href={LEGAL_ROUTES.privacy}
+              >
+                Политике конфиденциальности
+              </Link>
+              .
+            </span>
+          </label>
           <Link
             href={googleLoginUrl}
             onClick={startGoogleLogin}
-            aria-disabled={checkingSession}
+            aria-disabled={checkingSession || !legalAccepted}
             aria-busy={checkingSession || undefined}
-            tabIndex={checkingSession ? -1 : undefined}
+            tabIndex={checkingSession || !legalAccepted ? -1 : undefined}
             className={buttonClassName(
               "outline",
               "w-full justify-center aria-disabled:pointer-events-none aria-disabled:opacity-50",

@@ -1,9 +1,13 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
 import { randomUUID } from "node:crypto";
 import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import { validateReferenceImage } from "@/server/features/media/image-validation";
-import { deleteMediaFileIfUnreferenced } from "@/server/features/media/cleanup";
+import {
+  deleteMediaFileIfUnreferenced,
+  discardUploadedObjects,
+} from "@/server/features/media/cleanup";
 import { getDb } from "@/server/shared/db/prisma";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
@@ -11,6 +15,19 @@ import { getSystemLimits } from "@/server/shared/config/system-limits";
 export class ReferenceProjectNotFoundError extends Error {}
 export class ReferenceNotFoundError extends Error {}
 export class ReferenceLimitError extends Error {}
+
+async function lockOwnedProject(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  projectId: string,
+) {
+  await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+  const project = await tx.project.findFirst({
+    where: { id: projectId, userId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!project) throw new ReferenceProjectNotFoundError("Проект не найден");
+}
 
 export async function attachReferencePreviewUrls<
   TReference extends { fileId: string },
@@ -102,7 +119,7 @@ export async function addReferenceFiles(
     }
 
     return await getDb().$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+      await lockOwnedProject(tx, userId, projectId);
       const current = await tx.projectReference.count({ where: { projectId } });
       if (current + uploaded.length > capacity.limit)
         throw new ReferenceLimitError(
@@ -157,7 +174,12 @@ export async function addReferenceFiles(
     });
   } catch (error) {
     if (uploaded.length)
-      await storage.remove(uploaded.map((item) => item.path));
+      await discardUploadedObjects(
+        uploaded.map((item) => ({
+          bucket: STORAGE_BUCKETS.referenceImages,
+          path: item.path,
+        })),
+      );
     throw error;
   }
 }
@@ -168,14 +190,13 @@ export async function deleteReference(
   referenceId: string,
 ) {
   const db = getDb();
-  const reference = await db.projectReference.findFirst({
-    where: { id: referenceId, projectId, project: { userId, deletedAt: null } },
-    select: { id: true, fileId: true },
-  });
-  if (!reference) throw new ReferenceNotFoundError("Референс не найден");
-
-  await db.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+  const reference = await db.$transaction(async (tx) => {
+    await lockOwnedProject(tx, userId, projectId);
+    const reference = await tx.projectReference.findFirst({
+      where: { id: referenceId, projectId },
+      select: { id: true, fileId: true },
+    });
+    if (!reference) throw new ReferenceNotFoundError("Референс не найден");
     await tx.projectReference.delete({ where: { id: reference.id } });
     const remaining = await tx.projectReference.findMany({
       where: { projectId },
@@ -188,6 +209,7 @@ export async function deleteReference(
         data: { position },
       });
     }
+    return reference;
   });
   await deleteMediaFileIfUnreferenced(userId, reference.fileId);
 }
@@ -201,7 +223,7 @@ export async function clearReferences(userId: string, projectId: string) {
   if (!project) throw new ReferenceProjectNotFoundError("Проект не найден");
 
   const deleted = await db.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+    await lockOwnedProject(tx, userId, projectId);
     const references = await tx.projectReference.findMany({
       where: { projectId },
       select: { fileId: true },
@@ -222,22 +244,21 @@ export async function reorderReferences(
   referenceIds: string[],
 ) {
   const db = getDb();
-  const existing = await db.projectReference.findMany({
-    where: { projectId, project: { userId, deletedAt: null } },
-    orderBy: { position: "asc" },
-    select: { id: true },
-  });
-  if (
-    existing.length !== referenceIds.length ||
-    existing.some((row) => !referenceIds.includes(row.id))
-  ) {
-    throw new ReferenceNotFoundError(
-      "Список референсов изменился — обновите страницу",
-    );
-  }
-
   await db.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
+    await lockOwnedProject(tx, userId, projectId);
+    const existing = await tx.projectReference.findMany({
+      where: { projectId },
+      select: { id: true },
+    });
+    if (
+      new Set(referenceIds).size !== referenceIds.length ||
+      existing.length !== referenceIds.length ||
+      existing.some((row) => !referenceIds.includes(row.id))
+    ) {
+      throw new ReferenceNotFoundError(
+        "Список референсов изменился — обновите страницу",
+      );
+    }
     for (const [index, id] of referenceIds.entries()) {
       await tx.projectReference.update({
         where: { id },

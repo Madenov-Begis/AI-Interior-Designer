@@ -20,6 +20,7 @@
       }
     ],
     "paths": {
+      "@config/*": ["./src/config/*"],
       "@/shared/*": ["./src/client/shared/*"],
       "@/entities/*": ["./src/client/entities/*"],
       "@/features/*": ["./src/client/features/*"],

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { discardUploadedObjects } from "./cleanup";
 import { randomUUID } from "node:crypto";
 import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import {
@@ -26,9 +27,7 @@ export async function uploadProjectSource(
   });
   if (!project) throw new ProjectNotFoundError("Проект не найден");
   if (project.sourceImageId || project.sourcePreviewId) {
-    throw new ProjectSourceAlreadyExistsError(
-      "Фото помещения уже загружено",
-    );
+    throw new ProjectSourceAlreadyExistsError("Фото помещения уже загружено");
   }
 
   const image = await validateSourceImage(file);
@@ -59,10 +58,11 @@ export async function uploadProjectSource(
 
     return await db.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "Project" WHERE "id" = ${projectId}::uuid FOR UPDATE`;
-      const current = await tx.project.findUniqueOrThrow({
-        where: { id: projectId },
+      const current = await tx.project.findFirst({
+        where: { id: projectId, userId, deletedAt: null },
         select: { name: true, sourceImageId: true, sourcePreviewId: true },
       });
+      if (!current) throw new ProjectNotFoundError("Проект не найден");
       if (current.sourceImageId || current.sourcePreviewId) {
         throw new ProjectSourceAlreadyExistsError(
           "Фото помещения уже загружено",
@@ -114,7 +114,13 @@ export async function uploadProjectSource(
       return { source, preview };
     });
   } catch (error) {
-    if (uploaded.length) await storage.remove(uploaded);
+    if (uploaded.length)
+      await discardUploadedObjects(
+        uploaded.map((path) => ({
+          bucket: STORAGE_BUCKETS.sourceImages,
+          path,
+        })),
+      );
     throw error;
   }
 }

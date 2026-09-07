@@ -338,8 +338,16 @@ export const CanvasViewport = forwardRef<
       return;
     }
     initialFitRef.current = true;
-    fitToContent();
-  }, [fitToContent, viewportSize.height, viewportSize.width]);
+    if (generations.length > 6) focusItem(selectedItemId);
+    else fitToContent();
+  }, [
+    fitToContent,
+    focusItem,
+    generations.length,
+    selectedItemId,
+    viewportSize.height,
+    viewportSize.width,
+  ]);
 
   useEffect(() => {
     if (!initialFitRef.current) return;

@@ -1,4 +1,4 @@
-import { Prisma, type Generation } from "../../../generated/prisma/client.ts";
+import type { Prisma, Generation } from "../../../generated/prisma/client.ts";
 import type { AspectRatio } from "../../../generated/prisma/enums.ts";
 import { GENERATION_CREDIT_COST } from "../../shared/config/product.ts";
 import {
@@ -12,9 +12,8 @@ import {
   getGenerationModelConfig,
   supportedGenerationAspectRatios,
 } from "./model-config.ts";
-import type { VisualPromptCanvasState } from "../visual-prompt/types.ts";
 
-type GenerationDatabase = {
+export type GenerationDatabase = {
   $transaction<T>(
     operation: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T>;
@@ -32,8 +31,8 @@ type BuildFinalPrompt = (input: {
   stylePrompt?: string;
 }) => string;
 
-type ReservationDependencies<TDatabase> = {
-  db: TDatabase;
+type ReservationDependencies = {
+  db: GenerationDatabase;
   aiProvider: string | undefined;
   buildFinalPrompt: BuildFinalPrompt;
   buildRefinementPrompt: BuildFinalPrompt;
@@ -52,7 +51,6 @@ export type RootGenerationReservationInput = {
   aspectRatio: AspectRatio;
   styleCode?: InteriorStyleCode;
   visualPromptImageId?: string | null;
-  visualPromptCanvasState?: VisualPromptCanvasState;
   idempotencyKey: string;
 };
 
@@ -88,18 +86,11 @@ export function usageDateInTimezone(
   return new Date(`${day}T00:00:00.000Z`);
 }
 
-export async function reserveIdempotently<
-  TTransaction,
-  TGeneration extends { id: string },
->(
-  tx: TTransaction,
-  input: {
-    userId: string;
-    idempotencyKey: string;
-  },
-  create: () => Promise<TGeneration>,
-): Promise<{ generation: TGeneration; isExisting: boolean }> {
-  const transaction = tx as unknown as Prisma.TransactionClient;
+export async function reserveIdempotently(
+  transaction: Prisma.TransactionClient,
+  input: { userId: string; idempotencyKey: string },
+  create: () => Promise<Generation>,
+): Promise<{ generation: Generation; isExisting: boolean }> {
   const existing = await transaction.generation.findUnique({
     where: {
       userId_idempotencyKey: {
@@ -110,7 +101,7 @@ export async function reserveIdempotently<
   });
   if (existing) {
     return {
-      generation: existing as unknown as TGeneration,
+      generation: existing,
       isExisting: true,
     };
   }
@@ -126,7 +117,7 @@ export async function reserveIdempotently<
   });
   if (duplicate) {
     return {
-      generation: duplicate as unknown as TGeneration,
+      generation: duplicate,
       isExisting: true,
     };
   }
@@ -137,8 +128,8 @@ export async function reserveIdempotently<
   };
 }
 
-export async function createGenerationReservation<TTransaction>(
-  tx: TTransaction,
+export async function createGenerationReservation(
+  transaction: Prisma.TransactionClient,
   input: {
     generationId: string;
     userId: string;
@@ -150,7 +141,6 @@ export async function createGenerationReservation<TTransaction>(
     };
   },
 ): Promise<Generation> {
-  const transaction = tx as unknown as Prisma.TransactionClient;
   const generation = await transaction.generation.create({
     data: {
       ...input.data,
@@ -190,11 +180,11 @@ export async function createGenerationReservation<TTransaction>(
   return generation;
 }
 
-export async function reserveRootGenerationWithDependencies<TDatabase>(
-  dependencies: ReservationDependencies<TDatabase>,
+export async function reserveRootGenerationWithDependencies(
+  dependencies: ReservationDependencies,
   input: RootGenerationReservationInput,
 ) {
-  const database = dependencies.db as unknown as GenerationDatabase;
+  const database = dependencies.db;
   return database.$transaction((tx) =>
     reserveIdempotently(
       tx,
@@ -320,17 +310,8 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
           data: {
             prompt: input.prompt,
             aspectRatio: input.aspectRatio,
-            ...(input.visualPromptImageId !== undefined
-              ? {
-                  visualPromptId: visualPrompt?.id ?? null,
-                  visualPromptUsed: Boolean(visualPrompt),
-                  canvasState: visualPrompt
-                    ? input.visualPromptCanvasState
-                      ? (input.visualPromptCanvasState as Prisma.InputJsonValue)
-                      : Prisma.JsonNull
-                    : Prisma.JsonNull,
-                }
-              : {}),
+            // Canvas autosave owns project markup. A generation snapshots its
+            // input independently and must not overwrite a newer editor save.
           },
         });
         return generation;
@@ -339,11 +320,11 @@ export async function reserveRootGenerationWithDependencies<TDatabase>(
   );
 }
 
-export async function reserveRefinementWithDependencies<TDatabase>(
-  dependencies: ReservationDependencies<TDatabase>,
+export async function reserveRefinementWithDependencies(
+  dependencies: ReservationDependencies,
   input: RefinementReservationInput,
 ) {
-  const database = dependencies.db as unknown as GenerationDatabase;
+  const database = dependencies.db;
   return database.$transaction((tx) =>
     reserveIdempotently(
       tx,
@@ -399,8 +380,7 @@ export async function reserveRefinementWithDependencies<TDatabase>(
         }
 
         if (
-          input.referenceFileIds.length >
-          dependencies.limits.maxReferenceImages
+          input.referenceFileIds.length > dependencies.limits.maxReferenceImages
         ) {
           throw new GenerationReservationError(
             "REFERENCE_LIMIT_EXCEEDED",
@@ -494,15 +474,15 @@ export async function reserveRefinementWithDependencies<TDatabase>(
   );
 }
 
-export async function failGenerationWithDatabase<TDatabase>(
-  db: TDatabase,
+export async function failGenerationWithDatabase(
+  db: GenerationDatabase,
   input: {
     generationId: string;
     code: string;
     message: string;
   },
 ) {
-  const database = db as unknown as GenerationDatabase;
+  const database = db;
   return database.$transaction(async (tx) => {
     const failed = await tx.generation.updateMany({
       where: {
@@ -526,12 +506,12 @@ export async function failGenerationWithDatabase<TDatabase>(
   });
 }
 
-export async function cancelOwnedGenerationWithDatabase<TDatabase>(
-  db: TDatabase,
+export async function cancelOwnedGenerationWithDatabase(
+  db: GenerationDatabase,
   userId: string,
   generationId: string,
 ) {
-  const database = db as unknown as GenerationDatabase;
+  const database = db;
   return database.$transaction(async (tx) => {
     const cancelled = await tx.generation.updateMany({
       where: {
