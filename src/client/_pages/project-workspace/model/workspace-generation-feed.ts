@@ -1,13 +1,21 @@
 "use client";
 
-import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type GenerationClientPayload,
   readGeneration,
   readProjectGenerations,
 } from "../api/workspace-generations";
-import { mergeGenerationIntoList } from "./generation-cache";
+import {
+  appendGenerationPage,
+  mergeGenerationIntoList,
+} from "./generation-cache";
 import type {
   WorkspaceGenerationList,
   WorkspaceGenerationStatus,
@@ -43,10 +51,43 @@ export function useWorkspaceGenerationFeed(
     () => ["generations", projectId] as const,
     [projectId],
   );
+  const loadedPageCount = useRef(1);
   const generationsQuery = useQuery({
     queryKey,
-    queryFn: () => readProjectGenerations(projectId),
+    queryFn: async ({ signal }) => {
+      let result = await readProjectGenerations(projectId, undefined, signal);
+      for (
+        let page = 1;
+        page < loadedPageCount.current && result.nextCursor;
+        page++
+      ) {
+        result = appendGenerationPage(
+          result,
+          await readProjectGenerations(projectId, result.nextCursor, signal),
+        );
+      }
+      return result;
+    },
     initialData: initialGenerations,
+  });
+
+  const loadMore = useMutation({
+    mutationFn: async () => {
+      // Prevent an older background refresh from replacing the appended page.
+      await queryClient.cancelQueries({ queryKey });
+      const cursor =
+        queryClient.getQueryData<WorkspaceGenerationList>(queryKey)?.nextCursor;
+      return cursor ? readProjectGenerations(projectId, cursor) : null;
+    },
+    onSuccess: async (page) => {
+      if (!page) return;
+      // A focus/reconnect refresh may have started while the page was loading.
+      await queryClient.cancelQueries({ queryKey });
+      loadedPageCount.current += 1;
+      queryClient.setQueryData<WorkspaceGenerationList>(queryKey, (current) =>
+        appendGenerationPage(current, page),
+      );
+    },
   });
 
   const invalidateCredits = useCallback(
@@ -158,6 +199,7 @@ export function useWorkspaceGenerationFeed(
 
   return {
     generationsQuery,
+    loadMore,
     applyGenerationPayload,
     invalidateCredits,
     reconcileInsufficientCredits,

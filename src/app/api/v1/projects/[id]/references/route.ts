@@ -1,3 +1,4 @@
+import { readUploadFormData } from "@/server/features/media/staged-upload";
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
@@ -12,9 +13,14 @@ import {
 } from "@/server/features/references/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
@@ -23,8 +29,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (
       contentLength >
-      limits.maxUploadSizeBytes * limits.maxReferenceImages +
-        1024 * 1024
+      limits.maxUploadSizeBytes * limits.maxReferenceImages + 1024 * 1024
     ) {
       return apiError(
         "FILE_TOO_LARGE",
@@ -35,7 +40,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     const user = await requireCurrentUser();
     const { id } = await context.params;
-    const formData = await request.formData();
+    const formData = await readUploadFormData(request, user.id);
     const files = formData
       .getAll("files")
       .filter((value): value is File => value instanceof File);

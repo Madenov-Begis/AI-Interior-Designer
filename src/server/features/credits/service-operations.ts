@@ -145,14 +145,24 @@ export async function adjustCreditBalance(
     "ADMIN_ADJUSTMENT",
     `${input.actorId}:${input.idempotencyKey}`,
   );
+  // The key lock also serializes accidental reuse for different target users.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+  await ensureCreditWallet(tx, input.userId);
   const existing = await tx.creditTransaction.findUnique({
     where: { idempotencyKey: key },
-    select: { balanceAfter: true },
+    select: { balanceAfter: true, userId: true, amount: true, reason: true },
   });
-  if (existing) return existing.balanceAfter;
+  if (existing) {
+    if (
+      existing.userId !== input.userId ||
+      existing.amount !== input.amount ||
+      existing.reason !== input.reason
+    ) {
+      throw new CreditBalanceError("IDEMPOTENCY_CONFLICT");
+    }
+    return existing.balanceAfter;
+  }
 
-  await ensureCreditWallet(tx, input.userId);
-  await lockCreditWallet(tx, input.userId);
   if (input.amount < 0) {
     const result = await tx.creditWallet.updateMany({
       where: { userId: input.userId, balance: { gte: -input.amount } },

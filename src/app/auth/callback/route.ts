@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
           if (isLocalDevelopmentOrigin(appUrl)) {
             redirectUrl.hash = new URLSearchParams({
               oauth_access_token: session.access_token,
-              oauth_refresh_token: session.refresh_token,
               oauth_expires_in: String(session.expires_in),
             }).toString();
           }

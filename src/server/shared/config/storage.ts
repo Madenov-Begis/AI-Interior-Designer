@@ -1,4 +1,5 @@
 export const STORAGE_BUCKETS = {
+  stagingUploads: "staging-uploads",
   sourceImages: "source-images",
   visualPrompts: "visual-prompts",
   referenceImages: "reference-images",

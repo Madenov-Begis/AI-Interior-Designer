@@ -24,7 +24,7 @@ export function ProjectWorkspacePage() {
         className="h-full overflow-hidden bg-background text-foreground"
         tabIndex={-1}
       >
-        <DesignWorkspace {...workspace.data} />
+        <DesignWorkspace key={workspace.data.project.id} {...workspace.data} />
       </main>
     );
   }

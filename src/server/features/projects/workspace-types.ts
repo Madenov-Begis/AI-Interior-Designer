@@ -5,6 +5,7 @@ export type WorkspaceGenerationStatus =
 
 export type WorkspaceGeneration = {
   id: string;
+  variantNumber?: string;
   parentGenerationId: string | null;
   status: WorkspaceGenerationStatus;
   prompt: string;
@@ -40,6 +41,8 @@ export type DesignWorkspaceProps = {
     prompt: string | null;
     aspectRatio: string;
     source: {
+      fileId?: string;
+      expiresAt?: string;
       url: string;
       width: number;
       height: number;

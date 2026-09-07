@@ -1,6 +1,9 @@
 import "server-only";
 
-import { getOwnedGeneration } from "@/server/features/generations/service";
+import {
+  getOwnedGeneration,
+  readGenerationLabels,
+} from "@/server/features/generations/service";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 
 export class GenerationClientPayloadError extends Error {
@@ -24,6 +27,7 @@ export async function getGenerationClientPayload(
     );
   }
 
+  const labels = await readGenerationLabels(userId, [generation.projectId]);
   let resultUrl: string | null = null;
   if (generation.resultUser) {
     const signed = await getSupabaseAdmin()
@@ -41,6 +45,7 @@ export async function getGenerationClientPayload(
   return {
     generation: {
       id: generation.id,
+      variantNumber: labels.get(generation.id) ?? "—",
       parentGenerationId: generation.parentGenerationId,
       status: generation.status,
       prompt: generation.prompt,

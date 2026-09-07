@@ -15,17 +15,27 @@ async function requestWorkspaceData<T>(config: AxiosRequestConfig) {
     return await apiData<T>(config);
   } catch (error) {
     if (error instanceof ApiClientError) {
-      throw new ApiResponseError(error.code, error.message, error.status);
+      throw new ApiResponseError(
+        error.code,
+        error.message,
+        error.status,
+        error.requestId,
+      );
     }
     throw error;
   }
 }
 
-export function readProjectGenerations(projectId: string) {
+export function readProjectGenerations(
+  projectId: string,
+  cursor?: string,
+  signal?: AbortSignal,
+) {
   return requestWorkspaceData<WorkspaceGenerationList>({
     url: "/generations",
     method: "GET",
-    params: { projectId, limit: 20 },
+    params: { projectId, limit: 20, cursor },
+    signal,
   });
 }
 
@@ -45,6 +55,7 @@ export function createProjectGeneration(
     url: `/projects/${projectId}/generations`,
     method: "POST",
     headers: { "idempotency-key": idempotencyKey },
+    timeout: 60_000,
     data: body,
   });
 }
@@ -64,6 +75,7 @@ export function retryProjectGeneration(
     url: `/generations/${generationId}/retry`,
     method: "POST",
     headers: { "idempotency-key": idempotencyKey },
+    timeout: 60_000,
   });
 }
 
@@ -76,6 +88,7 @@ export function refineProjectGeneration(
     url: `/generations/${generationId}/refinements`,
     method: "POST",
     headers: { "idempotency-key": idempotencyKey },
+    timeout: 60_000,
     data: body,
   });
 }

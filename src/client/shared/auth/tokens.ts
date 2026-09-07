@@ -38,27 +38,16 @@ export function getAccessToken() {
   return Cookies.get(ACCESS_TOKEN_COOKIE) ?? null;
 }
 
-export function getRefreshToken() {
-  clearLegacySupabaseCookies();
-  return Cookies.get(REFRESH_TOKEN_COOKIE) ?? null;
-}
-
 export function setAuthTokens({
   accessToken,
-  refreshToken,
   expiresIn,
 }: {
   accessToken: string;
-  refreshToken: string;
   expiresIn: number;
 }) {
   Cookies.set(ACCESS_TOKEN_COOKIE, accessToken, {
     ...cookieOptions(),
     expires: new Date(Date.now() + Math.max(60, expiresIn) * 1_000),
-  });
-  Cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, {
-    ...cookieOptions(),
-    expires: 400,
   });
 }
 
@@ -74,17 +63,11 @@ export function consumeOAuthHandoff() {
 
   const params = new URLSearchParams(window.location.hash.slice(1));
   const accessToken = params.get("oauth_access_token");
-  const refreshToken = params.get("oauth_refresh_token");
   const expiresIn = Number(params.get("oauth_expires_in"));
-  if (
-    !accessToken ||
-    !refreshToken ||
-    !Number.isFinite(expiresIn) ||
-    expiresIn <= 0
-  )
+  if (!accessToken || !Number.isFinite(expiresIn) || expiresIn <= 0)
     return false;
 
-  setAuthTokens({ accessToken, refreshToken, expiresIn });
+  setAuthTokens({ accessToken, expiresIn });
   window.history.replaceState(
     null,
     "",

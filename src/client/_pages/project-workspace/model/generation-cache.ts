@@ -9,6 +9,7 @@ function sameGenerationSnapshot(
 ) {
   return (
     current.id === incoming.id &&
+    current.variantNumber === incoming.variantNumber &&
     current.parentGenerationId === incoming.parentGenerationId &&
     current.status === incoming.status &&
     current.prompt === incoming.prompt &&
@@ -55,5 +56,23 @@ export function mergeGenerationIntoList(
     items: current.items.map((item, itemIndex) =>
       itemIndex === index ? generation : item,
     ),
+  };
+}
+
+export function appendGenerationPage(
+  current: WorkspaceGenerationList | undefined,
+  page: WorkspaceGenerationList,
+): WorkspaceGenerationList {
+  if (!current) return page;
+  // Keep newer mutation/polling snapshots if a page response overlaps them.
+  const knownIds = new Set(current.items.map((item) => item.id));
+  const items = [
+    ...current.items,
+    ...page.items.filter((item) => !knownIds.has(item.id)),
+  ];
+  return {
+    items,
+    nextCursor: page.nextCursor,
+    total: Math.max(page.total, items.length),
   };
 }

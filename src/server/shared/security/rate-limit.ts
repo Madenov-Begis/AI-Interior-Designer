@@ -2,8 +2,10 @@ import "server-only";
 
 import type { NextRequest } from "next/server";
 
-type Entry = { count: number; resetAt: number };
-const buckets = new Map<string, Entry>();
+import { createHash } from "node:crypto";
+import { isIP } from "node:net";
+import { consumeRateLimit } from "./rate-limit-operations";
+import { getDb } from "@/server/shared/db/prisma";
 
 export class RateLimitError extends Error {
   retryAfter: number;
@@ -14,29 +16,23 @@ export class RateLimitError extends Error {
   }
 }
 
-export function enforceRateLimit(
+export async function enforceRateLimit(
   request: NextRequest,
   scope: string,
   limit = 30,
   windowMs = 60_000,
+  userId?: string,
 ) {
-  const now = Date.now();
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
-  const key = `${scope}:${ip}`;
-  const current = buckets.get(key);
-  if (!current || current.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return;
-  }
-  if (current.count >= limit)
-    throw new RateLimitError(
-      Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
-    );
-  current.count += 1;
-  if (buckets.size > 10_000)
-    for (const [bucketKey, entry] of buckets)
-      if (entry.resetAt <= now) buckets.delete(bucketKey);
+  // Vercel overwrites this header. Outside that trusted ingress, do not trust
+  // client-supplied forwarding headers; authenticated requests use user identity.
+  const forwarded =
+    process.env.VERCEL === "1"
+      ? request.headers.get("x-forwarded-for")?.trim()
+      : undefined;
+  const subject = userId
+    ? `user:${userId}`
+    : `ip:${forwarded && isIP(forwarded) ? forwarded : "unknown"}`;
+  const key = createHash("sha256").update(`${scope}:${subject}`).digest("hex");
+  const result = await consumeRateLimit(getDb(), key, limit, windowMs);
+  if (!result.allowed) throw new RateLimitError(result.retryAfter);
 }

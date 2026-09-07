@@ -1,5 +1,7 @@
 import "server-only";
 
+import { discardUploadedObjects } from "@/server/features/media/cleanup";
+
 import { randomUUID } from "node:crypto";
 import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import { validateReferenceImage } from "@/server/features/media/image-validation";
@@ -79,7 +81,12 @@ export async function uploadRefinementReferences(
     return results;
   } catch (error) {
     if (uploaded.length) {
-      await storage.remove(uploaded.map((item) => item.path));
+      await discardUploadedObjects(
+        uploaded.map((item) => ({
+          bucket: STORAGE_BUCKETS.referenceImages,
+          path: item.path,
+        })),
+      );
       await getDb().mediaFile.deleteMany({
         where: { id: { in: uploaded.map((item) => item.id) } },
       });

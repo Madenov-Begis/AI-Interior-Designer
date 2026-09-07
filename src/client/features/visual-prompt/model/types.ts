@@ -14,7 +14,7 @@ export type VisualPromptTool =
 
 export type VisualPromptEditorHandle = {
   persist(): Promise<void>;
-  markPersisted(used: boolean): void;
+  markPersisted(used: boolean, state?: VisualPromptCanvasState | null): void;
   snapshot(): Promise<{
     state: VisualPromptCanvasState;
     overlay: Blob;

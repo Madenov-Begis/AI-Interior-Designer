@@ -5,5 +5,4 @@ export {
   setAuthTokens,
   clearAuthTokens,
   getAccessToken,
-  getRefreshToken,
 } from "./tokens.ts";

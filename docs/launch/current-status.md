@@ -1,16 +1,20 @@
 # Ruvie — текущий статус запуска
 
-- Дата: 5 сентября 2026 года
+Изменения рефакторинга подготовлены локально; сведения ниже о production относятся
+к ранее опубликованной версии. Миграция применена 7 сентября; новый код ещё не опубликован.
+Актуальный отчёт: [рефакторинг 7 сентября](../refactoring-2026-09-07.md).
+
+- Дата: 7 сентября 2026 года
 - Целевой формат: закрытая бесплатная beta
 - Текущее решение: `NO-GO`
 - Причина: Design QA и основная функциональная приемка закрыты; новый Google signup, exception tracking, операционная безопасность и production-публикация юридических страниц еще не завершены
 
 ## Что закрыто
 
-- Все 18 Prisma-миграций применены; схема production-базы актуальна.
+- Все 19 Prisma-миграций применены; схема production-базы актуальна.
 - Supabase SSL Enforcement включен.
 - Google OAuth проходит цепочку Ruvie → Supabase → Google; окончательный вход beta-пользователя входит в E2E.
-- Все шесть Storage buckets приватные; проверена выдача реального объекта через серверный signed URL.
+- Все семь Storage buckets приватные. Новый staging bucket проверен реальной загрузкой 15 МБ, signed download и удалением тестовых файлов.
 - Supabase Security Advisor и Performance Advisor не показывают открытых замечаний после добавления индексов.
 - Ежедневный GitHub Actions backup сохраняет зашифрованные database, Auth/Storage metadata и файлы Storage; database restore и восстановление файла проверены.
 - Production environment Vercel синхронизирован с локальной схемой, включая `PAYMENT_PROVIDER=disabled`, admin-секреты, Vertex и Supabase.

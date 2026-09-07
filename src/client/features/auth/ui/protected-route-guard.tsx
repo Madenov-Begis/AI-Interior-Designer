@@ -1,5 +1,6 @@
 "use client";
 
+import { ApiClientError } from "@/shared/api";
 import { LoaderCircle } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -13,15 +14,38 @@ export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
   const auth = useAppSessionQuery();
 
   useEffect(() => {
-    if (auth.isPending || auth.data) return;
+    if (
+      auth.isPending ||
+      auth.data ||
+      (auth.isError &&
+        (!(auth.error instanceof ApiClientError) || auth.error.status !== 401))
+    )
+      return;
 
     const next =
       typeof window === "undefined"
         ? pathname
         : `${window.location.pathname}${window.location.search}`;
     router.replace(`/login?next=${encodeURIComponent(next)}`);
-  }, [auth.data, auth.isPending, pathname, router]);
+  }, [auth.data, auth.error, auth.isError, auth.isPending, pathname, router]);
 
+  if (
+    !auth.data &&
+    auth.isError &&
+    (!(auth.error instanceof ApiClientError) || auth.error.status !== 401)
+  ) {
+    return (
+      <main
+        className="grid min-h-dvh place-content-center gap-4 text-center"
+        role="alert"
+      >
+        <p>Не удалось проверить сессию. Проверьте соединение.</p>
+        <button type="button" onClick={() => void auth.refetch()}>
+          Повторить
+        </button>
+      </main>
+    );
+  }
   if (!auth.data) {
     return (
       <main

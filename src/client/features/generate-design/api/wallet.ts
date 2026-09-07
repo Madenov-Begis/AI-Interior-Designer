@@ -44,12 +44,19 @@ const TERMINAL_GENERATION_STATUSES = new Set([
 export class ApiResponseError extends Error {
   readonly code: string;
   readonly status: number | null;
+  readonly requestId: string | null;
 
-  constructor(code: string, message: string, status: number | null = null) {
+  constructor(
+    code: string,
+    message: string,
+    status: number | null = null,
+    requestId: string | null = null,
+  ) {
     super(message);
     this.name = "ApiResponseError";
     this.code = code;
     this.status = status;
+    this.requestId = requestId;
   }
 }
 

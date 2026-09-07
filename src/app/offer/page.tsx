@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MarkdownLegalDocument } from "@/server/shared/legal/markdown-document";
+import { MarkdownLegalDocument } from "../_components/markdown-legal-document";
 
 export const metadata: Metadata = {
   title: "Публичная оферта — Ruvie",

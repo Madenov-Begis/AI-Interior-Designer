@@ -10,6 +10,8 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { useQueries } from "@tanstack/react-query";
+import { mediaQueries } from "@/shared/api/media.query";
 import { useRef, useState } from "react";
 import { buttonClassName } from "@/shared/ui";
 import { apiData } from "@/shared/api";
@@ -38,7 +40,16 @@ export function ReferenceManager({
   const inputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"files" | "urls">("files");
   const [addOpen, setAddOpen] = useState(false);
-  const [references, setReferences] = useState(initialReferences);
+  const [storedReferences, setReferences] = useState(initialReferences);
+  const signedUrls = useQueries({
+    queries: storedReferences.map((item) =>
+      mediaQueries.signedUrl(item.fileId, item.previewUrl),
+    ),
+  });
+  const references = storedReferences.map((item, index) => ({
+    ...item,
+    previewUrl: signedUrls[index]?.data?.url ?? item.previewUrl,
+  }));
   const [urls, setUrls] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(

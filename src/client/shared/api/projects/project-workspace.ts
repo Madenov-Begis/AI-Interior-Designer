@@ -11,6 +11,7 @@ export type ProjectWorkspaceCanvasStateDto = {
 
 export type ProjectWorkspaceGenerationDto = {
   id: string;
+  variantNumber?: string;
   parentGenerationId: string | null;
   status:
     "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REJECTED";
@@ -47,6 +48,8 @@ export type ProjectWorkspaceDto = {
     prompt: string | null;
     aspectRatio: string;
     source: {
+      fileId?: string;
+      expiresAt?: string;
       url: string;
       width: number;
       height: number;

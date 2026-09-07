@@ -1,5 +1,7 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { mediaQueries } from "@/shared/api/media.query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport, type CanvasViewportHandle } from "./canvas-viewport";
 import { CanvasOnboarding, CanvasOnboardingTrigger } from "./canvas-onboarding";
@@ -62,6 +64,9 @@ function ReadyDesignWorkspace({
   initialGenerations,
 }: ReadyDesignWorkspaceProps) {
   const source = project.source;
+  const sourceUrl = useQuery(
+    mediaQueries.signedUrl(source.fileId, source.url, source.expiresAt),
+  );
   const { wallet } = useAppSession();
   const onboarding = useCanvasOnboarding();
   const onboardingActive = onboarding.active;
@@ -147,6 +152,7 @@ function ReadyDesignWorkspace({
   );
   const {
     generationsQuery,
+    loadMore,
     applyGenerationPayload,
     invalidateCredits,
     reconcileInsufficientCredits,
@@ -176,7 +182,8 @@ function ReadyDesignWorkspace({
     return items
       .map((generation) => ({
         generation,
-        variantNumber: labels.get(generation.id) ?? "—",
+        variantNumber:
+          generation.variantNumber ?? labels.get(generation.id) ?? "—",
       }))
       .sort(
         (left, right) =>
@@ -350,7 +357,7 @@ function ReadyDesignWorkspace({
             ref={canvasViewportRef}
             source={{
               projectId: project.id,
-              imageUrl: source.url,
+              imageUrl: sourceUrl.data?.url ?? source.url,
               width: source.width,
               height: source.height,
               sourceWidth: source.sourceWidth,
@@ -373,12 +380,26 @@ function ReadyDesignWorkspace({
             }}
             onActivateSource={openInspector}
           />
-          {generationsQuery.isError || canvasActionError ? (
+          {generationsQuery.data.nextCursor ? (
+            <button
+              type="button"
+              className="absolute left-4 top-16 z-20 rounded-xl border bg-surface px-4 py-2 text-sm shadow"
+              disabled={loadMore.isPending}
+              onClick={() => loadMore.mutate()}
+            >
+              {loadMore.isPending
+                ? "Загрузка…"
+                : `Загрузить предыдущие варианты (${generationsQuery.data.items.length} из ${generationsQuery.data.total})`}
+            </button>
+          ) : null}
+          {generationsQuery.isError || loadMore.isError || canvasActionError ? (
             <div
               role="alert"
               className="absolute bottom-24 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-red-400/30 bg-surface px-4 py-3 text-sm text-red-300 shadow-xl"
             >
-              {canvasActionError ?? generationsQuery.error?.message}
+              {canvasActionError ??
+                loadMore.error?.message ??
+                generationsQuery.error?.message}
             </div>
           ) : null}
           <WorkspaceToolbar

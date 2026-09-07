@@ -1,5 +1,6 @@
 "use client";
 
+import { stageUploadBody } from "./staged-upload.ts";
 import axios, {
   AxiosError,
   type AxiosRequestConfig,
@@ -9,7 +10,6 @@ import type { ApiFailure, ApiSuccess } from "./types.ts";
 import {
   clearAuthTokens,
   getAccessToken,
-  getRefreshToken,
   setAuthTokens,
 } from "../auth/tokens.ts";
 import { API_BASE_URL, apiUrl } from "./url.ts";
@@ -30,7 +30,6 @@ declare module "axios" {
 
 type RefreshedSession = {
   accessToken: string;
-  refreshToken: string;
   expiresIn: number;
 };
 
@@ -81,34 +80,62 @@ export const apiClient = axios.create({
   headers: { Accept: "application/json" },
 });
 
-async function refreshSession() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) throw new Error("Refresh token is missing");
-
-  refreshRequest ??= fetch(apiUrl("/auth/refresh"), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "x-request-id": requestId(),
-    },
-    body: JSON.stringify({ refreshToken }),
-  })
-    .then(async (response) => {
-      if (!response.ok) throw new Error("Session refresh failed");
-      const payload = (await response.json()) as ApiSuccess<RefreshedSession>;
-      setAuthTokens(payload.data);
-      return payload.data;
-    })
-    .finally(() => {
-      refreshRequest = null;
+async function refreshSession(failedToken: string | null) {
+  const perform = async () => {
+    const currentToken = getAccessToken();
+    if (currentToken && currentToken !== failedToken)
+      return { accessToken: currentToken, expiresIn: 60 };
+    const response = await fetch(apiUrl("/auth/refresh"), {
+      method: "POST",
+      credentials: "include",
+      signal: AbortSignal.timeout(30_000),
+      headers: { Accept: "application/json", "x-request-id": requestId() },
     });
-
+    if (!response.ok)
+      throw new ApiClientError(
+        "REFRESH_FAILED",
+        response.status === 401
+          ? "Сессия истекла"
+          : "Не удалось обновить сессию. Попробуйте ещё раз",
+        response.status,
+        response.headers.get("x-request-id"),
+      );
+    const payload = (await response.json()) as ApiSuccess<RefreshedSession>;
+    setAuthTokens(payload.data);
+    return payload.data;
+  };
+  refreshRequest ??= (async () => {
+    if (typeof navigator !== "undefined" && navigator.locks)
+      return await navigator.locks.request("ruvie:session-refresh", perform);
+    return perform();
+  })().finally(() => {
+    refreshRequest = null;
+  });
   return refreshRequest;
 }
 
-apiClient.interceptors.request.use((config) => {
+apiClient.interceptors.request.use(async (config) => {
+  if (
+    config.data instanceof FormData &&
+    config.url &&
+    /^\/(projects\/[^/]+\/(source|references|visual-prompt|generations)|generations\/[^/]+\/refinements)$/.test(
+      config.url,
+    )
+  ) {
+    config.data = await stageUploadBody(
+      config.url,
+      config.data,
+      (input) =>
+        apiData({
+          url: "/uploads",
+          method: "POST",
+          data: input,
+          signal: config.signal,
+        }),
+      config.signal instanceof AbortSignal ? config.signal : undefined,
+    );
+    config.headers.set("Content-Type", "application/json");
+  }
   if (!config.headers.has("x-request-id")) {
     config.headers.set("x-request-id", requestId());
   }
@@ -134,15 +161,34 @@ apiClient.interceptors.response.use(
       status === 401 &&
       config &&
       !config.skipAuthRefresh &&
-      !config.authRetry &&
-      getRefreshToken()
+      !config.authRetry
     ) {
       try {
-        const session = await refreshSession();
+        const failedToken =
+          String(config.headers.get("Authorization") ?? "").replace(
+            /^Bearer /i,
+            "",
+          ) || null;
+        const session = await refreshSession(failedToken);
         config.authRetry = true;
         config.headers.set("Authorization", `Bearer ${session.accessToken}`);
         return apiClient.request(config);
-      } catch {
+      } catch (refreshError) {
+        if (
+          !(refreshError instanceof ApiClientError) ||
+          refreshError.status !== 401
+        ) {
+          return Promise.reject(
+            refreshError instanceof ApiClientError
+              ? refreshError
+              : new ApiClientError(
+                  "AUTH_UNAVAILABLE",
+                  "Не удалось обновить сессию. Проверьте соединение",
+                  503,
+                  null,
+                ),
+          );
+        }
         clearAuthTokens();
       }
     }

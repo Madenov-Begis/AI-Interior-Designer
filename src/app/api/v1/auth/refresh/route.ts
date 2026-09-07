@@ -1,5 +1,12 @@
+import { isRetryableAuthFailure } from "@/server/features/auth/refresh-policy";
 import type { NextRequest } from "next/server";
-import { clearSessionCookies } from "@/server/shared/auth/session-cookies";
+import { cookies } from "next/headers";
+import { allowedCookieOrigin } from "@/server/shared/security/cookie-origin";
+import {
+  clearSessionCookies,
+  storeSessionCookies,
+  REFRESH_TOKEN_COOKIE,
+} from "@/server/shared/auth/session-cookies";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
 import { createSupabaseTokenClient } from "@/server/shared/integrations/supabase/token-client";
@@ -8,30 +15,42 @@ export async function POST(request: NextRequest) {
   const requestId = getRequestId(request.headers);
 
   try {
-    const body = (await request.json()) as { refreshToken?: unknown };
-    if (typeof body.refreshToken !== "string" || !body.refreshToken) {
-      await clearSessionCookies();
+    if (!allowedCookieOrigin(request))
+      return apiError(
+        "FORBIDDEN",
+        "Недопустимый источник запроса",
+        requestId,
+        403,
+      );
+    const refreshToken = (await cookies()).get(REFRESH_TOKEN_COOKIE)?.value;
+    if (!refreshToken)
       return apiError(
         "INVALID_REFRESH_TOKEN",
         "Сессия истекла",
         requestId,
         401,
       );
-    }
 
     const { data, error } =
       await createSupabaseTokenClient().auth.refreshSession({
-        refresh_token: body.refreshToken,
+        refresh_token: refreshToken,
       });
     if (error || !data.session) {
+      if (error && isRetryableAuthFailure(error))
+        return apiError(
+          "AUTH_UNAVAILABLE",
+          "Не удалось обновить сессию. Попробуйте позже",
+          requestId,
+          503,
+        );
       await clearSessionCookies();
       return apiError("REFRESH_FAILED", "Сессия истекла", requestId, 401);
     }
 
+    await storeSessionCookies(data.session);
     const response = apiSuccess(
       {
         accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
         expiresIn: data.session.expires_in,
       },
       requestId,
@@ -39,7 +58,11 @@ export async function POST(request: NextRequest) {
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch {
-    await clearSessionCookies();
-    return apiError("REFRESH_FAILED", "Сессия истекла", requestId, 401);
+    return apiError(
+      "AUTH_UNAVAILABLE",
+      "Не удалось обновить сессию. Попробуйте позже",
+      requestId,
+      503,
+    );
   }
 }

@@ -56,5 +56,5 @@ test("publishes the clean provider result for every plan", async () => {
     workerSource,
     /addWatermark|watermarkRequired|AI INTERIOR/,
   );
-  assert.match(workerSource, /\.upload\(resultPath, finalizedOutput\.image/);
+  assert.match(workerSource, /\.upload\(originalPath, finalizedOutput\.image/);
 });

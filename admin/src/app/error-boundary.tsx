@@ -1,5 +1,14 @@
-import { Alert, Button, Center, Container, Stack, Text, Title } from "@mantine/core";
+import {
+  Alert,
+  Button,
+  Center,
+  Container,
+  Stack,
+  Text,
+  Title,
+} from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
+import { captureException } from "@sentry/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 export class AppErrorBoundary extends Component<
@@ -13,7 +22,11 @@ export class AppErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Admin render error", { name: error.name, componentStack: info.componentStack });
+    captureException(error);
+    console.error("Admin render error", {
+      name: error.name,
+      componentStack: info.componentStack,
+    });
   }
 
   render() {
@@ -24,8 +37,12 @@ export class AppErrorBoundary extends Component<
           <Alert color="red" icon={<IconAlertTriangle />}>
             <Stack>
               <Title order={2}>Экран не удалось отобразить</Title>
-              <Text>Данные не потеряны. Обновите экран или вернитесь на главную.</Text>
-              <Button onClick={() => window.location.assign("/")}>Вернуться на главную</Button>
+              <Text>
+                Данные не потеряны. Обновите экран или вернитесь на главную.
+              </Text>
+              <Button onClick={() => window.location.assign("/")}>
+                Вернуться на главную
+              </Button>
             </Stack>
           </Alert>
         </Container>

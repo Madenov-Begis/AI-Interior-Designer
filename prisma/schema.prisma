@@ -384,3 +384,37 @@ model PaymentEvent {
   @@unique([provider, providerEventId])
   @@index([orderId, createdAt])
 }
+
+// Private infrastructure tables, accessed only by the server through Prisma.
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  resetAt   DateTime @db.Timestamptz(6)
+
+  @@index([resetAt])
+}
+
+model StorageDeletion {
+  id            String   @id @default(uuid()) @db.Uuid
+  bucket        String
+  path          String
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now()) @db.Timestamptz(6)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([bucket, path])
+  @@index([nextAttemptAt])
+}
+
+model StorageUpload {
+  id           String   @id @default(uuid()) @db.Uuid
+  ownerId      String   @db.Uuid
+  target       String
+  path         String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  expiresAt    DateTime @db.Timestamptz(6)
+
+  @@index([expiresAt])
+}

@@ -21,6 +21,8 @@ import {
   RetryAttemptRegistry,
 } from "@/features/generate-design";
 import type { VisualPromptEditorHandle } from "@/features/visual-prompt";
+import { useAppSession } from "@/features/auth/index.client";
+import { RootAttemptRegistry, rootAttemptSignature } from "./root-attempt";
 
 type WorkspaceGenerationActionsOptions = {
   projectId: string;
@@ -59,11 +61,19 @@ export function useWorkspaceGenerationActions({
   reconcileInsufficientCredits,
   focusGeneration,
 }: WorkspaceGenerationActionsOptions) {
+  const { user } = useAppSession();
+  const [rootAttempts] = useState(() => {
+    try {
+      return new RootAttemptRegistry(window.sessionStorage);
+    } catch {
+      return new RootAttemptRegistry();
+    }
+  });
   const [retryAttempts] = useState(() => new RetryAttemptRegistry());
   const [refinementAttempts] = useState(() => new RefinementAttemptRegistry());
 
   const reserveCurrentGeneration = useCallback(
-    async (idempotencyKey = crypto.randomUUID()) => {
+    async (idempotencyKey?: string) => {
       if (prompt.trim().length < 3) {
         throw new Error("Опишите изменения не менее чем в трёх символах");
       }
@@ -84,15 +94,37 @@ export function useWorkspaceGenerationActions({
         body.set("visualPromptAction", "clear");
       }
 
+      const attempt = idempotencyKey
+        ? null
+        : rootAttempts.begin(
+            `${user.id}:${projectId}`,
+            await rootAttemptSignature({
+              projectId,
+              prompt,
+              aspectRatio,
+              styleCode,
+              canvasState: visualPrompt?.state ?? null,
+            }),
+          );
       const result = await createProjectGeneration(
         projectId,
         body,
-        idempotencyKey,
+        idempotencyKey ?? attempt!.idempotencyKey,
       );
-      visualPromptRef.current.markPersisted(Boolean(visualPrompt));
+      if (attempt) rootAttempts.succeed(attempt);
+      // Generation success confirms its own snapshot, not the editor's autosave.
+      // Keep the draft until its separate PUT/DELETE has been acknowledged.
       return result;
     },
-    [aspectRatio, projectId, prompt, styleCode, visualPromptRef],
+    [
+      aspectRatio,
+      projectId,
+      prompt,
+      styleCode,
+      visualPromptRef,
+      rootAttempts,
+      user.id,
+    ],
   );
 
   const created = useCallback(

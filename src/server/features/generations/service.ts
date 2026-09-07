@@ -1,5 +1,24 @@
 import "server-only";
 
+import { generationTreeLabels } from "./tree-labels";
+
+export async function readGenerationLabels(
+  userId: string,
+  projectIds: string[],
+) {
+  if (projectIds.length === 0) return new Map<string, string>();
+  const rows = await getDb().generation.findMany({
+    where: { userId, projectId: { in: projectIds } },
+    select: {
+      id: true,
+      projectId: true,
+      parentGenerationId: true,
+      createdAt: true,
+    },
+  });
+  return generationTreeLabels(rows);
+}
+
 import {
   cancelOwnedGenerationWithDatabase,
   failGenerationWithDatabase,
@@ -137,8 +156,12 @@ export async function listOwnedGenerations(
   });
   const hasMore = rows.length > input.limit;
   const pageRows = hasMore ? rows.slice(0, input.limit) : rows;
+  const labels = await readGenerationLabels(userId, [
+    ...new Set(pageRows.map((row) => row.projectId)),
+  ]);
   const items = pageRows.map((generation) => ({
     ...generation,
+    variantNumber: labels.get(generation.id) ?? "—",
     resultUserId: generation.resultOriginalId,
     resultUser: generation.resultOriginal,
   }));

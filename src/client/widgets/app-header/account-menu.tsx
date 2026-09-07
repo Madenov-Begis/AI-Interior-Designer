@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui";
+import { clearCanvasDrafts } from "@/shared/lib/browser/indexed-canvas-draft";
 import { apiData } from "@/shared/api";
 
 export type RuvieUserSummary = {
@@ -38,7 +39,12 @@ export function AccountMenu({
 }) {
   const logout = useMutation({
     mutationFn: () => apiData({ url: "/auth/logout", method: "POST" }),
-    onSuccess: () => {
+    onSuccess: async () => {
+      try {
+        await clearCanvasDrafts();
+      } catch {
+        /* Logout remains available if local storage is disabled. */
+      }
       window.location.href = "/";
     },
   });

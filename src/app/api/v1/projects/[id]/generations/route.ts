@@ -1,3 +1,4 @@
+import { readUploadFormData } from "@/server/features/media/staged-upload";
 import { after, type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
@@ -56,12 +57,13 @@ const visualPromptInputSchema = z
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
   let uploadOwnerId: string | null = null;
   let unattachedVisualPromptId: string | null = null;
   try {
-    enforceRateLimit(request, "generation", 10, 60_000);
     const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (contentLength > limits.maxUploadSizeBytes + 1024 * 1024) {
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const user = await requireCurrentUser();
+    await enforceRateLimit(request, "generation", 10, 60_000, user.id);
     uploadOwnerId = user.id;
     await recoverExpiredGenerationReservations(user.id);
     const projectId = projectIdSchema.parse((await context.params).id);
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     ensureGenerationsEnabled();
 
-    const formData = await request.formData();
+    const formData = await readUploadFormData(request, user.id);
     const overlay = formData.get("overlay");
     const canvasState = formData.get("canvasState");
     const visualPrompt = visualPromptInputSchema.parse({
@@ -124,7 +127,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       userId: user.id,
       ...input,
       visualPromptImageId: unattachedVisualPromptId,
-      visualPromptCanvasState: parsedCanvasState,
       idempotencyKey,
     });
     if (reserved.isExisting && unattachedVisualPromptId) {
@@ -148,7 +150,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       ).catch(() => undefined);
     }
     if (error instanceof RateLimitError) {
-      return apiError("RATE_LIMITED", error.message, requestId, 429);
+      const response = apiError("RATE_LIMITED", error.message, requestId, 429);
+      response.headers.set("retry-after", String(error.retryAfter));
+      return response;
     }
     if (error instanceof GenerationEmergencyStopError) {
       return apiError(error.code, error.message, requestId, 503);
