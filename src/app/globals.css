@@ -93,11 +93,6 @@ body {
 .legal-document td { border: 1px solid var(--border); padding: 0.65rem; text-align: left; vertical-align: top; }
 .legal-document th { background: var(--surface); color: var(--foreground); }
 
-::selection {
-  background: color-mix(in srgb, var(--primary) 72%, transparent);
-  color: var(--primary-foreground);
-}
-
 .ruvie-grid {
   background-color: var(--background);
   background-image:
@@ -476,10 +471,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-::selection {
-  background: color-mix(in srgb, var(--primary) 30%, transparent);
-  color: var(--foreground);
-}
 a {
   text-decoration: none;
 }
