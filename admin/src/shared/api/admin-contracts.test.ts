@@ -9,6 +9,7 @@ it("generation fixture uses the explicit contract without a model", () => {
     parentGenerationId: null,
     status: "QUEUED",
     styleCode: null,
+    room: null,
     aspectRatio: "RATIO_16_9",
     visualPromptUsed: false,
     attemptCount: 0,

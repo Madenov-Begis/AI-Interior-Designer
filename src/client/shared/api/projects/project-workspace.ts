@@ -1,13 +1,35 @@
-export type ProjectWorkspaceCanvasStateDto = {
+export type ProjectWorkspacePlacementRegionDto = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  color: string;
+  kind: "rectangle" | "stroke";
+};
+
+type ProjectWorkspaceCanvasCoordinateSpaceDto = {
+  editorWidth: number;
+  editorHeight: number;
+  sourceWidth: number;
+  sourceHeight: number;
+};
+
+type ProjectWorkspaceCanvasStateV1Dto = {
   version: 1;
-  coordinateSpace: {
-    editorWidth: number;
-    editorHeight: number;
-    sourceWidth: number;
-    sourceHeight: number;
-  };
+  coordinateSpace: ProjectWorkspaceCanvasCoordinateSpaceDto;
   fabric: Record<string, unknown>;
 };
+
+type ProjectWorkspaceCanvasStateV2Dto = {
+  version: 2;
+  coordinateSpace: ProjectWorkspaceCanvasCoordinateSpaceDto;
+  placementRegions: ProjectWorkspacePlacementRegionDto[];
+  fabric: Record<string, unknown>;
+};
+
+export type ProjectWorkspaceCanvasStateDto =
+  | ProjectWorkspaceCanvasStateV1Dto
+  | ProjectWorkspaceCanvasStateV2Dto;
 
 export type ProjectWorkspaceGenerationDto = {
   id: string;

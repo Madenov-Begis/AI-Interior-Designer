@@ -19,6 +19,7 @@ import { apiData } from "@/shared/api";
 import { CanvasHistory } from "../model/canvas-history";
 import { migrateCanvasCoordinates } from "../model/canvas-coordinate-migration";
 import { canvasToPngBlob } from "../model/visual-prompt-canvas-export";
+import { placementRegionsFromObjects } from "../model/visual-prompt-regions";
 
 import { useAppSession } from "@/features/auth/index.client";
 import { IndexedCanvasDraftStore } from "@/shared/lib/browser/indexed-canvas-draft";
@@ -89,13 +90,18 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
 
     const readCanvasState = useCallback(
       (canvas: Canvas): VisualPromptCanvasState => ({
-        version: 1,
+        version: 2,
         coordinateSpace: {
           editorWidth: props.editorWidth,
           editorHeight: props.editorHeight,
           sourceWidth: props.sourceWidth,
           sourceHeight: props.sourceHeight,
         },
+        placementRegions: placementRegionsFromObjects(
+          canvas.getObjects(),
+          props.editorWidth,
+          props.editorHeight,
+        ),
         fabric: canvas.toJSON() as Record<string, unknown>,
       }),
       [
@@ -366,26 +372,11 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
           const canvas = canvasRef.current;
           if (!canvas || canvas.getObjects().length === 0) return null;
           canvas.requestRenderAll();
-          const state: VisualPromptCanvasState = {
-            version: 1,
-            coordinateSpace: {
-              editorWidth: props.editorWidth,
-              editorHeight: props.editorHeight,
-              sourceWidth: props.sourceWidth,
-              sourceHeight: props.sourceHeight,
-            },
-            fabric: canvas.toJSON() as Record<string, unknown>,
-          };
+          const state = readCanvasState(canvas);
           const overlay = await canvasToPngBlob(canvas);
           return { state, overlay };
         }),
-      [
-        enqueueCanvasOperation,
-        props.editorHeight,
-        props.editorWidth,
-        props.sourceHeight,
-        props.sourceWidth,
-      ],
+      [enqueueCanvasOperation, readCanvasState],
     );
 
     const markPersisted = useCallback(
@@ -532,7 +523,8 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             dirtyRef.current = Boolean(restored);
             draftConflictRef.current = restored?.conflict ?? false;
             let migratedCoordinateSpace = false;
-            if (initialState?.version === 1 && initialState.fabric) {
+            const migratedStateVersion = initialState?.version === 1;
+            if (initialState?.fabric) {
               loadingHistoryRef.current = true;
               try {
                 await canvas.loadFromJSON(initialState.fabric);
@@ -560,7 +552,11 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
               persistenceStateCallbackRef.current(
                 "Восстановлен локальный черновик, но на сервере другая версия. Проверьте разметку перед дальнейшей работой.",
               );
-            } else if (migratedCoordinateSpace || restored) {
+            } else if (
+              migratedCoordinateSpace ||
+              migratedStateVersion ||
+              restored
+            ) {
               void persist().catch((error: unknown) => {
                 persistenceStateCallbackRef.current(
                   error instanceof Error

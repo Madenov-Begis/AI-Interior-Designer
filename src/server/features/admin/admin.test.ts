@@ -7,10 +7,12 @@ import {
   creditAdjustmentSchema,
   creditTransactionsListSchema,
   createCreditPackageSchema,
+  createRoomTypeSchema,
   generationsListSchema,
   paymentOrdersListSchema,
   updateUserSchema,
   updateCreditPackageSchema,
+  updateRoomTypeSchema,
   usersListSchema,
 } from "./schemas.ts";
 import { adminPeriodRange, zonedDateKey } from "./time.ts";
@@ -102,6 +104,18 @@ test("mutation schemas reject unknown fields", () => {
   assert.equal(createCreditPackageSchema.safeParse({ ...validPackage, active: false }).success, false);
   assert.equal(updateCreditPackageSchema.safeParse({}).success, false);
   assert.equal(updateCreditPackageSchema.safeParse({ code: "new-code" }).success, false);
+  const validRoom = {
+    code: "living-room",
+    name: "Гостиная",
+    promptModifier: "Назначение помещения: гостиная.",
+    active: true,
+    sortOrder: 10,
+  };
+  assert.equal(createRoomTypeSchema.safeParse(validRoom).success, true);
+  assert.equal(createRoomTypeSchema.safeParse({ ...validRoom, code: "Living Room" }).success, false);
+  assert.equal(createRoomTypeSchema.safeParse({ ...validRoom, promptModifier: "коротко" }).success, false);
+  assert.equal(updateRoomTypeSchema.safeParse({}).success, false);
+  assert.equal(updateRoomTypeSchema.safeParse({ code: "bedroom" }).success, false);
 });
 
 test("admin access policy prevents self-lockout and removal of the last admin", () => {

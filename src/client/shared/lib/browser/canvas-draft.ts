@@ -9,6 +9,17 @@ type Draft = {
   updatedAt?: number;
 };
 
+export function sameCanvasContent(
+  first: VisualPromptCanvasState,
+  second: VisualPromptCanvasState,
+) {
+  return (
+    JSON.stringify(first.coordinateSpace) ===
+      JSON.stringify(second.coordinateSpace) &&
+    JSON.stringify(first.fabric) === JSON.stringify(second.fabric)
+  );
+}
+
 export class CanvasDraftStore {
   readonly key: string;
   private readonly storage: DraftStorage;
@@ -50,7 +61,7 @@ export class CanvasDraftStore {
     const space = draft?.state?.coordinateSpace;
     if (
       draft?.version !== 1 ||
-      draft.state?.version !== 1 ||
+      (draft.state?.version !== 1 && draft.state?.version !== 2) ||
       typeof draft.base !== "string" ||
       !space ||
       space.sourceWidth !== sourceWidth ||
@@ -62,6 +73,13 @@ export class CanvasDraftStore {
       space.editorHeight <= 0 ||
       space.editorHeight > 6000 ||
       !Array.isArray(draft.state.fabric?.objects)
+    ) {
+      this.storage.removeItem(this.key);
+      return null;
+    }
+    if (
+      draft.state.version === 2 &&
+      !Array.isArray(draft.state.placementRegions)
     ) {
       this.storage.removeItem(this.key);
       return null;
@@ -81,7 +99,7 @@ export class CanvasDraftStore {
     if (!raw) return;
     const draft: Draft = JSON.parse(raw);
     // An older response must never delete newer edits (including another tab).
-    if (JSON.stringify(draft.state) === JSON.stringify(state))
+    if (sameCanvasContent(draft.state, state))
       this.storage.removeItem(this.key);
   }
 }

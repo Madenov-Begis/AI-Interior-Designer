@@ -16,10 +16,6 @@ export const SOURCE_IMAGE_RULES = {
   allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"] as const,
 } as const;
 
-export const VISUAL_PROMPT_RULES = {
-  outputQuality: 92,
-} as const;
-
 export const REFERENCE_IMAGE_RULES = {
   minWidth: 128,
   minHeight: 128,

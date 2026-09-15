@@ -222,6 +222,10 @@ model Generation {
   jobId               String?          @unique
   prompt              String
   styleCode           String?
+  roomTypeId          String?          @db.Uuid
+  roomCode            String?
+  roomName            String?
+  roomPrompt          String?
   finalPrompt         String?
   aspectRatio         AspectRatio
   visualPromptUsed    Boolean          @default(false)
@@ -244,6 +248,7 @@ model Generation {
 
   user               Profile               @relation(fields: [userId], references: [id])
   project            Project               @relation(fields: [projectId], references: [id])
+  roomType           RoomType?             @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
   parentGeneration   Generation?           @relation("GenerationRefinements", fields: [parentGenerationId], references: [id])
   refinements        Generation[]          @relation("GenerationRefinements")
   sourceImage        MediaFile             @relation("GenerationSourceImage", fields: [sourceImageId], references: [id])
@@ -258,12 +263,27 @@ model Generation {
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
   @@index([parentGenerationId, createdAt])
+  @@index([roomTypeId])
   @@index([status, queuedAt])
   @@index([sourceImageId])
   @@index([visualPromptImageId])
   @@index([resultOriginalId])
   @@index([resultUserId])
   @@index([deletedAt])
+}
+
+model RoomType {
+  id             String       @id @default(uuid()) @db.Uuid
+  code           String       @unique
+  name           String
+  promptModifier String
+  active         Boolean      @default(true)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  generations    Generation[]
+
+  @@index([active, sortOrder])
 }
 
 model GenerationReference {

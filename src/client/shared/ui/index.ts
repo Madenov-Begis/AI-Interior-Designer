@@ -100,6 +100,13 @@ export {
 } from "../components/ui/popover.tsx";
 export { Separator } from "../components/ui/separator.tsx";
 export {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select.tsx";
+export {
   Sheet,
   SheetContent,
   SheetDescription,

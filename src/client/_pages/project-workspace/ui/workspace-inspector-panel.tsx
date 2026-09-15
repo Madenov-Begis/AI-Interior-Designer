@@ -6,12 +6,17 @@ import {
   useEffect,
   useRef,
   useState,
+  type RefCallback,
   type RefObject,
 } from "react";
 import { DesignInspector, type DesignInspectorProps } from "./design-inspector";
 
 export function useWorkspaceInspectorPanel() {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [dialogNode, setDialogNode] = useState<HTMLDialogElement | null>(null);
+  const dialogRef = useCallback<RefCallback<HTMLDialogElement>>(
+    (node) => setDialogNode(node),
+    [],
+  );
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [desktop, setDesktop] = useState(false);
@@ -25,25 +30,24 @@ export function useWorkspaceInspectorPanel() {
   }, []);
 
   const close = useCallback(() => {
-    if (dialogRef.current?.open) {
-      dialogRef.current.close();
+    if (dialogNode?.open) {
+      dialogNode.close();
       return;
     }
     setOpen(false);
     restoreTriggerFocus();
-  }, [restoreTriggerFocus]);
+  }, [dialogNode, restoreTriggerFocus]);
   const show = useCallback(() => setOpen(true), []);
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog && open && !dialog.open) dialog.showModal();
-  }, [open]);
+    if (dialogNode && open && !dialogNode.open) dialogNode.showModal();
+  }, [dialogNode, open]);
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1200px)");
     const updateMode = () => {
       if (desktopQuery.matches) {
-        if (dialogRef.current?.open) dialogRef.current.close();
+        if (dialogNode?.open) dialogNode.close();
         setOpen(false);
       }
       setDesktop(desktopQuery.matches);
@@ -51,10 +55,11 @@ export function useWorkspaceInspectorPanel() {
     updateMode();
     desktopQuery.addEventListener("change", updateMode);
     return () => desktopQuery.removeEventListener("change", updateMode);
-  }, []);
+  }, [dialogNode]);
 
   return {
     dialogRef,
+    dialogNode,
     triggerRef,
     open,
     desktop,
@@ -94,13 +99,15 @@ export function WorkspaceInspectorTrigger({
 
 export function WorkspaceInspectorPanel({
   dialogRef,
+  dialogNode,
   open,
   desktop,
   onClose,
   onClosed,
   inspectorProps,
 }: {
-  dialogRef: RefObject<HTMLDialogElement | null>;
+  dialogRef: RefCallback<HTMLDialogElement>;
+  dialogNode: HTMLDialogElement | null;
   open: boolean;
   desktop: boolean;
   onClose(): void;
@@ -159,7 +166,10 @@ export function WorkspaceInspectorPanel({
           <X size={19} aria-hidden="true" />
         </button>
       </div>
-      <DesignInspector {...inspectorProps} />
+      <DesignInspector
+        {...inspectorProps}
+        selectPortalContainer={dialogNode}
+      />
     </dialog>
   );
 }

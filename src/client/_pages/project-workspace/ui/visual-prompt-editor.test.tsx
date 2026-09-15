@@ -202,6 +202,32 @@ test("clearing markup is restored as a server deletion after reload", async () =
   expect(localStorage.length).toBe(0);
 });
 
+test("a legacy v1 canvas is upgraded to v2 placement metadata", async () => {
+  const saved: VisualPromptCanvasState = {
+    version: 1,
+    coordinateSpace: {
+      editorWidth: 800,
+      editorHeight: 450,
+      sourceWidth: 1600,
+      sourceHeight: 900,
+    },
+    fabric: { objects: [{ type: "path" }] },
+  };
+
+  mountEditor(saved);
+  await waitFor(() =>
+    expect(harness.api).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "PUT" }),
+    ),
+  );
+  const request = harness.api.mock.calls.find(
+    ([input]) => input.method === "PUT",
+  )?.[0];
+  const state = JSON.parse(request.data.get("canvasState"));
+  expect(state.version).toBe(2);
+  expect(state.placementRegions).toEqual([]);
+});
+
 test("a conflicting server version is not silently overwritten on reconnect", async () => {
   const local: VisualPromptCanvasState = {
     version: 1,

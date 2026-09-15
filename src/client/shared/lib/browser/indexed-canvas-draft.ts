@@ -1,4 +1,8 @@
-import { CanvasDraftStore, CANVAS_DRAFT_PREFIX } from "./canvas-draft";
+import {
+  CanvasDraftStore,
+  CANVAS_DRAFT_PREFIX,
+  sameCanvasContent,
+} from "./canvas-draft";
 import type { ProjectWorkspaceCanvasStateDto as CanvasState } from "../../api/projects/project-workspace";
 
 let database: Promise<IDBDatabase> | undefined;
@@ -153,7 +157,7 @@ export class IndexedCanvasDraftStore {
     let acknowledgedAt = -1;
     try {
       const local = JSON.parse(localStorage.getItem(this.legacy.key) ?? "null");
-      if (JSON.stringify(local?.state) === JSON.stringify(state))
+      if (local?.state && sameCanvasContent(local.state, state))
         acknowledgedAt = Number(local.updatedAt) || 0;
       this.legacy.acknowledge(state);
     } catch {
@@ -164,7 +168,7 @@ export class IndexedCanvasDraftStore {
       if (!raw) return null;
       try {
         const draft = JSON.parse(raw);
-        return JSON.stringify(draft.state) === JSON.stringify(state) ||
+        return sameCanvasContent(draft.state, state) ||
           (acknowledgedAt >= 0 &&
             (Number(draft.updatedAt) || 0) < acknowledgedAt)
           ? null

@@ -14,6 +14,7 @@ const GenerationDetailPage = lazy(() => import("@/pages/generation-detail"));
 const PaymentOrdersPage = lazy(() => import("@/pages/payment-orders"));
 const CreditTransactionsPage = lazy(() => import("@/pages/credit-transactions"));
 const CreditPackagesPage = lazy(() => import("@/pages/credit-packages"));
+const RoomsPage = lazy(() => import("@/pages/rooms"));
 
 function ProtectedApp() {
   const { state, logout } = useAuth();
@@ -50,6 +51,7 @@ export function AppRouter() {
             <Route path="users/:id" element={<UserDetailPage />} />
             <Route path="generations" element={<GenerationsPage />} />
             <Route path="generations/:id" element={<GenerationDetailPage />} />
+            <Route path="rooms" element={<RoomsPage />} />
             <Route path="finance" element={<Navigate to="/finance/orders" replace />} />
             <Route path="finance/orders" element={<PaymentOrdersPage />} />
             <Route path="finance/transactions" element={<CreditTransactionsPage />} />

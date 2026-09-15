@@ -9,7 +9,6 @@ export type ProviderImage = { data: Buffer; mimeType: string };
 export type ProviderInput = {
   operation: "root" | "refinement";
   source: ProviderImage;
-  visualPrompt?: ProviderImage;
   references: ProviderImage[];
   prompt: string;
   aspectRatio: AspectRatio;

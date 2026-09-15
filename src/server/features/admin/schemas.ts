@@ -121,3 +121,27 @@ export const updateCreditPackageSchema = z
     path: ["popular"],
     message: "Неактивный пакет не может быть популярным",
   });
+
+const roomTypeFields = {
+  name: z.string().trim().min(2).max(80),
+  promptModifier: z.string().trim().min(10).max(2000),
+  active: z.boolean(),
+  sortOrder: z.number().int().min(-10_000).max(10_000),
+};
+
+export const createRoomTypeSchema = z
+  .object({
+    code: z.string().trim().min(2).max(32).regex(/^[a-z0-9-]+$/),
+    ...roomTypeFields,
+  })
+  .strict();
+
+export const updateRoomTypeSchema = z
+  .object({
+    name: roomTypeFields.name.optional(),
+    promptModifier: roomTypeFields.promptModifier.optional(),
+    active: roomTypeFields.active.optional(),
+    sortOrder: roomTypeFields.sortOrder.optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, "Нет изменений");

@@ -18,6 +18,8 @@ function generationListDto(generation: {
   parentGenerationId: string | null;
   status: (typeof generationStatuses)[number];
   styleCode: string | null;
+  roomCode: string | null;
+  roomName: string | null;
   aspectRatio: string;
   visualPromptUsed: boolean;
   attemptCount: number;
@@ -45,6 +47,10 @@ function generationListDto(generation: {
     parentGenerationId: generation.parentGenerationId,
     status: generation.status,
     styleCode: generation.styleCode,
+    room:
+      generation.roomCode && generation.roomName
+        ? { code: generation.roomCode, name: generation.roomName }
+        : null,
     aspectRatio: generation.aspectRatio,
     visualPromptUsed: generation.visualPromptUsed,
     attemptCount: generation.attemptCount,

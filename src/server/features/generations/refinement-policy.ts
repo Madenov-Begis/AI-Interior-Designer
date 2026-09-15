@@ -5,6 +5,10 @@ type RefinementParent = {
   id: string;
   projectId: string;
   styleCode: string | null;
+  roomTypeId: string | null;
+  roomCode: string | null;
+  roomName: string | null;
+  roomPrompt: string | null;
   aspectRatio: RefinementAspectRatio;
   resultOriginalId: string | null;
   status: string;
@@ -22,6 +26,10 @@ export function buildRefinementSnapshot(parent: RefinementParent) {
     parentGenerationId: parent.id,
     projectId: parent.projectId,
     styleCode: parent.styleCode,
+    roomTypeId: parent.roomTypeId,
+    roomCode: parent.roomCode,
+    roomName: parent.roomName,
+    roomPrompt: parent.roomPrompt,
     aspectRatio: parent.aspectRatio,
     sourceImageId: parent.resultOriginalId,
   };

@@ -127,8 +127,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     let visualPromptImageId: string | undefined;
+    let parsedCanvasState:
+      | ReturnType<typeof parseVisualPromptCanvasState>
+      | undefined;
     if (overlay instanceof File) {
       const state = parseVisualPromptCanvasState(canvasStateValue);
+      parsedCanvasState = state;
       const visualPrompt = await saveGenerationRefinementVisualPrompt(
         user.id,
         parentGenerationId,
@@ -145,6 +149,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       prompt: input.prompt,
       referenceFileIds: input.referenceFileIds,
       visualPromptImageId,
+      visualPromptState: parsedCanvasState,
       idempotencyKey,
     });
     if (reserved.isExisting && unattachedVisualPromptId) {

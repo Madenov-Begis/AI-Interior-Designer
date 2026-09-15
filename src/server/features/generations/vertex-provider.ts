@@ -44,15 +44,6 @@ function buildParts(input: ProviderInput): Part[] {
     imagePart(input.source),
   ];
 
-  if (input.visualPrompt) {
-    parts.push(
-      {
-        text: "The next image is an annotated copy of the source. Treat its markings and labels as design instructions, but do not render any arrows, strokes, labels, or editing UI in the result.",
-      },
-      imagePart(input.visualPrompt),
-    );
-  }
-
   if (input.references.length > 0) {
     parts.push({
       text: "The following images are style, material, furniture, and object references. Use their relevant design ideas without copying their room geometry or camera viewpoint.",

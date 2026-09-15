@@ -6,10 +6,28 @@ test("rejects client-controlled model selection for a root generation", () => {
   assert.throws(() =>
     generationSchemas.createGenerationSchema.parse({
       projectId: crypto.randomUUID(),
+      roomTypeId: crypto.randomUUID(),
       prompt: "Сделай современный интерьер",
       modelCode: "customer-choice",
       aspectRatio: "RATIO_16_9",
     }),
+  );
+});
+
+test("requires a room type for every new root generation", () => {
+  const valid = {
+    projectId: crypto.randomUUID(),
+    roomTypeId: crypto.randomUUID(),
+    prompt: "Сделай современный интерьер",
+    aspectRatio: "RATIO_16_9",
+  };
+  assert.equal(generationSchemas.createGenerationSchema.safeParse(valid).success, true);
+  assert.equal(
+    generationSchemas.createGenerationSchema.safeParse({
+      ...valid,
+      roomTypeId: undefined,
+    }).success,
+    false,
   );
 });
 
@@ -55,5 +73,28 @@ test("requires refinement overlay and canvas state together", () => {
   );
   assert.throws(() =>
     schema.parse({ overlayPresent: false, canvasStatePresent: true }),
+  );
+});
+
+test("accepts bounded v2 placement regions and rejects out-of-bounds regions", async () => {
+  const { visualPromptPlacementRegionSchema } = await import(
+    "../visual-prompt/placement-schema.ts"
+  );
+  const region = {
+    left: 0.8,
+    top: 0.8,
+    width: 0.15,
+    height: 0.15,
+    color: "#afea4d",
+    kind: "stroke" as const,
+  };
+
+  assert.deepEqual(visualPromptPlacementRegionSchema.parse(region), region);
+  assert.throws(() =>
+    visualPromptPlacementRegionSchema.parse({
+      ...region,
+      left: 0.9,
+      width: 0.2,
+    }),
   );
 });

@@ -39,7 +39,10 @@ function editor(): VisualPromptEditorHandle {
     clear: vi.fn(),
   };
 }
-function mount() {
+function mount(
+  onRootGenerationSuccess = vi.fn(),
+  onRootGenerationError = vi.fn(),
+) {
   const client = new QueryClient({
     defaultOptions: { mutations: { retry: false } },
   });
@@ -50,12 +53,15 @@ function mount() {
         prompt: "Make the room brighter",
         aspectRatio: "RATIO_1_1",
         styleCode: undefined,
+        roomTypeId: "00000000-0000-4000-8000-000000000010",
         visualPromptRef: { current: editor() },
         refinementPromptRef: { current: editor() },
         applyGenerationPayload: vi.fn(),
         invalidateCredits: vi.fn().mockResolvedValue(undefined),
         reconcileInsufficientCredits: vi.fn(),
         focusGeneration: vi.fn(),
+        onRootGenerationSuccess,
+        onRootGenerationError,
       }),
     {
       wrapper: ({ children }: { children: ReactNode }) => (
@@ -87,4 +93,51 @@ test("a committed root request with a lost response reuses its key after remount
     await next.result.current.createGeneration.mutateAsync();
   });
   expect(requests.create.mock.calls[2][2]).not.toBe(originalKey);
+});
+
+test("submits the selected room and resets it after an accepted root generation", async () => {
+  const onRootGenerationSuccess = vi.fn();
+  requests.create.mockResolvedValue({
+    generation: { id: "reserved-generation", status: "QUEUED" },
+  });
+  const mounted = mount(onRootGenerationSuccess);
+
+  await act(async () => {
+    await mounted.result.current.createGeneration.mutateAsync();
+  });
+
+  const body = requests.create.mock.calls[0][1] as FormData;
+  expect(body.get("roomTypeId")).toBe("00000000-0000-4000-8000-000000000010");
+  expect(onRootGenerationSuccess).toHaveBeenCalledOnce();
+});
+
+test("keeps the selected room when a root generation is rejected", async () => {
+  const onRootGenerationSuccess = vi.fn();
+  requests.create.mockResolvedValue({
+    generation: { id: "rejected-generation", status: "REJECTED" },
+  });
+  const mounted = mount(onRootGenerationSuccess);
+
+  await act(async () => {
+    await mounted.result.current.createGeneration.mutateAsync();
+  });
+
+  expect(onRootGenerationSuccess).not.toHaveBeenCalled();
+});
+
+test("retains the form and reports an authoritative root request error", async () => {
+  const onRootGenerationSuccess = vi.fn();
+  const onRootGenerationError = vi.fn();
+  const error = new Error("Выбранная комната больше недоступна");
+  requests.create.mockRejectedValue(error);
+  const mounted = mount(onRootGenerationSuccess, onRootGenerationError);
+
+  await act(async () => {
+    await expect(
+      mounted.result.current.createGeneration.mutateAsync(),
+    ).rejects.toBe(error);
+  });
+
+  expect(onRootGenerationSuccess).not.toHaveBeenCalled();
+  expect(onRootGenerationError).toHaveBeenCalledWith(error);
 });

@@ -1,17 +1,34 @@
 import { z } from "zod";
+import { visualPromptPlacementRegionSchema } from "./placement-schema.ts";
 
 const dimension = z.number().int().positive().max(6000);
 
-export const visualPromptCanvasStateSchema = z.object({
-  version: z.literal(1),
-  coordinateSpace: z.object({
+const coordinateSpaceSchema = z
+  .object({
     editorWidth: dimension,
     editorHeight: dimension,
     sourceWidth: dimension,
     sourceHeight: dimension,
-  }),
-  fabric: z.record(z.string(), z.unknown()),
-});
+  })
+  .strict();
+
+export const visualPromptCanvasStateSchema = z.discriminatedUnion("version", [
+  z
+    .object({
+      version: z.literal(1),
+      coordinateSpace: coordinateSpaceSchema,
+      fabric: z.record(z.string(), z.unknown()),
+    })
+    .strict(),
+  z
+    .object({
+      version: z.literal(2),
+      coordinateSpace: coordinateSpaceSchema,
+      placementRegions: z.array(visualPromptPlacementRegionSchema).max(64),
+      fabric: z.record(z.string(), z.unknown()),
+    })
+    .strict(),
+]);
 
 export function parseVisualPromptCanvasState(value: FormDataEntryValue | null) {
   if (typeof value !== "string")

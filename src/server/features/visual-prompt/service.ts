@@ -4,10 +4,7 @@ import { randomUUID } from "node:crypto";
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 import { Prisma } from "@/generated/prisma/client";
-import {
-  STORAGE_BUCKETS,
-  VISUAL_PROMPT_RULES,
-} from "@/server/shared/config/storage";
+import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import {
   deleteMediaFileIfUnreferenced,
   discardUploadedObjects,
@@ -17,6 +14,7 @@ import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 import type { VisualPromptCanvasState } from "@/server/features/visual-prompt/types";
 import { VisualPromptValidationError } from "@/server/features/visual-prompt/schema";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
+import { prepareVisualPromptOverlay } from "./overlay-image.ts";
 
 export class VisualPromptProjectNotFoundError extends Error {}
 
@@ -102,22 +100,17 @@ export async function saveVisualPrompt(
     );
   }
 
-  const scaledOverlay = await sharp(overlay)
-    .resize(sourceMetadata.width, sourceMetadata.height, { fit: "fill" })
-    .png()
-    .toBuffer();
-  const flattened = await sharp(source)
-    .rotate()
-    .toColorspace("srgb")
-    .composite([{ input: scaledOverlay, blend: "over" }])
-    .webp({ quality: VISUAL_PROMPT_RULES.outputQuality })
-    .toBuffer();
+  const scaledOverlay = await prepareVisualPromptOverlay(
+    overlay,
+    sourceMetadata.width,
+    sourceMetadata.height,
+  );
 
   const fileId = randomUUID();
-  const path = `users/${userId}/projects/${projectId}/visual-prompt/${fileId}.webp`;
+  const path = `users/${userId}/projects/${projectId}/visual-prompt/${fileId}.png`;
   const bucket = STORAGE_BUCKETS.visualPrompts;
-  const upload = await storage.storage.from(bucket).upload(path, flattened, {
-    contentType: "image/webp",
+  const upload = await storage.storage.from(bucket).upload(path, scaledOverlay, {
+    contentType: "image/png",
     cacheControl: "3600",
     upsert: false,
   });
@@ -131,10 +124,10 @@ export async function saveVisualPrompt(
           ownerId: userId,
           bucket,
           path,
-          originalName: "visual-prompt.webp",
-          mimeType: "image/webp",
-          extension: "webp",
-          sizeBytes: flattened.byteLength,
+          originalName: "visual-prompt.png",
+          mimeType: "image/png",
+          extension: "png",
+          sizeBytes: scaledOverlay.byteLength,
           width: sourceMetadata.width,
           height: sourceMetadata.height,
           type: "VISUAL_PROMPT",
@@ -221,21 +214,16 @@ export async function saveGenerationRefinementVisualPrompt(
     );
   }
 
-  const scaledOverlay = await sharp(overlay)
-    .resize(sourceMetadata.width, sourceMetadata.height, { fit: "fill" })
-    .png()
-    .toBuffer();
-  const flattened = await sharp(source)
-    .rotate()
-    .toColorspace("srgb")
-    .composite([{ input: scaledOverlay, blend: "over" }])
-    .webp({ quality: VISUAL_PROMPT_RULES.outputQuality })
-    .toBuffer();
+  const scaledOverlay = await prepareVisualPromptOverlay(
+    overlay,
+    sourceMetadata.width,
+    sourceMetadata.height,
+  );
   const fileId = randomUUID();
-  const path = `users/${userId}/generations/${parent.id}/refinement-visual-prompts/${fileId}.webp`;
+  const path = `users/${userId}/generations/${parent.id}/refinement-visual-prompts/${fileId}.png`;
   const bucket = STORAGE_BUCKETS.visualPrompts;
-  const upload = await storage.storage.from(bucket).upload(path, flattened, {
-    contentType: "image/webp",
+  const upload = await storage.storage.from(bucket).upload(path, scaledOverlay, {
+    contentType: "image/png",
     cacheControl: "3600",
     upsert: false,
   });
@@ -248,10 +236,10 @@ export async function saveGenerationRefinementVisualPrompt(
         ownerId: userId,
         bucket,
         path,
-        originalName: "refinement-visual-prompt.webp",
-        mimeType: "image/webp",
-        extension: "webp",
-        sizeBytes: flattened.byteLength,
+        originalName: "refinement-visual-prompt.png",
+        mimeType: "image/png",
+        extension: "png",
+        sizeBytes: scaledOverlay.byteLength,
         width: sourceMetadata.width,
         height: sourceMetadata.height,
         type: "VISUAL_PROMPT",

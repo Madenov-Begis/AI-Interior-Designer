@@ -22,3 +22,9 @@ export {
   deleteAdminCreditPackage,
 } from "./finance-service";
 export { getAdminMediaSignedUrl } from "./media-service";
+export {
+  listAdminRoomTypes,
+  createAdminRoomType,
+  updateAdminRoomType,
+  deactivateAdminRoomType,
+} from "./room-types-service";

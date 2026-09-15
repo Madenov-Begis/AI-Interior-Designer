@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export type StylePickerProps = {
   styles: Array<{ code: string; name: string; imageUrl: string }>;
@@ -11,6 +11,36 @@ export type StylePickerProps = {
 
 export function StylePicker({ styles, value, onChange }: StylePickerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (scroller.scrollWidth <= scroller.clientWidth) return;
+
+      const delta =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY)
+          ? event.deltaX
+          : event.deltaY;
+      if (delta === 0) return;
+
+      const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
+      const nextScrollLeft = Math.max(
+        0,
+        Math.min(maxScrollLeft, scroller.scrollLeft + delta),
+      );
+      if (nextScrollLeft === scroller.scrollLeft) return;
+
+      scroller.scrollLeft = nextScrollLeft;
+      if (Math.abs(event.deltaY) >= Math.abs(event.deltaX)) {
+        event.preventDefault();
+      }
+    };
+
+    scroller.addEventListener("wheel", handleWheel, { passive: false });
+    return () => scroller.removeEventListener("wheel", handleWheel);
+  }, []);
 
   function scrollStyles(direction: -1 | 1) {
     scrollerRef.current?.scrollBy({
@@ -52,19 +82,6 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
           role="radiogroup"
           aria-label="Стиль интерьера"
           tabIndex={0}
-          onWheel={(event) => {
-            const scroller = event.currentTarget;
-            if (scroller.scrollWidth <= scroller.clientWidth) return;
-            const delta =
-              Math.abs(event.deltaX) > Math.abs(event.deltaY)
-                ? event.deltaX
-                : event.deltaY;
-            if (delta === 0) return;
-            scroller.scrollLeft += delta;
-            if (Math.abs(event.deltaY) >= Math.abs(event.deltaX)) {
-              event.preventDefault();
-            }
-          }}
         >
           {styles.map((style) => {
             const selected = value === style.code;

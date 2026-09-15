@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { mediaQueries } from "@/shared/api/media.query";
+import { roomsQueries } from "@/shared/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport, type CanvasViewportHandle } from "./canvas-viewport";
 import { CanvasOnboarding, CanvasOnboardingTrigger } from "./canvas-onboarding";
@@ -76,6 +77,7 @@ function ReadyDesignWorkspace({
   const canvasViewportRef = useRef<CanvasViewportHandle | null>(null);
   const {
     dialogRef: inspectorDialogRef,
+    dialogNode: inspectorDialogNode,
     triggerRef: inspectorTriggerRef,
     open: inspectorOpen,
     desktop: desktopInspector,
@@ -99,6 +101,27 @@ function ReadyDesignWorkspace({
     source.sourceHeight,
   );
   const [styleCode, setStyleCode] = useState<string>();
+  const [roomTypeId, setRoomTypeId] = useState<string>();
+  const roomsQuery = useQuery(roomsQueries.catalog());
+  const refetchRooms = roomsQuery.refetch;
+  const availableRoomTypeId =
+    roomTypeId &&
+    (!roomsQuery.data ||
+      roomsQuery.data.items.some((room) => room.id === roomTypeId))
+      ? roomTypeId
+      : undefined;
+  const handleRootGenerationError = useCallback(
+    (error: Error) => {
+      if (
+        error instanceof ApiResponseError &&
+        error.code === "ROOM_NOT_AVAILABLE"
+      ) {
+        setRoomTypeId(undefined);
+        void refetchRooms();
+      }
+    },
+    [refetchRooms],
+  );
   const [selectedCanvasItem, setSelectedCanvasItem] =
     useState<string>("source");
   const [refinementEditorNodeId, setRefinementEditorNodeId] = useState<
@@ -169,12 +192,15 @@ function ReadyDesignWorkspace({
     prompt,
     aspectRatio: resolvedAspectRatio,
     styleCode,
+    roomTypeId: availableRoomTypeId,
     visualPromptRef,
     refinementPromptRef,
     applyGenerationPayload,
     invalidateCredits,
     reconcileInsufficientCredits,
     focusGeneration,
+    onRootGenerationSuccess: () => setRoomTypeId(undefined),
+    onRootGenerationError: handleRootGenerationError,
   });
   const indexedGenerations = useMemo(() => {
     const items = generationsQuery.data?.items ?? [];
@@ -248,8 +274,8 @@ function ReadyDesignWorkspace({
     "root",
     generationErrorCode,
   );
-  const inspectorDataError = null;
-  const inspectorDataLoading = false;
+  const inspectorDataError = roomsQuery.error?.message ?? null;
+  const inspectorDataLoading = roomsQuery.isLoading;
   const disabledReasons: string[] = [];
   if (createGeneration.isPending) {
     disabledReasons.push("Генерация уже запускается.");
@@ -258,6 +284,15 @@ function ReadyDesignWorkspace({
     disabledReasons.push("Добавьте описание — минимум 3 символа.");
   } else if (prompt.length > 4000) {
     disabledReasons.push("Сократите инструкцию до 4000 символов.");
+  }
+  if (roomsQuery.isLoading) {
+    disabledReasons.push("Загружаем список комнат.");
+  } else if (roomsQuery.isError) {
+    disabledReasons.push("Список комнат недоступен.");
+  } else if ((roomsQuery.data?.items.length ?? 0) === 0) {
+    disabledReasons.push("Администратор ещё не добавил доступные комнаты.");
+  } else if (!availableRoomTypeId) {
+    disabledReasons.push("Выберите комнату.");
   }
   if (rootWalletPresentation.disabledReason) {
     disabledReasons.push(rootWalletPresentation.disabledReason);
@@ -433,6 +468,7 @@ function ReadyDesignWorkspace({
         </section>
         <WorkspaceInspectorPanel
           dialogRef={inspectorDialogRef}
+          dialogNode={inspectorDialogNode}
           open={inspectorOpen}
           desktop={desktopInspector}
           onClose={closeInspector}
@@ -442,6 +478,9 @@ function ReadyDesignWorkspace({
             initialReferences,
             prompt,
             onPromptChange: setPrompt,
+            rooms: roomsQuery.data?.items ?? [],
+            roomTypeId: availableRoomTypeId,
+            onRoomTypeChange: setRoomTypeId,
             styles: [...INTERIOR_STYLES],
             styleCode,
             onStyleChange: setStyleCode,
@@ -451,6 +490,7 @@ function ReadyDesignWorkspace({
             credits: wallet,
             dataLoading: inspectorDataLoading,
             dataError: inspectorDataError,
+            onDataRetry: () => void roomsQuery.refetch(),
             generationPending: createGeneration.isPending,
             generationError: generationError?.message ?? null,
             generationErrorCode,

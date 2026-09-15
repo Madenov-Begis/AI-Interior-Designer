@@ -6,6 +6,10 @@ const base = {
   projectId: "project-1",
   prompt: "Keep the room geometry",
   styleCode: "japandi",
+  roomTypeId: "room-type-1",
+  roomCode: "living-room",
+  roomName: "Гостиная",
+  roomPrompt: "Назначение помещения: гостиная.",
   aspectRatio: "RATIO_4_3" as const,
   visualPromptImageId: null,
   references: [{ fileId: "reference-1" }],
@@ -21,6 +25,12 @@ test("a failed root retry stays a root generation", () => {
         prompt: "Keep the room geometry",
         aspectRatio: "RATIO_4_3",
         styleCode: "japandi",
+        roomSnapshot: {
+          id: "room-type-1",
+          code: "living-room",
+          name: "Гостиная",
+          promptModifier: "Назначение помещения: гостиная.",
+        },
       },
     },
   );

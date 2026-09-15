@@ -6,6 +6,10 @@ type RetrySource = {
   parentGenerationId: string | null;
   prompt: string;
   styleCode: string | null;
+  roomTypeId: string | null;
+  roomCode: string | null;
+  roomName: string | null;
+  roomPrompt: string | null;
   aspectRatio: AspectRatio;
   visualPromptImageId: string | null;
   references: Array<{ fileId: string }>;
@@ -35,6 +39,18 @@ export function buildRetryReservationPlan(generation: RetrySource) {
       styleCode: isInteriorStyleCode(generation.styleCode)
         ? generation.styleCode
         : undefined,
+      roomSnapshot:
+        generation.roomTypeId &&
+        generation.roomCode &&
+        generation.roomName &&
+        generation.roomPrompt
+          ? {
+              id: generation.roomTypeId,
+              code: generation.roomCode,
+              name: generation.roomName,
+              promptModifier: generation.roomPrompt,
+            }
+          : undefined,
     },
   };
 }

@@ -12,6 +12,11 @@ import {
   getGenerationModelConfig,
   supportedGenerationAspectRatios,
 } from "./model-config.ts";
+import type {
+  VisualPromptCanvasState,
+  VisualPromptPlacementRegion,
+} from "../visual-prompt/types.ts";
+import type { RoomTypeSnapshot } from "../rooms/types.ts";
 
 export type GenerationDatabase = {
   $transaction<T>(
@@ -28,7 +33,9 @@ type BuildFinalPrompt = (input: {
   prompt: string;
   visualPromptUsed: boolean;
   referenceCount: number;
+  placementRegions?: VisualPromptPlacementRegion[];
   stylePrompt?: string;
+  room?: RoomTypeSnapshot;
 }) => string;
 
 type ReservationDependencies = {
@@ -50,7 +57,10 @@ export type RootGenerationReservationInput = {
   prompt: string;
   aspectRatio: AspectRatio;
   styleCode?: InteriorStyleCode;
+  roomTypeId?: string;
+  roomSnapshot?: RoomTypeSnapshot;
   visualPromptImageId?: string | null;
+  visualPromptState?: VisualPromptCanvasState;
   idempotencyKey: string;
 };
 
@@ -60,6 +70,7 @@ export type RefinementReservationInput = {
   prompt: string;
   referenceFileIds: string[];
   visualPromptImageId?: string;
+  visualPromptState?: VisualPromptCanvasState;
   idempotencyKey: string;
 };
 
@@ -270,12 +281,36 @@ export async function reserveRootGenerationWithDependencies(
         }
 
         const usageDate = usageDateInTimezone(profile.timezone, now);
+        const room = input.roomSnapshot
+          ? input.roomSnapshot
+          : input.roomTypeId
+            ? await tx.roomType.findFirst({
+                where: { id: input.roomTypeId, active: true },
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  promptModifier: true,
+                },
+              })
+            : undefined;
+        if (input.roomTypeId && !room) {
+          throw new GenerationReservationError(
+            "ROOM_NOT_AVAILABLE",
+            "Выбранная комната больше недоступна",
+          );
+        }
         const style = getInteriorStyle(input.styleCode);
         const finalPrompt = dependencies.buildFinalPrompt({
           prompt: input.prompt,
           visualPromptUsed: Boolean(visualPrompt),
           referenceCount: project.references.length,
+          placementRegions:
+            input.visualPromptState?.version === 2
+              ? input.visualPromptState.placementRegions
+              : undefined,
           stylePrompt: style?.promptModifier,
+          room: room ?? undefined,
         });
         const generationId = dependencies.randomUUID();
         const generation = await createGenerationReservation(tx, {
@@ -288,6 +323,10 @@ export async function reserveRootGenerationWithDependencies(
             idempotencyKey: input.idempotencyKey,
             prompt: input.prompt,
             styleCode: input.styleCode ?? null,
+            roomTypeId: room?.id ?? null,
+            roomCode: room?.code ?? null,
+            roomName: room?.name ?? null,
+            roomPrompt: room?.promptModifier ?? null,
             finalPrompt,
             aspectRatio: input.aspectRatio,
             visualPromptUsed: Boolean(visualPrompt),
@@ -357,6 +396,10 @@ export async function reserveRefinementWithDependencies(
             id: true,
             projectId: true,
             styleCode: true,
+            roomTypeId: true,
+            roomCode: true,
+            roomName: true,
+            roomPrompt: true,
             aspectRatio: true,
             resultOriginalId: true,
             status: true,
@@ -443,6 +486,22 @@ export async function reserveRefinementWithDependencies(
           prompt: input.prompt,
           visualPromptUsed: Boolean(input.visualPromptImageId),
           referenceCount: input.referenceFileIds.length,
+          placementRegions:
+            input.visualPromptState?.version === 2
+              ? input.visualPromptState.placementRegions
+              : undefined,
+          room:
+            snapshot.roomTypeId &&
+            snapshot.roomCode &&
+            snapshot.roomName &&
+            snapshot.roomPrompt
+              ? {
+                  id: snapshot.roomTypeId,
+                  code: snapshot.roomCode,
+                  name: snapshot.roomName,
+                  promptModifier: snapshot.roomPrompt,
+                }
+              : undefined,
         });
         const generationId = dependencies.randomUUID();
         return createGenerationReservation(tx, {

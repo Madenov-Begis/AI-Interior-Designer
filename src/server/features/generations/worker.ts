@@ -17,6 +17,7 @@ import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
 import { constrainOutputDimensions } from "@/server/features/generations/output-limits";
 import { settleFailedGeneration } from "./failure-cleanup";
+import { getGenerationWorkerInstanceId } from "./worker-instance";
 
 type StoredFile = { bucket: string; path: string; mimeType: string };
 
@@ -47,6 +48,7 @@ export async function processGeneration(generationId: string) {
     data: {
       status: "PROCESSING",
       startedAt: new Date(),
+      jobId: `${getGenerationWorkerInstanceId()}:${generationId}`,
       attemptCount: { increment: 1 },
     },
   });
@@ -59,17 +61,13 @@ export async function processGeneration(generationId: string) {
       where: { id: generationId },
       include: {
         sourceImage: true,
-        visualPromptImage: true,
         references: { orderBy: { position: "asc" }, include: { file: true } },
       },
     });
     if (!generation) return;
 
-    const [source, visualPrompt, references] = await Promise.all([
+    const [source, references] = await Promise.all([
       downloadStoredFile(generation.sourceImage),
-      generation.visualPromptUsed && generation.visualPromptImage
-        ? downloadStoredFile(generation.visualPromptImage)
-        : Promise.resolve(undefined),
       Promise.all(
         generation.references.map((reference) =>
           downloadStoredFile(reference.file),
@@ -90,7 +88,6 @@ export async function processGeneration(generationId: string) {
         input: {
           operation: generation.parentGenerationId ? "refinement" : "root",
           source,
-          visualPrompt,
           references,
           prompt: generation.finalPrompt ?? generation.prompt,
           aspectRatio: generation.aspectRatio,

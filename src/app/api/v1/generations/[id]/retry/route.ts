@@ -55,6 +55,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
         parentGenerationId: true,
         prompt: true,
         styleCode: true,
+        roomTypeId: true,
+        roomCode: true,
+        roomName: true,
+        roomPrompt: true,
         aspectRatio: true,
         visualPromptImageId: true,
         references: {

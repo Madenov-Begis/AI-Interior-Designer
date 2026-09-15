@@ -72,6 +72,7 @@ export type AdminGeneration = {
   parentGenerationId: string | null;
   status: GenerationStatus;
   styleCode: string | null;
+  room: { code: string; name: string } | null;
   aspectRatio: string;
   visualPromptUsed: boolean;
   attemptCount: number;
@@ -157,6 +158,17 @@ export type CreditPackage = {
   credits: number;
   priceUzs: number;
   popular: boolean;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RoomType = {
+  id: string;
+  code: string;
+  name: string;
+  promptModifier: string;
   active: boolean;
   sortOrder: number;
   createdAt: string;

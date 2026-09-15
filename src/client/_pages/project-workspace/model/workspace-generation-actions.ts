@@ -29,12 +29,15 @@ type WorkspaceGenerationActionsOptions = {
   prompt: string;
   aspectRatio: GenerationAspectRatio;
   styleCode: string | undefined;
+  roomTypeId: string | undefined;
   visualPromptRef: RefObject<VisualPromptEditorHandle | null>;
   refinementPromptRef: RefObject<VisualPromptEditorHandle | null>;
   applyGenerationPayload(payload: GenerationClientPayload): void;
   invalidateCredits(event: CreditsLifecycleEvent): Promise<unknown>;
   reconcileInsufficientCredits(error: Error): void;
   focusGeneration(generationId: string): void;
+  onRootGenerationSuccess(): void;
+  onRootGenerationError(error: Error): void;
 };
 
 type RefinementSubmitInput = {
@@ -54,12 +57,15 @@ export function useWorkspaceGenerationActions({
   prompt,
   aspectRatio,
   styleCode,
+  roomTypeId,
   visualPromptRef,
   refinementPromptRef,
   applyGenerationPayload,
   invalidateCredits,
   reconcileInsufficientCredits,
   focusGeneration,
+  onRootGenerationSuccess,
+  onRootGenerationError,
 }: WorkspaceGenerationActionsOptions) {
   const { user } = useAppSession();
   const [rootAttempts] = useState(() => {
@@ -80,10 +86,14 @@ export function useWorkspaceGenerationActions({
       if (!visualPromptRef.current) {
         throw new Error("Редактор разметки ещё не готов");
       }
+      if (!roomTypeId) {
+        throw new Error("Выберите комнату");
+      }
 
       const visualPrompt = await visualPromptRef.current.snapshot();
       const body = new FormData();
       body.set("prompt", prompt);
+      body.set("roomTypeId", roomTypeId);
       body.set("aspectRatio", aspectRatio);
       if (styleCode) body.set("styleCode", styleCode);
       if (visualPrompt) {
@@ -103,6 +113,7 @@ export function useWorkspaceGenerationActions({
               prompt,
               aspectRatio,
               styleCode,
+              roomTypeId,
               canvasState: visualPrompt?.state ?? null,
             }),
           );
@@ -120,6 +131,7 @@ export function useWorkspaceGenerationActions({
       aspectRatio,
       projectId,
       prompt,
+      roomTypeId,
       styleCode,
       visualPromptRef,
       rootAttempts,
@@ -138,8 +150,14 @@ export function useWorkspaceGenerationActions({
 
   const createGeneration = useMutation({
     mutationFn: () => reserveCurrentGeneration(),
-    onSuccess: created,
-    onError: reconcileInsufficientCredits,
+    onSuccess: (data) => {
+      created(data);
+      if (data.generation.status !== "REJECTED") onRootGenerationSuccess();
+    },
+    onError: (error) => {
+      reconcileInsufficientCredits(error);
+      onRootGenerationError(error);
+    },
   });
   const cancelGeneration = useMutation({
     mutationFn: cancelProjectGeneration,

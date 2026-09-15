@@ -33,6 +33,7 @@ test("root attempts distinguish every submitted input and user scope", async () 
     projectId: "project",
     prompt: "Make brighter",
     aspectRatio: "RATIO_1_1",
+    roomTypeId: "room-1",
     canvasState: null,
   };
   const signature = await rootAttemptSignature(input);
@@ -41,6 +42,7 @@ test("root attempts distinguish every submitted input and user scope", async () 
     { ...input, prompt: "Make darker" },
     { ...input, styleCode: "loft" },
     { ...input, aspectRatio: "RATIO_3_4" },
+    { ...input, roomTypeId: "room-2" },
     { ...input, canvasState: { objects: [] } },
   ])
     assert.notEqual(await rootAttemptSignature(changed), signature);

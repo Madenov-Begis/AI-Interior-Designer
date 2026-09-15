@@ -4,6 +4,7 @@ import { INTERIOR_STYLE_CODES } from "./interior-styles.ts";
 export const createGenerationSchema = z
   .object({
     projectId: z.uuid(),
+    roomTypeId: z.uuid(),
     prompt: z.string().trim().min(3).max(4000),
     aspectRatio: z
       .enum(["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"])

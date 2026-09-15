@@ -1,10 +1,12 @@
-import { type NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import {
   GenerationClientPayloadError,
   getGenerationClientPayload,
 } from "@/server/features/generations/client-payload";
 import { generationIdSchema } from "@/server/features/generations/schema";
+import { recoverInterruptedDevelopmentGeneration } from "@/server/features/generations/recovery";
+import { processGeneration } from "@/server/features/generations/worker";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
 import {
@@ -21,10 +23,12 @@ export async function GET(
     const user = await requireCurrentUser();
     const { id } = await context.params;
     const generationId = generationIdSchema.parse(id);
-    return apiSuccess(
-      await getGenerationClientPayload(user.id, generationId),
-      requestId,
-    );
+    await recoverInterruptedDevelopmentGeneration(user.id, generationId);
+    const payload = await getGenerationClientPayload(user.id, generationId);
+    if (payload.generation.status === "QUEUED") {
+      after(() => processGeneration(generationId));
+    }
+    return apiSuccess(payload, requestId);
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

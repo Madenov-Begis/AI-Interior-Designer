@@ -50,6 +50,7 @@ export async function rootAttemptSignature(input: {
   prompt: string;
   aspectRatio: string;
   styleCode?: string;
+  roomTypeId: string;
   canvasState: unknown;
 }) {
   const bytes = new TextEncoder().encode(JSON.stringify(input));

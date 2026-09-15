@@ -1,11 +1,19 @@
 "use client";
 
-import { AlertCircle, ImagePlus, Sparkles } from "lucide-react";
+import { AlertCircle, House, ImagePlus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { ReferenceManager } from "./reference-manager";
 import { StylePicker } from "./style-picker";
-import { LoadingButton } from "@/shared/ui";
-import { Textarea } from "@/shared/ui";
+import {
+  LoadingButton,
+  Select as RoomSelect,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from "@/shared/ui";
+import type { RoomTypeOption } from "@/shared/api";
 import type { WorkspaceReference } from "../model/workspace-types";
 import {
   GENERATION_ASPECT_RATIO_LABELS,
@@ -23,6 +31,10 @@ export type DesignInspectorProps = {
   initialReferences: WorkspaceReference[];
   prompt: string;
   onPromptChange(value: string): void;
+  rooms: RoomTypeOption[];
+  roomTypeId: string | undefined;
+  onRoomTypeChange(value: string): void;
+  selectPortalContainer?: HTMLElement | null;
   styles: Array<{ code: string; name: string; imageUrl: string }>;
   styleCode: string | undefined;
   onStyleChange(value: string | undefined): void;
@@ -32,6 +44,7 @@ export type DesignInspectorProps = {
   credits: GenerationWallet | null | undefined;
   dataLoading: boolean;
   dataError: string | null;
+  onDataRetry(): void;
   generationPending: boolean;
   generationError: string | null;
   generationErrorCode: string | null;
@@ -44,6 +57,10 @@ export function DesignInspector({
   initialReferences,
   prompt,
   onPromptChange,
+  rooms,
+  roomTypeId,
+  onRoomTypeChange,
+  selectPortalContainer,
   styles,
   styleCode,
   onStyleChange,
@@ -53,6 +70,7 @@ export function DesignInspector({
   credits,
   dataLoading,
   dataError,
+  onDataRetry,
   generationPending,
   generationError,
   generationErrorCode,
@@ -146,6 +164,74 @@ export function DesignInspector({
               Инструкция должна содержать от 3 до 4000 символов.
             </p>
           )}
+        </section>
+
+        <section aria-labelledby="inspector-room-title">
+          <div className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+            >
+              <House className="size-3.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <label
+                id="inspector-room-title"
+                className="block text-sm font-semibold text-foreground"
+              >
+                Комната
+              </label>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Уточняет назначение и эргономику интерьера.
+              </p>
+            </div>
+          </div>
+          <RoomSelect
+            value={roomTypeId ?? ""}
+            onValueChange={onRoomTypeChange}
+            disabled={dataLoading || Boolean(dataError) || rooms.length === 0}
+          >
+            <SelectTrigger
+              className="mt-3"
+              aria-labelledby="inspector-room-title"
+              aria-describedby="inspector-room-help"
+            >
+              <SelectValue
+                placeholder={
+                  dataLoading ? "Загружаем комнаты…" : "Выберите комнату"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent portalContainer={selectPortalContainer}>
+              {rooms.map((room) => (
+                <SelectItem key={room.id} value={room.id}>
+                  {room.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </RoomSelect>
+          <p id="inspector-room-help" className="sr-only">
+            Обязательное поле. Выберите назначение помещения для этой генерации.
+          </p>
+          {dataError ? (
+            <div
+              className="mt-2 flex items-center justify-between gap-3 text-xs"
+              role="alert"
+            >
+              <span className="text-red-300">{dataError}</span>
+              <button
+                type="button"
+                onClick={onDataRetry}
+                className="min-h-10 shrink-0 cursor-pointer rounded-lg px-3 font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                Повторить
+              </button>
+            </div>
+          ) : !dataLoading && rooms.length === 0 ? (
+            <p className="mt-2 text-xs leading-5 text-red-300" role="alert">
+              Доступных комнат пока нет. Обратитесь к администратору.
+            </p>
+          ) : null}
         </section>
 
         <div data-onboarding="styles">
@@ -244,11 +330,6 @@ export function DesignInspector({
               ) : null}
             </span>
           </div>
-        )}
-        {dataError && (
-          <p className="mt-3 text-xs leading-5 text-red-300" role="alert">
-            {dataError}
-          </p>
         )}
         {generationError ? (
           <p className="mt-3 text-xs leading-5 text-red-300" role="alert">

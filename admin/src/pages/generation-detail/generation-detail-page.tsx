@@ -66,6 +66,7 @@ export function GenerationDetailPage() {
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
               <Card withBorder><Text size="xs" c="dimmed">Статус</Text><Group mt="sm"><EnumBadge value={item.status} labels={statusLabels} colors={statusColors} /></Group></Card>
               <Card withBorder><Text size="xs" c="dimmed">Пользователь</Text><Anchor component={Link} to={`/users/${item.user.id}`} fw={600} mt="sm">{item.user.account}</Anchor></Card>
+              <Card withBorder><Text size="xs" c="dimmed">Комната</Text><Text fw={700} mt="sm">{item.room?.name ?? "—"}</Text>{item.room ? <Text size="xs" c="dimmed">{item.room.code}</Text> : null}</Card>
               <Card withBorder><Text size="xs" c="dimmed">Длительность</Text><Text fw={700} mt="sm">{formatDuration(item.durationMs)}</Text></Card>
               <Card withBorder><Text size="xs" c="dimmed">Стоимость / попытки</Text><Text fw={700} mt="sm">{item.estimatedCost ?? "—"} / {item.attemptCount}</Text></Card>
             </SimpleGrid>

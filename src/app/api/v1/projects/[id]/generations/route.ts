@@ -104,6 +104,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const input = createGenerationSchema.parse({
       projectId,
       prompt: formData.get("prompt"),
+      roomTypeId: formData.get("roomTypeId"),
       aspectRatio: formData.get("aspectRatio"),
       styleCode: formData.get("styleCode") || undefined,
     });
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       userId: user.id,
       ...input,
       visualPromptImageId: unattachedVisualPromptId,
+      visualPromptState: parsedCanvasState,
       idempotencyKey,
     });
     if (reserved.isExisting && unattachedVisualPromptId) {

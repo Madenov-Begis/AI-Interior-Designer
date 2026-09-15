@@ -18,6 +18,10 @@ type GenerationRow = {
   parentGenerationId?: string;
   finalPrompt?: string | null;
   estimatedCost?: unknown;
+  roomTypeId?: string | null;
+  roomCode?: string | null;
+  roomName?: string | null;
+  roomPrompt?: string | null;
 };
 
 type UsageEventRow = {
@@ -57,6 +61,14 @@ function createGenerationHarness(input?: {
   parentModel?: {
     provider: "FAKE" | "VERTEX_AI";
     costPerGeneration: string;
+  };
+  visualPrompt?: { id: string };
+  roomType?: {
+    id: string;
+    code: string;
+    name: string;
+    promptModifier: string;
+    active: boolean;
   };
 }) {
   const state: GenerationState = {
@@ -165,6 +177,10 @@ function createGenerationHarness(input?: {
           projectId: "project-1",
           modelId: "model-1",
           styleCode: "modern",
+          roomTypeId: input?.roomType?.id ?? null,
+          roomCode: input?.roomType?.code ?? null,
+          roomName: input?.roomType?.name ?? null,
+          roomPrompt: input?.roomType?.promptModifier ?? null,
           aspectRatio: "RATIO_16_9",
           resultOriginalId: "result-original-1",
           status: "SUCCEEDED",
@@ -222,12 +238,24 @@ function createGenerationHarness(input?: {
           id: "project-1",
           visualPromptUsed: false,
           sourceImage: { id: "source-1" },
-          visualPrompt: null,
+          visualPrompt: input?.visualPrompt ?? null,
           references: [],
         };
       },
       async update() {
         return { id: "project-1" };
+      },
+    },
+    roomType: {
+      async findFirst(query: { where: { id: string; active: boolean } }) {
+        return input?.roomType?.id === query.where.id && input.roomType.active
+          ? {
+              id: input.roomType.id,
+              code: input.roomType.code,
+              name: input.roomType.name,
+              promptModifier: input.roomType.promptModifier,
+            }
+          : null;
       },
     },
     aiModel: {
@@ -243,8 +271,10 @@ function createGenerationHarness(input?: {
       async findMany() {
         return [];
       },
-      async findFirst() {
-        return null;
+      async findFirst(query: { where: { id: string } }) {
+        return query.where.id === input?.visualPrompt?.id
+          ? input.visualPrompt
+          : null;
       },
     },
     usageEvent: {
@@ -442,6 +472,86 @@ test("root reservation uses the credit-only billing policy", async () => {
   );
 });
 
+test("root reservation validates and freezes the selected room", async () => {
+  const roomType = {
+    id: "room-type-1",
+    code: "living-room",
+    name: "Гостиная",
+    promptModifier: "Назначение помещения: гостиная.",
+    active: true,
+  };
+  const { db, state } = createGenerationHarness({ roomType });
+  let receivedRoom: unknown;
+  const dependencies = {
+    ...reservationDependencies(db, "generation-room"),
+    buildFinalPrompt: (input: { room?: unknown }) => {
+      receivedRoom = input.room;
+      return "room prompt";
+    },
+  };
+
+  await reserveRootGenerationWithDependencies(dependencies, {
+    userId: "user-1",
+    projectId: "project-1",
+    prompt: "redesign",
+    roomTypeId: roomType.id,
+    aspectRatio: "RATIO_16_9",
+    idempotencyKey: "root-room-key",
+  });
+
+  assert.deepEqual(receivedRoom, {
+    id: roomType.id,
+    code: roomType.code,
+    name: roomType.name,
+    promptModifier: roomType.promptModifier,
+  });
+  assert.deepEqual(
+    {
+      roomTypeId: state.generations.get("generation-room")?.roomTypeId,
+      roomCode: state.generations.get("generation-room")?.roomCode,
+      roomName: state.generations.get("generation-room")?.roomName,
+      roomPrompt: state.generations.get("generation-room")?.roomPrompt,
+    },
+    {
+      roomTypeId: roomType.id,
+      roomCode: roomType.code,
+      roomName: roomType.name,
+      roomPrompt: roomType.promptModifier,
+    },
+  );
+});
+
+test("root reservation rejects a room that is no longer active", async () => {
+  const roomType = {
+    id: "room-type-1",
+    code: "living-room",
+    name: "Гостиная",
+    promptModifier: "Назначение помещения: гостиная.",
+    active: false,
+  };
+  const { db, state } = createGenerationHarness({ roomType });
+
+  await assert.rejects(
+    () =>
+      reserveRootGenerationWithDependencies(
+        reservationDependencies(db, "generation-room"),
+        {
+          userId: "user-1",
+          projectId: "project-1",
+          prompt: "redesign",
+          roomTypeId: roomType.id,
+          aspectRatio: "RATIO_16_9",
+          idempotencyKey: "root-room-key",
+        },
+      ),
+    (error) =>
+      error instanceof GenerationReservationError &&
+      error.code === "ROOM_NOT_AVAILABLE",
+  );
+  assert.equal(state.generations.size, 0);
+  assert.equal(state.wallets.get("user-1"), 10);
+});
+
 test("insufficient root credits roll back generation and usage snapshots", async () => {
   const { db, state } = createGenerationHarness({ balance: 3 });
 
@@ -512,6 +622,73 @@ test("refinement uses the current fixed configuration", async () => {
   );
   assert.equal(state.wallets.get("user-1"), 6);
   assert.equal(state.generations.size, 1);
+});
+
+test("root and refinement reservations pass v2 placement regions into their immutable prompts", async () => {
+  const visualPrompt = { id: "visual-prompt-1" };
+  const { db } = createGenerationHarness({ visualPrompt });
+  const placementRegions = [
+    {
+      left: 0.8,
+      top: 0.8,
+      width: 0.15,
+      height: 0.15,
+      color: "#afea4d",
+      kind: "stroke" as const,
+    },
+  ];
+  const visualPromptState = {
+    version: 2 as const,
+    coordinateSpace: {
+      editorWidth: 1600,
+      editorHeight: 900,
+      sourceWidth: 3200,
+      sourceHeight: 1800,
+    },
+    placementRegions,
+    fabric: { objects: [] },
+  };
+  const received: Array<unknown> = [];
+  const rootDependencies = {
+    ...reservationDependencies(db, "generation-root"),
+    buildFinalPrompt: (input: unknown) => {
+      received.push(input);
+      return "root placement prompt";
+    },
+  };
+
+  await reserveRootGenerationWithDependencies(rootDependencies, {
+    userId: "user-1",
+    projectId: "project-1",
+    prompt: "place vase",
+    aspectRatio: "RATIO_16_9",
+    visualPromptState,
+    idempotencyKey: "root-placement-key",
+  });
+
+  const refinementDependencies = {
+    ...reservationDependencies(db, "generation-refinement"),
+    buildRefinementPrompt: (input: unknown) => {
+      received.push(input);
+      return "refinement placement prompt";
+    },
+  };
+  await reserveRefinementWithDependencies(refinementDependencies, {
+    userId: "user-1",
+    parentGenerationId: "generation-parent",
+    prompt: "move vase",
+    referenceFileIds: [],
+    visualPromptImageId: visualPrompt.id,
+    visualPromptState,
+    idempotencyKey: "refinement-placement-key",
+  });
+
+  assert.deepEqual(
+    received.map((input) =>
+      (input as { placementRegions?: unknown }).placementRegions,
+    ),
+    [placementRegions, placementRegions],
+  );
 });
 
 test("idempotent reservation repeat returns the original without a second debit", async () => {

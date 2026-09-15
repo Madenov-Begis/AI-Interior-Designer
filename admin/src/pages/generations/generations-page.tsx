@@ -51,6 +51,7 @@ export function GenerationsPage() {
     { key: "id", label: "ID", render: (item) => <Stack gap={1}><Anchor component={Link} to={`/generations/${item.id}`} fw={600}>{item.id.slice(0, 8)}…</Anchor><Text size="xs" c="dimmed">{formatDateTime(item.createdAt)}</Text></Stack> },
     { key: "user", label: "Пользователь", render: (item) => <Anchor component={Link} to={`/users/${item.user.id}`}>{item.user.account}</Anchor> },
     { key: "project", label: "Проект", render: (item) => item.project.name },
+    { key: "room", label: "Комната", render: (item) => item.room?.name ?? "—", mobile: false },
     { key: "status", label: "Статус", render: (item) => <EnumBadge value={item.status} labels={statusLabels} colors={statusColors} /> },
     { key: "cost", label: "Стоимость", render: (item) => item.estimatedCost ?? "—", mobile: false },
     { key: "duration", label: "Длительность", render: (item) => formatDuration(item.durationMs), mobile: false },
