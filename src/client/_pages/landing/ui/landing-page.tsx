@@ -15,7 +15,7 @@ export function LandingPage() {
   return (
     <main
       id="main-content"
-      className="min-h-screen overflow-hidden bg-background text-foreground"
+      className="min-h-screen overflow-x-clip bg-background text-foreground"
       tabIndex={-1}
     >
       <SiteHeader />

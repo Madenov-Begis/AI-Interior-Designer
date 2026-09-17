@@ -34,8 +34,11 @@ const modes = [
 
 export function InteriorModesSection() {
   return (
-    <section id="modes" className="border-b border-border bg-[#111113]">
-      <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-28">
+    <section
+      id="modes"
+      className="landing-anchor border-b border-border bg-[#111113]"
+    >
+      <div className="landing-shell landing-section">
         <div className="grid items-end gap-8 lg:grid-cols-[1fr_0.7fr]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
@@ -100,7 +103,7 @@ export function WorkflowSection() {
 
   return (
     <section className="border-b border-border bg-[#1a1c1f]">
-      <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+      <div className="landing-shell landing-section gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Один рабочий экран
@@ -198,7 +201,7 @@ const stories = [
 export function StoriesSection() {
   return (
     <section className="border-b border-border">
-      <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-28">
+      <div className="landing-shell landing-section">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
           Для дома и работы
         </p>
@@ -209,13 +212,15 @@ export function StoriesSection() {
           {stories.map(({ title, text, icon: Icon }) => (
             <article
               key={title}
-              className="min-h-64 rounded-[24px] border border-border bg-card p-6"
+              className="flex min-h-64 flex-col rounded-[24px] border border-border bg-card p-6"
             >
               <Icon className="size-7 text-primary" aria-hidden="true" />
-              <h3 className="mt-16 text-xl font-bold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {text}
-              </p>
+              <div className="mt-auto pt-12">
+                <h3 className="text-xl font-bold">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {text}
+                </p>
+              </div>
             </article>
           ))}
         </div>
@@ -258,7 +263,7 @@ const faqs = [
 export function FaqSection() {
   return (
     <section className="border-b border-border bg-[#151719]">
-      <div className="mx-auto grid max-w-[1180px] gap-10 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.7fr_1.3fr]">
+      <div className="landing-shell landing-section gap-10 lg:grid-cols-[0.7fr_1.3fr]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             FAQ
@@ -292,39 +297,41 @@ export function FaqSection() {
 
 export function FinalCtaSection() {
   return (
-    <section className="bg-[#111315] px-4 py-5 sm:px-6 sm:py-8">
-      <div className="relative mx-auto min-h-[500px] max-w-[1320px] overflow-hidden rounded-[34px]">
-        <Image
-          src="/images/interior-styles/neoclassic.webp"
-          alt="Светлый интерьер в неоклассическом стиле"
-          fill
-          sizes="100vw"
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/10" />
-        <div className="relative flex min-h-[500px] max-w-2xl flex-col justify-end p-7 sm:p-12 lg:p-16">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-            Начните с одной комнаты
-          </p>
-          <h2 className="mt-4 text-4xl font-black leading-[0.98] tracking-[-0.06em] sm:text-6xl">
-            Начните с фотографии своей комнаты
-          </h2>
-          <p className="mt-5 max-w-lg text-base leading-7 text-white/65">
-            Получите два первых варианта бесплатно и решайте, стоит ли
-            продолжать, уже после результата.
-          </p>
-          <div className="mt-8">
-            <Link
-              href="/app"
-              className={buttonClassName(
-                "default",
-                marketingCtaClassName("rounded-full px-7 shadow-none"),
-                "lg",
-              )}
-            >
-              Загрузить фото бесплатно
-              <ArrowRight className="size-4" />
-            </Link>
+    <section className="border-b border-border bg-[#111315]">
+      <div className="landing-shell landing-section">
+        <div className="relative min-h-[clamp(560px,72vh,760px)] overflow-hidden rounded-[34px]">
+          <Image
+            src="/images/interior-styles/neoclassic.webp"
+            alt="Светлый интерьер в неоклассическом стиле"
+            fill
+            sizes="(min-width: 1440px) 1344px, 100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/10" />
+          <div className="relative flex min-h-[clamp(560px,72vh,760px)] max-w-2xl flex-col justify-end p-7 sm:p-12 lg:p-16">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+              Начните с одной комнаты
+            </p>
+            <h2 className="mt-4 text-4xl font-black leading-[0.98] tracking-[-0.06em] sm:text-6xl">
+              Начните с фотографии своей комнаты
+            </h2>
+            <p className="mt-5 max-w-lg text-base leading-7 text-white/65">
+              Получите два первых варианта бесплатно и решайте, стоит ли
+              продолжать, уже после результата.
+            </p>
+            <div className="mt-8">
+              <Link
+                href="/app"
+                className={buttonClassName(
+                  "default",
+                  marketingCtaClassName("rounded-full px-7 shadow-none"),
+                  "lg",
+                )}
+              >
+                Загрузить фото бесплатно
+                <ArrowRight className="size-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

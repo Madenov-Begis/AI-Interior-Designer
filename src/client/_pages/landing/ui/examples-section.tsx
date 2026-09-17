@@ -6,38 +6,41 @@ const examples = [
     style: "Джапанди",
     image: "/images/interior-styles/japandi.webp",
     className:
-      "sm:col-span-2 lg:col-span-2 lg:row-span-2 min-h-[440px] lg:min-h-[620px]",
+      "min-h-[440px] sm:col-span-2 lg:col-span-2 lg:row-span-2 lg:min-h-0",
   },
   {
     title: "Кухня",
     style: "Современный",
     image: "/images/interior-styles/modern.webp",
-    className: "min-h-[300px]",
+    className: "min-h-[304px] lg:min-h-0",
   },
   {
     title: "Спальня",
     style: "Минимализм",
     image: "/images/interior-styles/minimalism.webp",
-    className: "min-h-[300px]",
+    className: "min-h-[304px] lg:min-h-0",
   },
   {
     title: "Кабинет",
     style: "Лофт",
     image: "/images/interior-styles/loft.webp",
-    className: "min-h-[320px]",
+    className: "min-h-[304px] lg:min-h-0",
   },
   {
     title: "Столовая",
     style: "Неоклассика",
     image: "/images/interior-styles/neoclassic.webp",
-    className: "min-h-[320px]",
+    className: "min-h-[304px] lg:min-h-0",
   },
 ];
 
 export function ExamplesSection() {
   return (
-    <section id="examples" className="border-b border-border bg-[#111315]">
-      <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 sm:py-28">
+    <section
+      id="examples"
+      className="landing-anchor border-b border-border bg-[#111315]"
+    >
+      <div className="landing-shell landing-section">
         <div className="grid gap-6 lg:grid-cols-[1fr_0.65fr] lg:items-end">
           <h2 className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.06em] sm:text-6xl">
             Посмотрите, каким
@@ -50,7 +53,7 @@ export function ExamplesSection() {
           </p>
         </div>
 
-        <div className="mt-10 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid auto-rows-fr gap-3 sm:grid-cols-2 lg:h-[clamp(400px,52vh,620px)] lg:grid-cols-4 lg:grid-rows-2">
           {examples.map((example) => (
             <article
               key={`${example.title}-${example.style}`}
@@ -61,7 +64,7 @@ export function ExamplesSection() {
                 alt={`${example.title} в стиле ${example.style}`}
                 fill
                 sizes="(min-width: 1280px) 50vw, (min-width: 640px) 50vw, 100vw"
-                className="object-cover transition-transform duration-700 group-hover:scale-[1.035]"
+                className="landing-motion object-cover transition-transform duration-700 group-hover:scale-[1.035]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">

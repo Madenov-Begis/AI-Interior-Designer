@@ -1,0 +1,14 @@
+# Безопасные настройки Codex только для этого доверенного репозитория.
+# Личные предпочтения модели и интерфейса остаются в ~/.codex/config.toml.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "medium"
+web_search = "cached"
+
+[features]
+goals = true
+hooks = true
+multi_agent = true
+remote_plugin = true
+shell_snapshot = true

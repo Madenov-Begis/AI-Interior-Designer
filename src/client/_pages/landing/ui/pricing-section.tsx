@@ -22,9 +22,9 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="page-grid border-b border-border bg-[#101719] text-white"
+      className="landing-anchor page-grid border-b border-border bg-[#101719] text-white"
     >
-      <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 sm:py-24">
+      <div className="landing-shell landing-section">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-4xl font-black tracking-[-0.055em] sm:text-5xl">
             Пакеты кредитов
@@ -37,12 +37,12 @@ export function PricingSection() {
         {packagesQuery.isLoading ? (
           <LoadingRegion
             label="Загружаем пакеты кредитов…"
-            className="mt-12 grid gap-4 md:grid-cols-3"
+            className="mt-8 grid gap-4 md:grid-cols-3 lg:mt-10"
           >
             {[0, 1, 2].map((key) => (
               <Skeleton
                 key={key}
-                className="min-h-[390px] rounded-[24px] bg-white/10"
+                className="min-h-[clamp(340px,44vh,390px)] rounded-[24px] bg-white/10"
               />
             ))}
           </LoadingRegion>
@@ -67,11 +67,11 @@ export function PricingSection() {
         ) : null}
 
         {packages.length > 0 ? (
-          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:mt-10 lg:grid-cols-3">
             {packages.map((pack) => (
               <article
                 key={pack.code}
-                className={`relative flex min-h-[390px] flex-col rounded-[24px] border bg-[#f2f3f1] p-6 text-[#1b1d1f] shadow-[0_24px_60px_rgba(0,0,0,0.22)] ${
+                className={`relative flex min-h-[clamp(340px,44vh,390px)] flex-col rounded-[24px] border bg-[#f2f3f1] p-6 text-[#1b1d1f] shadow-[0_24px_60px_rgba(0,0,0,0.22)] ${
                   pack.popular
                     ? "border-primary ring-2 ring-primary"
                     : "border-white/10"
@@ -127,7 +127,7 @@ export function PricingSection() {
           </div>
         ) : null}
 
-        <div className="mt-8 flex flex-col gap-5 rounded-[24px] border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="mt-4 flex flex-col gap-5 rounded-[24px] border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h3 className="font-bold">10 кредитов новым пользователям</h3>
             <p className="mt-1 text-sm text-white/55">

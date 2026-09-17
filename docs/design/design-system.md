@@ -1,9 +1,9 @@
-# Ruvie Design System
+# Дизайн-система Ruvie
 
-Ruvie uses one dark, high-contrast product system across the landing page,
-canvas, project library, balance, and profile.
+Ruvie использует единую тёмную контрастную систему на лендинге, холсте, в
+каталоге проектов, балансе и профиле.
 
-## Foundations
+## Основа
 
 - Canvas: `#19191b`
 - Deep canvas: `#111113`
@@ -15,68 +15,76 @@ canvas, project library, balance, and profile.
 - Brand accent: `#a9ed32`
 - Success: `#61d897`
 - Danger: `#e65c62`
-- Type: Geist / Geist Mono
-- Control radius: `10px`
-- Card radius: `18px`
-- Panel radius: `24px`
-- Modal radius: `30px`
-- Product header: `72px`
+- Шрифты: Geist / Geist Mono
+- Радиус элемента управления: `10px`
+- Радиус карточки: `18px`
+- Радиус панели: `24px`
+- Радиус модального окна: `30px`
+- Высота product header: `72px`
 
-The source of truth is split between:
+Источники истины:
 
-- `src/app/globals.css` — CSS and Tailwind theme tokens.
-- `src/client/shared/config/design-system.ts` — typed token metadata.
+- `src/app/globals.css` — CSS- и Tailwind-токены темы;
+- `src/client/shared/config/design-system.ts` — типизированные метаданные токенов.
 
-## Components
+## Компоненты
 
-- `RuvieLogo` — the shared brand lockup.
-- `RuvieAppHeader` — global product navigation.
-- `AccountMenu` — shadcn Dropdown Menu + Avatar for balance, profile, credits,
-  and sign-out actions.
-- `RuviePage` — graph-grid page background.
-- `RuviePanel` — compatibility wrapper around the shadcn Card while older
-  screens are migrated to direct Card composition.
-- `RuvieSectionHeading` — dashboard page hierarchy.
-- `RuvieStepLabel` — numbered workflow sections.
-- `Alert`, `Avatar`, `Badge`, `Button`, `Card`, `DropdownMenu`, `Empty`,
-  `Field`, `InputGroup`, `Sheet`, `Textarea`, `ToggleGroup`, and `Tooltip` —
-  shadcn application primitives using the same semantic tokens.
+- `RuvieLogo` — общий блок логотипа и названия.
+- `RuvieAppHeader` — глобальная навигация продукта.
+- `AccountMenu` — shadcn Dropdown Menu и Avatar для баланса, профиля, кредитов и выхода.
+- `RuviePage` — фон страницы с графической сеткой.
+- `RuviePanel` — совместимая обёртка над shadcn Card на время миграции старых экранов к прямой композиции Card.
+- `RuvieSectionHeading` — иерархия заголовков dashboard-страниц.
+- `RuvieStepLabel` — нумерованные разделы сценария.
+- `Alert`, `Avatar`, `Badge`, `Button`, `Card`, `DropdownMenu`, `Empty`, `Field`, `InputGroup`, `Sheet`, `Textarea`, `ToggleGroup` и `Tooltip` — базовые shadcn-компоненты приложения на общих семантических токенах.
 
-## Product patterns
+## Продуктовые паттерны
 
-### Canvas workflow
+### Работа на холсте
 
-The main flow always starts on the canvas. The room photo and generated
-results remain on the free canvas, while generation settings stay in a
-persistent right-side inspector on desktop and an accessible dialog on
-smaller screens.
+Основной сценарий всегда начинается на холсте. Фотография комнаты и результаты
+генерации остаются на свободном canvas, а настройки генерации находятся в
+постоянном правом inspector на desktop и в доступном dialog на меньших экранах.
 
-The arrow tool is the default navigation mode: dragging empty space pans the
-canvas, while hovering a generated image uses a pointer cursor. Selecting a
-successful result reveals its contextual action toolbar; «Доработать» opens a
-compact, non-modal popover anchored to that result. Drawing tools remain
-dedicated to visual markup.
+Стрелка является режимом навигации по умолчанию: drag по свободному месту
+перемещает холст, а наведение на сгенерированное изображение показывает pointer.
+Выбор успешного результата открывает его контекстную панель действий;
+«Доработать» открывает компактный dialog, связанный с результатом. Инструменты
+рисования используются только для визуальной разметки.
 
-The contextual toolbar sits directly below the selected image and exposes
-only «Доработать» and «Удалить». Local result duplication is not part of the
-customer workflow.
+Контекстное действие располагается непосредственно у выбранного изображения и
+открывает доработку. Локальное дублирование результата не входит в
+пользовательский сценарий.
 
-### Project library
+### Каталог проектов
 
-Projects use a compact image-first grid with search, view switching, project
-actions, and a dedicated folder rail.
+Проекты отображаются компактной сеткой с приоритетом изображения. Доступны
+поиск, переключение вида, действия проекта и отдельная боковая панель быстрого
+старта.
 
-### Account and payments
+### Аккаунт и платежи
 
-Profile and credit surfaces use large 24–30px panels, lime balance cards,
-graph-grid page backgrounds, and the same global header/account menu.
+Профиль и кредиты используют крупные панели с радиусом 24–30 px, лаймовые
+карточки баланса, фон с графической сеткой и общий header/account menu.
 
-## Rules
+## Правила
 
-- Use tokens instead of one-off colors.
-- Use Lucide icons already installed in the project; do not draw icons.
-- Use real room and generation images; do not add fake thumbnails.
-- Keep primary actions lime and secondary actions graphite.
-- Keep body text neutral; italic black typography is reserved for display
-  headings, numeric stats, and product-plan names.
-- Preserve a minimum 40px control height and visible focus rings.
+- Используй токены вместо одноразовых цветов.
+- Используй уже установленный набор Lucide; не рисуй иконки вручную.
+- Используй реальные изображения комнат и генераций; не добавляй фиктивные thumbnails.
+- Основные действия остаются лаймовыми, вторичные — графитовыми.
+- Основной текст остаётся нейтральным; жирный курсив предназначен для display-заголовков, числовых показателей и названий пакетов.
+- Минимальная высота основного элемента управления — 40 px; для ключевых touch-действий — 44 px.
+- Focus ring должен быть видимым на тёмном и светлом фоне.
+- Проверяй интерфейс на ширинах 375, 768 и 1440 px.
+
+## Сетка лендинга
+
+- Header, основные секции и footer используют единый контейнер шириной до `1440px` с адаптивными боковыми отступами.
+- На desktop каждая основная секция занимает единый экранный кадр: высоту viewport за вычетом header, но не более `1080px`.
+- Первый экран занимает полную высоту viewport, а его фон и декоративный градиент проходят под полупрозрачным header без визуального разрыва.
+- При высоте desktop-окна до `850px` вертикальные отступы, медиаблоки и карточки автоматически уплотняются; смысловой контент и основные действия должны помещаться в один экран.
+- На ширинах меньше `1024px` секции используют естественную высоту, чтобы длинный контент не обрезался.
+- Контент внутри экранного кадра центрируется по вертикали; большие наборы карточек могут увеличивать высоту секции.
+- Якорные секции учитывают sticky header через `scroll-margin-top`.
+- Основное действие в header — «Войти», оно ведёт на `/login`; продуктовые CTA внутри секций ведут на `/app`.

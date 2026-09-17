@@ -6,7 +6,7 @@ import { LEGAL_ROUTES } from "@config/legal";
 export function SiteFooter() {
   return (
     <footer className="bg-[#111113]">
-      <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.5fr_1fr_1fr]">
+      <div className="landing-shell grid gap-10 py-14 md:grid-cols-[1.5fr_1fr_1fr]">
         <RuvieLogo href="/" />
         <nav
           className="grid content-start gap-3 text-sm text-muted-foreground"
@@ -40,7 +40,7 @@ export function SiteFooter() {
           </a>
         </div>
       </div>
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-3 border-t border-border px-5 py-6 text-xs text-muted-foreground sm:px-8 md:flex-row md:items-center md:justify-between">
+      <div className="landing-shell flex flex-col gap-3 border-t border-border py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
         <p>© 2026 {APP_NAME}</p>
         <p>AI-дизайн интерьера на одном холсте</p>
       </div>

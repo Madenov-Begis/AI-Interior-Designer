@@ -17,7 +17,7 @@ const highlights = [
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border bg-[#151719]">
+    <section className="relative -mt-[var(--ruvie-header-height)] overflow-hidden border-b border-border bg-[#151719]">
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
@@ -25,24 +25,24 @@ export function Hero() {
             "radial-gradient(circle at 18% 18%, rgba(169, 237, 50, 0.12), transparent 28%), radial-gradient(circle at 82% 46%, rgba(116, 143, 255, 0.11), transparent 32%)",
         }}
       />
-      <div className="relative mx-auto grid min-h-[720px] max-w-[1440px] items-center gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[0.86fr_1.14fr] lg:py-24">
+      <div className="landing-shell landing-hero relative gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-white/70">
             <span className="size-2 rounded-full bg-primary shadow-[0_0_18px_rgba(169,237,50,0.7)]" />
             AI-интерьер из вашей фотографии
           </div>
-          <h1 className="mt-7 text-[clamp(3.25rem,6vw,6.4rem)] font-black leading-[0.92] tracking-[-0.075em]">
+          <h1 className="mt-5 text-[clamp(3rem,5vw,5.5rem)] font-black leading-[0.9] tracking-[-0.07em]">
             Увидьте новый
             <br />
             интерьер
             <br />
             <span className="text-primary">до ремонта</span>
           </h1>
-          <p className="mt-7 max-w-xl text-base leading-7 text-white/60 sm:text-lg">
+          <p className="mt-5 max-w-xl text-base leading-7 text-white/60 sm:text-lg">
             Загрузите фотографию комнаты. Ruvie сохранит стены, окна и ракурс —
             и покажет реалистичный вариант за несколько минут.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
               href="/app"
               className={buttonClassName(
@@ -63,14 +63,14 @@ export function Hero() {
               <ArrowRight className="size-4" aria-hidden="true" />
             </a>
           </div>
-          <p className="mt-4 flex items-center gap-2 text-xs font-medium text-white/50 sm:text-sm">
+          <p className="mt-3 flex items-center gap-2 text-xs font-medium text-white/50 sm:text-sm">
             <ShieldCheck
               className="size-4 shrink-0 text-primary"
               aria-hidden="true"
             />
             10 кредитов на старте — хватит на 2 варианта · без карты
           </p>
-          <div className="mt-9 grid gap-3 text-sm text-white/65 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 text-sm text-white/65 sm:grid-cols-3">
             {highlights.map((item) => (
               <div key={item} className="flex items-start gap-2">
                 <CircleCheck
@@ -83,7 +83,7 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative min-h-[520px] lg:min-h-[620px]">
+        <div className="relative min-h-[500px] lg:min-h-[clamp(420px,61vh,560px)]">
           <div className="absolute inset-x-0 top-3 overflow-hidden rounded-[34px] border border-white/10 bg-[#232528] p-2 shadow-[0_40px_120px_rgba(0,0,0,0.48)] sm:left-[8%]">
             <div className="relative aspect-[4/3] overflow-hidden rounded-[27px]">
               <Image

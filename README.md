@@ -150,7 +150,14 @@ pnpm release:check
 [`docs/launch/current-status.md`](docs/launch/current-status.md), полный checklist —
 в [`docs/launch/closed-beta-checklist.md`](docs/launch/closed-beta-checklist.md).
 
-Актуальное ТЗ хранится в [`docs/requirements/technical-specification.md`](docs/requirements/technical-specification.md), а сводная история решений — в [`docs/project-history.md`](docs/project-history.md). Исходные материалы `superpowers` объединены в эту историю и при необходимости восстанавливаются из Git.
+Навигация по документации находится в [`docs/README.md`](docs/README.md).
+Полная карта страниц, пользовательских сценариев и бизнес-правил хранится в
+[`docs/full-product-documentation.md`](docs/full-product-documentation.md),
+архитектурные границы — в [`docs/architecture.md`](docs/architecture.md), а
+стратегия проверок — в [`docs/testing.md`](docs/testing.md). Правила совместной
+работы с Codex описаны в [`AGENTS.md`](AGENTS.md) и
+[`docs/codex-workflow.md`](docs/codex-workflow.md). Исходные материалы
+и завершённые отчёты при необходимости восстанавливаются из истории Git.
 
 ## Надёжность рабочего пространства
 
@@ -178,8 +185,9 @@ localStorage до 800-мс debounce серверного сохранения. �
 
 ## Рефакторинг и выпуск
 
-Реализованные изменения, проверки и порядок публикации описаны в
-[`docs/refactoring-2026-09-07.md`](docs/refactoring-2026-09-07.md).
+Актуальный порядок проверок и публикации описан в
+[`docs/testing.md`](docs/testing.md) и
+[`docs/launch/current-status.md`](docs/launch/current-status.md).
 Новая миграция `20260906090000_reliability_infrastructure` должна быть применена
 перед публикацией кода. Она добавляет приватные служебные таблицы ограничений
 запросов, временных загрузок и повторного удаления файлов.

@@ -26,22 +26,22 @@ export function ProcessSection() {
   return (
     <section
       id="process"
-      className="border-b border-black/10 bg-[#f1eee6] text-[#18191b]"
+      className="landing-anchor border-b border-black/10 bg-[#f1eee6] text-[#18191b]"
     >
-      <div className="mx-auto grid max-w-[1320px] gap-12 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <div className="landing-shell landing-section gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5d702f]">
             От фото до идеи
           </p>
-          <h2 className="mt-4 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.06em] sm:text-6xl">
+          <h2 className="mt-4 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.06em] sm:text-5xl 2xl:text-6xl">
             Просто начать. Легко продолжить.
           </h2>
           <p className="mt-5 max-w-lg text-base leading-7 text-black/55">
             Ruvie не заставляет проходить длинный мастер настроек. Вся работа
             строится вокруг вашей комнаты и остаётся в одном проекте.
           </p>
-          <div className="relative mt-9 overflow-hidden rounded-[28px] bg-[#d9d5cb] p-2 shadow-[0_24px_70px_rgba(33,31,26,0.14)]">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-[22px]">
+          <div className="relative mt-7 overflow-hidden rounded-[28px] bg-[#d9d5cb] p-2 shadow-[0_24px_70px_rgba(33,31,26,0.14)]">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-[22px] lg:h-[clamp(220px,31vh,360px)] lg:aspect-auto">
               <Image
                 src="/images/interior-styles/modern.webp"
                 alt="Современная визуализация интерьера"
@@ -57,7 +57,7 @@ export function ProcessSection() {
           {steps.map(({ number, title, copy, icon: Icon }) => (
             <li
               key={number}
-              className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 py-8 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:py-10"
+              className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 py-8 sm:grid-cols-[auto_1fr_auto] sm:items-center lg:py-7"
             >
               <span className="grid size-12 place-items-center rounded-full bg-[#1c1d1f] font-mono text-sm font-bold text-white">
                 {number}
