@@ -67,3 +67,9 @@ export function oauthCallbackUrl(
 
   return callbackUrl;
 }
+
+export function authErrorUrl(returnOrigin: string, error: string) {
+  const errorUrl = new URL("/login", returnOrigin);
+  errorUrl.searchParams.set("error", error);
+  return errorUrl;
+}

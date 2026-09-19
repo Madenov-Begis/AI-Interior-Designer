@@ -25,12 +25,14 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/shared/ui";
 import { Input } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 import { RuviePanel } from "@/shared/ui";
-import { presentWalletSummary } from "@/features/manage-credits";
+import { fullGenerationCount } from "@/features/manage-credits";
 import { apiData } from "@/shared/api";
 import {
   updateAppSessionUser,
   useAppSession,
 } from "@/features/auth/index.client";
+import { useLocale } from "next-intl";
+import { useAppText } from "@/shared/providers";
 
 type ProfilePayload = {
   profile: {
@@ -51,9 +53,10 @@ type ProfileProject = {
 };
 
 function ProfileLoading() {
+  const t = useAppText();
   return (
     <LoadingRegion
-      label="Загружаем профиль…"
+      label={t("Загружаем профиль…")}
       className="mx-auto max-w-[1080px] px-5 py-14"
     >
       <Skeleton className="mx-auto size-28 rounded-full" />
@@ -66,6 +69,8 @@ function ProfileLoading() {
   );
 }
 export function ProfilePanel() {
+  const t = useAppText();
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const { wallet } = useAppSession();
   const profile = useQuery({
@@ -101,7 +106,7 @@ export function ProfilePanel() {
         name:
           updatedProfile.displayName?.trim() ||
           updatedProfile.email.split("@")[0] ||
-          "Пользователь",
+          t("Пользователь"),
         email: updatedProfile.email,
       });
     },
@@ -118,15 +123,15 @@ export function ProfilePanel() {
     return (
       <div className="mx-auto max-w-3xl p-8">
         <Alert variant="destructive">
-          <AlertTitle>Профиль недоступен</AlertTitle>
+          <AlertTitle>{t("Профиль недоступен")}</AlertTitle>
           <AlertDescription>
-            <p>{profile.error?.message ?? "Повторите попытку позже"}</p>
+            <p>{profile.error?.message ?? t("Повторите попытку позже")}</p>
             <Button
               size="sm"
               variant="outline"
               onClick={() => profile.refetch()}
             >
-              Повторить
+              {t("Повторить")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -135,11 +140,10 @@ export function ProfilePanel() {
   }
 
   const { usage } = profile.data;
-  const walletSummary = presentWalletSummary(wallet);
   const displayName =
     profile.data.profile.displayName ||
     profile.data.profile.email.split("@")[0] ||
-    "Пользователь";
+    t("Пользователь");
   const initials = displayName
     .split(/\s+/)
     .slice(0, 2)
@@ -163,7 +167,7 @@ export function ProfilePanel() {
 
         <div className="mt-12 grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_470px]">
           <RuviePanel className="min-w-0 p-6">
-            <h2 className="text-2xl font-black italic">Проекты</h2>
+            <h2 className="text-2xl font-black italic">{t("Проекты")}</h2>
             <div className="mt-5 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
               <Link
                 href="/app"
@@ -171,9 +175,9 @@ export function ProfilePanel() {
               >
                 <Plus className="size-8 text-primary" />
                 <div>
-                  <p className="font-bold">Создать проект</p>
+                  <p className="font-bold">{t("Создать проект")}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Фото сразу на холсте
+                    {t("Фото сразу на холсте")}
                   </p>
                 </div>
                 <ArrowRight className="ml-auto size-5 text-muted-foreground" />
@@ -203,10 +207,10 @@ export function ProfilePanel() {
                   <span className="min-w-0">
                     <b className="block truncate">{project.name}</b>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      {new Date(project.updatedAt).toLocaleDateString("ru-RU")}
+                      {new Date(project.updatedAt).toLocaleDateString(locale)}
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      Изображений: {project.generationCount}
+                      {t("Изображений")}: {project.generationCount}
                     </span>
                   </span>
                   <ArrowRight className="ml-auto size-5 shrink-0 text-muted-foreground" />
@@ -220,7 +224,7 @@ export function ProfilePanel() {
             </div>
             {projects.error ? (
               <Alert variant="destructive" className="mt-4">
-                <AlertTitle>Не удалось загрузить проекты</AlertTitle>
+                <AlertTitle>{t("Не удалось загрузить проекты")}</AlertTitle>
                 <AlertDescription>
                   <p>{projects.error.message}</p>
                   <Button
@@ -228,7 +232,7 @@ export function ProfilePanel() {
                     variant="outline"
                     onClick={() => projects.refetch()}
                   >
-                    Повторить
+                    {t("Повторить")}
                   </Button>
                 </AlertDescription>
               </Alert>
@@ -239,9 +243,9 @@ export function ProfilePanel() {
             >
               <FolderOpen className="size-7" />
               <span>
-                <b className="block">Все проекты</b>
+                <b className="block">{t("Все проекты")}</b>
                 <span className="mt-1 block text-sm text-muted-foreground">
-                  Поиск, сортировка и управление
+                  {t("Поиск, сортировка и управление")}
                 </span>
               </span>
               <ArrowRight className="ml-auto size-5 text-muted-foreground" />
@@ -252,7 +256,7 @@ export function ProfilePanel() {
             <div className="grid gap-4 sm:grid-cols-2">
               <RuviePanel className="border-primary bg-primary p-6 text-primary-foreground">
                 <p className="text-4xl font-black italic">{wallet.balance}</p>
-                <p className="mt-2 text-sm font-bold">Баланс кредитов</p>
+                <p className="mt-2 text-sm font-bold">{t("Баланс кредитов")}</p>
                 <Link
                   href="/app/credits"
                   className={buttonClassName(
@@ -262,24 +266,26 @@ export function ProfilePanel() {
                   )}
                 >
                   <Plus className="size-4" />
-                  Пополнить
+                  {t("Пополнить")}
                 </Link>
               </RuviePanel>
               <RuviePanel className="p-6">
                 <ImageIcon className="size-5 text-primary" />
                 <p className="mt-5 text-4xl font-black italic">{usage.used}</p>
-                <p className="mt-2 text-sm font-bold">Сгенерировано</p>
+                <p className="mt-2 text-sm font-bold">{t("Сгенерировано")}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Всего изображений
+                  {t("Всего изображений")}
                 </p>
               </RuviePanel>
             </div>
 
             <RuviePanel className="p-6">
-              <h2 className="text-xl font-black italic">Данные аккаунта</h2>
+              <h2 className="text-xl font-black italic">
+                {t("Данные аккаунта")}
+              </h2>
               <FieldGroup className="mt-5 gap-4">
                 <Field data-invalid={Boolean(update.error)}>
-                  <FieldLabel htmlFor="profile-name">Имя</FieldLabel>
+                  <FieldLabel htmlFor="profile-name">{t("Имя")}</FieldLabel>
                   <Input
                     id="profile-name"
                     ref={nameInputRef}
@@ -318,10 +324,10 @@ export function ProfilePanel() {
                 <LoadingButton
                   onClick={() => update.mutate()}
                   pending={update.isPending}
-                  pendingText="Сохраняем…"
+                  pendingText={t("Сохраняем…")}
                   className="w-full sm:w-auto"
                 >
-                  Сохранить
+                  {t("Сохранить")}
                 </LoadingButton>
                 <Button
                   variant="ghost"
@@ -331,14 +337,14 @@ export function ProfilePanel() {
                       await navigator.clipboard.writeText(
                         profile.data.profile.email,
                       );
-                      setCopyStatus("Email скопирован.");
+                      setCopyStatus(t("Email скопирован."));
                     } catch {
-                      setCopyStatus("Не удалось скопировать email.");
+                      setCopyStatus(t("Не удалось скопировать email."));
                     }
                   }}
                 >
                   <Copy data-icon="inline-start" />
-                  Копировать email
+                  {t("Копировать email")}
                 </Button>
               </div>
               <p
@@ -351,12 +357,13 @@ export function ProfilePanel() {
                 aria-live="polite"
               >
                 {copyStatus ??
-                  (update.isSuccess ? "Изменения сохранены." : null)}
+                  (update.isSuccess ? t("Изменения сохранены.") : null)}
               </p>
             </RuviePanel>
 
             <p className="px-2 text-xs leading-5 text-muted-foreground">
-              {walletSummary.availableGenerationsText}
+              {t("Доступно генераций")}:{" "}
+              {fullGenerationCount(wallet.balance, wallet.generationCost)}
             </p>
             <Button
               variant="ghost"

@@ -23,6 +23,7 @@ import {
 } from "@/shared/ui";
 import { clearCanvasDrafts } from "@/shared/lib/browser/indexed-canvas-draft";
 import { apiData } from "@/shared/api";
+import { AppLanguageSwitcher, useAppText } from "@/shared/providers";
 
 export type RuvieUserSummary = {
   name: string;
@@ -37,6 +38,7 @@ export function AccountMenu({
   user: RuvieUserSummary;
   creditBalance?: number | null;
 }) {
+  const t = useAppText();
   const logout = useMutation({
     mutationFn: () => apiData({ url: "/auth/logout", method: "POST" }),
     onSuccess: async () => {
@@ -63,11 +65,11 @@ export function AccountMenu({
           variant="outline"
           size="lg"
           className="h-12 rounded-full px-1 pl-3"
-          aria-label="Открыть меню аккаунта"
+          aria-label={t("Открыть меню аккаунта")}
         >
           <span
             className="inline-flex items-center gap-1.5 font-bold"
-            aria-label={`Баланс: ${creditBalance ?? 0} кредитов`}
+            aria-label={`${t("Баланс")}: ${creditBalance ?? 0} ${t("кредитов")}`}
           >
             {creditBalance ?? 0}
           </span>
@@ -87,29 +89,33 @@ export function AccountMenu({
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <div className="px-2 py-2 sm:hidden">
+          <AppLanguageSwitcher />
+        </div>
+        <DropdownMenuSeparator className="sm:hidden" />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/app" prefetch={false}>
               <Plus />
-              Создать проект
+              {t("Создать проект")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/app/projects" prefetch={false}>
               <FolderOpen />
-              Все проекты
+              {t("Все проекты")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/app/credits" prefetch={false}>
               <CreditCard />
-              Пополнить баланс
+              {t("Пополнить баланс")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/app/profile" prefetch={false}>
               <UserRound />
-              Профиль
+              {t("Профиль")}
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
@@ -128,7 +134,7 @@ export function AccountMenu({
             ) : (
               <LogOut />
             )}
-            {logout.isPending ? "Выходим…" : "Выйти"}
+            {logout.isPending ? t("Выходим…") : t("Выйти")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         {logout.error ? (

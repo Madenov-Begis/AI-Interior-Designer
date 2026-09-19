@@ -61,6 +61,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/shared/ui";
 import { apiData } from "@/shared/api";
 import { DEFAULT_PROJECT_NAME } from "../model/naming.ts";
 import { cn } from "@/shared/lib";
+import { useLocale } from "next-intl";
+import { useAppText } from "@/shared/providers";
 
 type ProjectItem = {
   id: string;
@@ -102,6 +104,8 @@ export function ProjectsGrid({
   initialSearch: string;
 }) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useAppText();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState(initialSearch);
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -177,20 +181,20 @@ export function ProjectsGrid({
           className="w-full justify-start"
           onClick={() => createProject.mutate()}
           pending={createProject.isPending}
-          pendingText="Создаём…"
+          pendingText={t("Создаём…")}
         >
           <Plus className="size-5" />
-          Создать проект
+          {t("Создать проект")}
         </LoadingButton>
         <div className="mt-8">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            Быстрый старт
+            {t("Быстрый старт")}
           </p>
           <ol className="mt-4 space-y-4">
             {[
-              ["1", "Создайте проект"],
-              ["2", "Загрузите фото комнаты"],
-              ["3", "Выберите стиль и создайте дизайн"],
+              ["1", t("Создайте проект")],
+              ["2", t("Загрузите фото комнаты")],
+              ["3", t("Выберите стиль и создайте дизайн")],
             ].map(([number, label]) => (
               <li key={number} className="flex items-start gap-3">
                 <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-foreground">
@@ -206,9 +210,13 @@ export function ProjectsGrid({
 
         <div className="mt-8 rounded-2xl border border-border bg-background/45 p-4">
           <Lightbulb className="text-primary" aria-hidden="true" />
-          <p className="mt-3 text-sm font-bold">Для лучшего результата</p>
+          <p className="mt-3 text-sm font-bold">
+            {t("Для лучшего результата")}
+          </p>
           <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-            Используйте светлое фото, где комната полностью видна в кадре.
+            {t(
+              "Используйте светлое фото, где комната полностью видна в кадре.",
+            )}
           </p>
         </div>
       </aside>
@@ -222,7 +230,7 @@ export function ProjectsGrid({
               className="shrink-0 lg:hidden"
               onClick={() => createProject.mutate()}
               pending={createProject.isPending}
-              aria-label="Создать проект"
+              aria-label={t("Создать проект")}
             >
               <Plus />
             </LoadingButton>
@@ -233,14 +241,14 @@ export function ProjectsGrid({
               <InputGroupInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Поиск среди загруженных проектов"
-                aria-label="Поиск среди загруженных проектов"
+                placeholder={t("Поиск среди загруженных проектов")}
+                aria-label={t("Поиск среди загруженных проектов")}
               />
               {search ? (
                 <InputGroupAddon align="inline-end">
                   <InputGroupButton
                     size="icon-sm"
-                    aria-label="Очистить поиск"
+                    aria-label={t("Очистить поиск")}
                     onClick={() => {
                       setSearch("");
                       router.replace(projectsListHref(1, ""), {
@@ -262,12 +270,12 @@ export function ProjectsGrid({
             }}
             variant="outline"
             size="lg"
-            aria-label="Вид списка проектов"
+            aria-label={t("Вид списка проектов")}
           >
-            <ToggleGroupItem value="list" aria-label="Показать списком">
+            <ToggleGroupItem value="list" aria-label={t("Показать списком")}>
               <List />
             </ToggleGroupItem>
-            <ToggleGroupItem value="grid" aria-label="Показать сеткой">
+            <ToggleGroupItem value="grid" aria-label={t("Показать сеткой")}>
               <Grid2X2 />
             </ToggleGroupItem>
           </ToggleGroup>
@@ -276,13 +284,13 @@ export function ProjectsGrid({
         <div className="p-5">
           {createProject.error ? (
             <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Не удалось создать проект</AlertTitle>
+              <AlertTitle>{t("Не удалось создать проект")}</AlertTitle>
               <AlertDescription>{createProject.error.message}</AlertDescription>
             </Alert>
           ) : null}
           {projects.isLoading ? (
             <LoadingRegion
-              label="Загружаем проекты…"
+              label={t("Загружаем проекты…")}
               className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
             >
               {Array.from({ length: 8 }, (_, index) => (
@@ -293,7 +301,7 @@ export function ProjectsGrid({
 
           {projects.error ? (
             <Alert variant="destructive">
-              <AlertTitle>Не удалось загрузить проекты</AlertTitle>
+              <AlertTitle>{t("Не удалось загрузить проекты")}</AlertTitle>
               <AlertDescription>
                 <p>{projects.error.message}</p>
                 <Button
@@ -301,7 +309,7 @@ export function ProjectsGrid({
                   variant="outline"
                   onClick={() => void projects.refetch()}
                 >
-                  Повторить
+                  {t("Повторить")}
                 </Button>
               </AlertDescription>
             </Alert>
@@ -317,17 +325,17 @@ export function ProjectsGrid({
                 </EmptyMedia>
                 <EmptyTitle>
                   {hasActiveSearch
-                    ? "Проекты не найдены"
+                    ? t("Проекты не найдены")
                     : hasProjects
-                      ? "На этой странице нет проектов"
-                      : "Создать первый проект"}
+                      ? t("На этой странице нет проектов")
+                      : t("Создать первый проект")}
                 </EmptyTitle>
                 <EmptyDescription>
                   {hasActiveSearch
-                    ? "Измените поисковый запрос"
+                    ? t("Измените поисковый запрос")
                     : page > 1
-                      ? "Перейдите на другую страницу списка"
-                      : "Фото комнаты прикрепляется сразу на холсте"}
+                      ? t("Перейдите на другую страницу списка")
+                      : t("Фото комнаты прикрепляется сразу на холсте")}
                 </EmptyDescription>
               </EmptyHeader>
               {!hasActiveSearch && !hasProjects ? (
@@ -335,10 +343,10 @@ export function ProjectsGrid({
                   <LoadingButton
                     onClick={() => createProject.mutate()}
                     pending={createProject.isPending}
-                    pendingText="Создаём…"
+                    pendingText={t("Создаём…")}
                   >
                     <Plus data-icon="inline-start" />
-                    Создать проект
+                    {t("Создать проект")}
                   </LoadingButton>
                 </EmptyContent>
               ) : null}
@@ -351,7 +359,7 @@ export function ProjectsGrid({
             aria-live="polite"
           >
             {projects.isFetching && !projects.isLoading
-              ? "Обновляем список проектов…"
+              ? t("Обновляем список проектов…")
               : null}
           </p>
           <div
@@ -395,7 +403,7 @@ export function ProjectsGrid({
                     </span>
                   )}
                   <span className="absolute bottom-3 left-3 rounded-md bg-black/75 px-2 py-1 text-xs font-bold backdrop-blur">
-                    {project.generationCount} результатов
+                    {project.generationCount} {t("результатов")}
                   </span>
                 </Link>
                 <CardContent className="flex min-w-0 flex-1 items-start gap-3 p-4">
@@ -408,7 +416,7 @@ export function ProjectsGrid({
                       {project.name}
                     </h2>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(project.updatedAt).toLocaleDateString("ru-RU")}
+                      {new Date(project.updatedAt).toLocaleDateString(locale)}
                     </p>
                   </Link>
                   <DropdownMenu>
@@ -416,7 +424,7 @@ export function ProjectsGrid({
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        aria-label="Действия с проектом"
+                        aria-label={t("Действия с проектом")}
                       >
                         <MoreHorizontal />
                       </Button>
@@ -432,7 +440,7 @@ export function ProjectsGrid({
                           }}
                         >
                           <Trash2 />
-                          Удалить
+                          {t("Удалить")}
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                     </DropdownMenuContent>
@@ -462,10 +470,10 @@ export function ProjectsGrid({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Удалить проект?</DialogTitle>
+            <DialogTitle>{t("Удалить проект?")}</DialogTitle>
             <DialogDescription>
-              Проект «{projectPendingDeletion?.name}» и связанные с ним
-              изображения будут удалены без возможности восстановления.
+              «{projectPendingDeletion?.name}».{" "}
+              {t("Изображения будут удалены без возможности восстановления.")}
             </DialogDescription>
           </DialogHeader>
           {removeProject.error ? (
@@ -476,13 +484,13 @@ export function ProjectsGrid({
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" disabled={removeProject.isPending}>
-                Отмена
+                {t("Отмена")}
               </Button>
             </DialogClose>
             <LoadingButton
               variant="destructive"
               pending={removeProject.isPending}
-              pendingText="Удаляем…"
+              pendingText={t("Удаляем…")}
               onClick={() => {
                 if (projectPendingDeletion) {
                   removeProject.mutate(projectPendingDeletion.id);
@@ -490,7 +498,7 @@ export function ProjectsGrid({
               }}
             >
               <Trash2 />
-              Удалить проект
+              {t("Удалить проект")}
             </LoadingButton>
           </DialogFooter>
         </DialogContent>

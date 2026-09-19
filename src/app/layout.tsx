@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { APP_NAME } from "@/shared/config";
 import { QueryProvider } from "@/shared/providers";
+import { SITE_URL } from "@config/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,6 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: `${APP_NAME} — AI-дизайн интерьера по фото`,
   description:
     "Загрузите фото комнаты и получите реалистичный интерьер за несколько минут с сохранением стен, окон и ракурса.",
@@ -29,9 +31,6 @@ export default function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable}`}
     >
       <body>
-        <a className="skip-link" href="#main-content">
-          Перейти к основному содержимому
-        </a>
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

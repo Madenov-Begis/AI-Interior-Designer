@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LoadingButton } from "@/shared/ui";
 import { projectsQueries } from "@/shared/api/projects";
+import { useAppText } from "@/shared/providers";
 
 export function ProjectEntryPage() {
   const router = useRouter();
   const entry = useQuery(projectsQueries.entry());
+  const t = useAppText();
 
   useEffect(() => {
     if (entry.data?.projectId) {
@@ -31,10 +33,10 @@ export function ProjectEntryPage() {
             </p>
             <LoadingButton
               pending={entry.isFetching}
-              pendingText="Пробуем снова…"
+              pendingText={t("Пробуем снова…")}
               onClick={() => entry.refetch()}
             >
-              Повторить
+              {t("Повторить")}
             </LoadingButton>
           </>
         ) : (
@@ -47,7 +49,7 @@ export function ProjectEntryPage() {
               aria-hidden="true"
             />
             <p className="text-sm text-muted-foreground">
-              Открываем рабочее пространство…
+              {t("Открываем рабочее пространство…")}
             </p>
           </div>
         )}

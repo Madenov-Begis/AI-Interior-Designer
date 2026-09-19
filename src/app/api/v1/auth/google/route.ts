@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  authErrorUrl,
   oauthCallbackUrl,
   safeReturnOrigin,
   safeReturnPath,
@@ -11,6 +12,7 @@ import {
   LEGAL_ACCEPTANCE_COOKIE,
   LEGAL_ACCEPTANCE_COOKIE_VALUE,
 } from "@/server/features/auth/legal-acceptance";
+import { authCookieDomain } from "@/server/shared/auth/cookie-domain";
 
 export async function GET(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
       request.nextUrl.searchParams.get("legalAcceptance"),
     )
   ) {
-    return NextResponse.redirect(new URL("/login?error=legal_consent", appUrl));
+    return NextResponse.redirect(authErrorUrl(returnOrigin, "legal_consent"));
   }
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -42,7 +44,7 @@ export async function GET(request: NextRequest) {
   });
 
   if (error || !data.url) {
-    return NextResponse.redirect(new URL("/login?error=oauth_start", appUrl));
+    return NextResponse.redirect(authErrorUrl(returnOrigin, "oauth_start"));
   }
 
   const response = NextResponse.redirect(data.url);
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
     sameSite: "lax",
     secure: env.NODE_ENV === "production",
     path: "/",
-    domain: env.AUTH_COOKIE_DOMAIN || undefined,
+    domain: authCookieDomain(env.NODE_ENV, env.AUTH_COOKIE_DOMAIN),
     maxAge: 15 * 60,
   });
   return response;

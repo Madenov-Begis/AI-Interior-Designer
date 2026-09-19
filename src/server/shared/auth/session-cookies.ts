@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Session } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { authCookieDomain } from "./cookie-domain";
 
 export const ACCESS_TOKEN_COOKIE = "ruvie_access_token";
 export const REFRESH_TOKEN_COOKIE = "ruvie_refresh_token";
@@ -11,7 +12,10 @@ const commonOptions = {
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production",
   path: "/",
-  domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
+  domain: authCookieDomain(
+    process.env.NODE_ENV,
+    process.env.AUTH_COOKIE_DOMAIN,
+  ),
 };
 
 function isLegacySupabaseAuthCookie(name: string) {

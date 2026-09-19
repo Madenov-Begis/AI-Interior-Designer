@@ -1,1 +1,5 @@
-export { LandingPage as default } from "@/pages/landing";
+import { redirect } from "next/navigation";
+
+export default function HomePage() {
+  redirect("/en");
+}

@@ -15,9 +15,11 @@ export function RuvieWordmark({ className }: { className?: string }) {
 export function RuvieLogo({
   href = "/app",
   className,
+  ariaLabel,
 }: {
   href?: string;
   className?: string;
+  ariaLabel?: string;
 }) {
   return (
     <Link
@@ -28,7 +30,8 @@ export function RuvieLogo({
         className,
       )}
       aria-label={
-        href === "/" ? `${APP_NAME} — главная` : `${APP_NAME} — открыть холст`
+        ariaLabel ??
+        (href === "/" ? `${APP_NAME} — главная` : `${APP_NAME} — открыть холст`)
       }
     >
       <RuvieWordmark />

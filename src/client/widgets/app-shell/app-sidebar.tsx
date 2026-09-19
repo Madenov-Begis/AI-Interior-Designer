@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/shared/ui";
 import { cn } from "@/shared/lib";
+import { useAppText } from "@/shared/providers";
 
 const ICONS: Record<(typeof APP_NAV_ITEMS)[number]["icon"], LucideIcon> = {
   "image-plus": ImagePlus,
@@ -39,16 +40,17 @@ export function AppSidebar({
   onNavigate?(): void;
 }) {
   const pathname = usePathname();
+  const t = useAppText();
 
   return (
     <TooltipProvider>
       <nav
         className={cn("grid content-start gap-1", compact ? "p-2" : "p-3")}
-        aria-label="Разделы приложения"
+        aria-label={t("Разделы приложения")}
       >
         {!compact ? (
           <p className="px-3 pt-3 pb-2 font-mono text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Разделы
+            {t("Разделы")}
           </p>
         ) : null}
         {APP_NAV_ITEMS.map((item) => {
@@ -66,10 +68,10 @@ export function AppSidebar({
                 prefetch={false}
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
-                aria-label={compact ? item.label : undefined}
+                aria-label={compact ? t(item.label) : undefined}
               >
                 <Icon data-icon="inline-start" aria-hidden="true" />
-                {!compact ? <span>{item.label}</span> : null}
+                {!compact ? <span>{t(item.label)}</span> : null}
               </Link>
             </Button>
           );
@@ -77,7 +79,7 @@ export function AppSidebar({
           return compact ? (
             <Tooltip key={item.href}>
               <TooltipTrigger asChild>{navigationButton}</TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right">{t(item.label)}</TooltipContent>
             </Tooltip>
           ) : (
             <div key={item.href}>{navigationButton}</div>

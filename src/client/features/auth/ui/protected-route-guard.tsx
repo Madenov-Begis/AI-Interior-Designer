@@ -7,11 +7,13 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { useAppSessionQuery } from "../api/client";
 import { AppSessionProvider } from "../model/context";
+import { useAppText } from "@/shared/providers";
 
 export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAppSessionQuery();
+  const t = useAppText();
 
   useEffect(() => {
     if (
@@ -39,9 +41,9 @@ export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
         className="grid min-h-dvh place-content-center gap-4 text-center"
         role="alert"
       >
-        <p>Не удалось проверить сессию. Проверьте соединение.</p>
+        <p>{t("Не удалось проверить сессию. Проверьте соединение.")}</p>
         <button type="button" onClick={() => void auth.refetch()}>
-          Повторить
+          {t("Повторить")}
         </button>
       </main>
     );
@@ -62,7 +64,9 @@ export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
             className="size-7 animate-spin text-primary"
             aria-hidden="true"
           />
-          <p className="text-sm text-muted-foreground">Проверяем сессию…</p>
+          <p className="text-sm text-muted-foreground">
+            {t("Проверяем сессию…")}
+          </p>
         </div>
       </main>
     );

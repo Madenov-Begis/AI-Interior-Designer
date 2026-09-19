@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  authErrorUrl,
   isLocalDevelopmentOrigin,
   oauthCallbackUrl,
   safeReturnOrigin,
@@ -62,5 +63,16 @@ test("keeps local OAuth handoff parameters for the frontend origin", () => {
       "http://localhost:3000",
     ).toString(),
     "http://localhost:3000/auth/callback?next=%2Fapp%2Fprojects&returnOrigin=http%3A%2F%2Flocalhost%3A3000",
+  );
+});
+
+test("keeps OAuth start errors on the validated frontend origin", () => {
+  assert.equal(
+    authErrorUrl("http://localhost:3000", "legal_consent").toString(),
+    "http://localhost:3000/login?error=legal_consent",
+  );
+  assert.equal(
+    authErrorUrl("https://ruvie.cc", "oauth_start").toString(),
+    "https://ruvie.cc/login?error=oauth_start",
   );
 });

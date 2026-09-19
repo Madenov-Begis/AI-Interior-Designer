@@ -30,6 +30,7 @@ test("protected routes use a client guard and axios sends the session token", as
     authClient,
     appLayout,
     homePage,
+    localizedHomePage,
     loginPage,
     dashboardLayout,
     apiClient,
@@ -43,6 +44,10 @@ test("protected routes use a client guard and axios sends the session token", as
       "utf8",
     ),
     readFile(new URL("../../../../app/page.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../../../../app/[locale]/page.tsx", import.meta.url),
+      "utf8",
+    ),
     readFile(
       new URL("../../../../app/login/page.tsx", import.meta.url),
       "utf8",
@@ -70,7 +75,8 @@ test("protected routes use a client guard and axios sends the session token", as
     homePage,
     /useCurrentAuthUser|auth\.getClaims|createSupabaseServerClient/,
   );
-  assert.match(homePage, /LandingPage/);
+  assert.match(homePage, /redirect\("\/en"\)/);
+  assert.match(localizedHomePage, /LandingPage/);
   assert.match(apiClient, /getAccessToken\(\)/);
   assert.doesNotMatch(apiClient, /getRefreshToken\(\)/);
   assert.match(apiClient, /\/auth\/refresh/);

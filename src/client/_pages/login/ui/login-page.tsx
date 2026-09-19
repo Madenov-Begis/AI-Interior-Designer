@@ -14,6 +14,7 @@ import {
 import { useCurrentAuthUser } from "@/features/auth";
 import { safeReturnPath } from "@/features/auth";
 import { apiUrl } from "@/shared/api/url";
+import { AppLanguageSwitcher, useAppText } from "@/shared/providers";
 import {
   LEGAL_ROUTES,
   PRIVACY_POLICY_VERSION,
@@ -50,6 +51,7 @@ function LoginCard({
   next: string;
   checkingSession: boolean;
 }) {
+  const t = useAppText();
   const [legalAccepted, setLegalAccepted] = useState(false);
   const googleLoginUrl = apiUrl(
     `/auth/google?next=${encodeURIComponent(next)}`,
@@ -78,16 +80,20 @@ function LoginCard({
     >
       <Card className="w-full max-w-md rounded-[24px] shadow-2xl shadow-black/35">
         <CardHeader className="p-6 sm:p-8">
-          <RuvieLogo href="/" />
+          <div className="flex items-center justify-between gap-3">
+            <RuvieLogo href="/" />
+            <AppLanguageSwitcher />
+          </div>
           <p className="mt-8 font-mono text-xs font-semibold tracking-[0.16em] text-primary uppercase">
-            Личный кабинет
+            {t("Личный кабинет")}
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
-            Войдите, чтобы начать интерьер
+            {t("Войдите, чтобы начать интерьер")}
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Ваши проекты, изображения и ветки изменений будут доступны на любом
-            устройстве.
+            {t(
+              "Ваши проекты, изображения и ветки изменений будут доступны на любом устройстве.",
+            )}
           </p>
         </CardHeader>
         <CardContent className="px-6 pb-6 sm:px-8 sm:pb-8">
@@ -99,19 +105,19 @@ function LoginCard({
               className="mt-0.5 size-4 shrink-0 accent-primary"
             />
             <span>
-              Я принимаю{" "}
+              {t("Я принимаю")}{" "}
               <Link
                 className="text-foreground underline hover:text-primary"
                 href={LEGAL_ROUTES.offer}
               >
-                Публичную оферту
+                {t("Публичную оферту")}
               </Link>{" "}
-              и даю согласие на обработку данных согласно{" "}
+              {t("и даю согласие на обработку данных согласно")}{" "}
               <Link
                 className="text-foreground underline hover:text-primary"
                 href={LEGAL_ROUTES.privacy}
               >
-                Политике конфиденциальности
+                {t("Политике конфиденциальности")}
               </Link>
               .
             </span>
@@ -136,17 +142,17 @@ function LoginCard({
             ) : (
               <KeyRound className="size-5" aria-hidden="true" />
             )}
-            {checkingSession ? "Проверяем вход…" : "Продолжить с Google"}
+            {checkingSession ? t("Проверяем вход…") : t("Продолжить с Google")}
           </Link>
           <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" />
-            Google используется только для безопасного входа.
+            {t("Google используется только для безопасного входа.")}
           </p>
           <Link
             href="/"
             className="mt-6 block text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            Вернуться на главную
+            {t("Вернуться на главную")}
           </Link>
         </CardContent>
       </Card>

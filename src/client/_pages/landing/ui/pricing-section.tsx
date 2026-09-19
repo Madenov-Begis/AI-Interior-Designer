@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, RefreshCw } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import {
   CREDIT_PACKAGES_QUERY_KEY,
@@ -10,9 +11,9 @@ import {
 import { GENERATION_CREDIT_COST } from "@/shared/config";
 import { buttonClassName, LoadingRegion, Skeleton } from "@/shared/ui";
 
-const priceFormatter = new Intl.NumberFormat("ru-RU");
-
 export function PricingSection() {
+  const t = useTranslations("Pricing");
+  const format = useFormatter();
   const packagesQuery = useQuery({
     queryKey: CREDIT_PACKAGES_QUERY_KEY,
     queryFn: ({ signal }) => loadCreditPackages(signal),
@@ -27,16 +28,16 @@ export function PricingSection() {
       <div className="landing-shell landing-section">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-4xl font-black tracking-[-0.055em] sm:text-5xl">
-            Пакеты кредитов
+            {t("heading")}
           </h2>
           <p className="mt-4 text-base font-semibold text-white/70">
-            Кредиты — валюта Ruvie для генераций и правок
+            {t("description")}
           </p>
         </div>
 
         {packagesQuery.isLoading ? (
           <LoadingRegion
-            label="Загружаем пакеты кредитов…"
+            label={t("loading")}
             className="mt-8 grid gap-4 md:grid-cols-3 lg:mt-10"
           >
             {[0, 1, 2].map((key) => (
@@ -50,7 +51,7 @@ export function PricingSection() {
 
         {packagesQuery.isError ? (
           <div className="mx-auto mt-12 flex max-w-xl flex-col items-center rounded-[24px] border border-white/15 bg-white/[0.06] p-8 text-center">
-            <p className="font-bold">Не удалось загрузить пакеты</p>
+            <p className="font-bold">{t("error")}</p>
             <button
               type="button"
               className={buttonClassName(
@@ -61,7 +62,7 @@ export function PricingSection() {
               onClick={() => void packagesQuery.refetch()}
             >
               <RefreshCw className="size-4" aria-hidden="true" />
-              Повторить
+              {t("retry")}
             </button>
           </div>
         ) : null}
@@ -79,34 +80,42 @@ export function PricingSection() {
               >
                 {pack.popular ? (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-primary-foreground shadow-lg">
-                    Выбирают чаще
+                    {t("popular")}
                   </div>
                 ) : null}
                 <div>
-                  <h3 className="text-2xl font-black italic">{pack.name}</h3>
+                  <h3 className="text-2xl font-black italic">
+                    {t("packageTitle", { credits: pack.credits })}
+                  </h3>
                   <p className="mt-1 min-h-5 text-sm text-black/55">
-                    {pack.description}
+                    {t("packageDescription")}
                   </p>
                 </div>
                 <div className="mt-5">
                   <p className="text-3xl font-black tracking-[-0.04em] tabular-nums">
-                    {priceFormatter.format(pack.priceUzs)} сум
+                    {format.number(pack.priceUzs, {
+                      style: "currency",
+                      currency: "UZS",
+                      maximumFractionDigits: 0,
+                    })}
                   </p>
                   <p className="mt-3 text-lg font-black">
-                    {pack.credits} кредитов
+                    {pack.credits} {t("credits")}
                   </p>
                 </div>
                 <div className="my-5 h-px bg-black/8" />
                 <div>
-                  <p className="text-xs font-bold text-black/55">Хватит на</p>
+                  <p className="text-xs font-bold text-black/55">
+                    {t("enoughFor")}
+                  </p>
                   <p className="mt-3 flex items-center gap-2 text-sm font-semibold">
                     <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
                     {Math.floor(pack.credits / GENERATION_CREDIT_COST)}{" "}
-                    генераций или правок
+                    {t("generations")}
                   </p>
                   <p className="mt-3 flex items-center gap-2 text-sm text-black/60">
                     <CheckCircle2 className="size-5 fill-[#16bf89] text-white" />
-                    Кредиты не сгорают
+                    {t("neverExpire")}
                   </p>
                 </div>
                 <Link
@@ -119,7 +128,7 @@ export function PricingSection() {
                     "sm",
                   )}
                 >
-                  Купить
+                  {t("buy")}
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </article>
@@ -129,10 +138,8 @@ export function PricingSection() {
 
         <div className="mt-4 flex flex-col gap-5 rounded-[24px] border border-white/15 bg-white/[0.06] p-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
-            <h3 className="font-bold">10 кредитов новым пользователям</h3>
-            <p className="mt-1 text-sm text-white/55">
-              Хватит на 2 варианта. Банковская карта не нужна.
-            </p>
+            <h3 className="font-bold">{t("starterTitle")}</h3>
+            <p className="mt-1 text-sm text-white/55">{t("starterCopy")}</p>
           </div>
           <Link
             href="/app"
@@ -142,7 +149,7 @@ export function PricingSection() {
               "sm",
             )}
           >
-            Попробовать бесплатно
+            {t("freeCta")}
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>

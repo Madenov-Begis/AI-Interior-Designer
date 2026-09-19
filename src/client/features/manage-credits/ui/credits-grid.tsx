@@ -20,7 +20,6 @@ import {
   loadCreditTransactions,
 } from "../api/client.ts";
 import {
-  formatUzs,
   fullGenerationCount,
   presentCreditBalance,
   presentCreditTransaction,
@@ -28,17 +27,20 @@ import {
 import { cn } from "@/shared/lib";
 import { apiData } from "@/shared/api";
 import { useAppSession } from "@/features/auth/index.client";
+import { useLocale } from "next-intl";
+import { useAppText } from "@/shared/providers";
 
 type PaymentOrderCreated = {
   checkoutUrl: string;
 };
 
-const creditDateFormatter = new Intl.DateTimeFormat("ru-RU", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
 export function CreditsGrid() {
+  const locale = useLocale();
+  const t = useAppText();
+  const creditDateFormatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
   const router = useRouter();
   const { wallet } = useAppSession();
   const packagesQuery = useQuery({
@@ -62,7 +64,7 @@ export function CreditsGrid() {
   if (packagesQuery.isLoading) {
     return (
       <LoadingRegion
-        label="Загружаем пакеты кредитов…"
+        label={t("Загружаем пакеты кредитов…")}
         className="ruvie-grid min-h-[calc(100dvh-72px)] p-5 sm:p-8"
       >
         <Skeleton className="mx-auto h-[620px] max-w-[1280px] rounded-[30px]" />
@@ -73,15 +75,17 @@ export function CreditsGrid() {
     return (
       <div className="ruvie-grid min-h-[calc(100dvh-72px)] p-8">
         <Alert variant="destructive" className="mx-auto max-w-3xl">
-          <AlertTitle>Не удалось загрузить кредиты</AlertTitle>
+          <AlertTitle>{t("Не удалось загрузить кредиты")}</AlertTitle>
           <AlertDescription>
-            <p>{packagesQuery.error?.message ?? "Повторите попытку позже"}</p>
+            <p>
+              {packagesQuery.error?.message ?? t("Повторите попытку позже")}
+            </p>
             <Button
               size="sm"
               variant="outline"
               onClick={() => void packagesQuery.refetch()}
             >
-              Повторить
+              {t("Повторить")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -101,16 +105,16 @@ export function CreditsGrid() {
         <header className="flex flex-col gap-4 border-b border-border px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-              Магазин кредитов
+              {t("Магазин кредитов")}
             </p>
             <h1 className="mt-2 text-3xl font-black italic tracking-[-0.04em]">
-              Выберите подходящий пакет
+              {t("Выберите подходящий пакет")}
             </h1>
           </div>
           <div className="rounded-full border border-border bg-background px-4 py-2">
             <span>
               <span className="block text-xs text-muted-foreground">
-                Ваш баланс
+                {t("Ваш баланс")}
               </span>
               <b
                 className="block text-lg tabular-nums"
@@ -134,29 +138,35 @@ export function CreditsGrid() {
                 >
                   {item.popular ? (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap bg-success px-4 text-[#102217]">
-                      Выбирают чаще
+                      {t("Выбирают чаще")}
                     </Badge>
                   ) : null}
                   <h2 className="text-3xl font-black italic">{item.name}</h2>
                   <p className="mt-1 text-sm text-[#5e5e63]">
-                    {item.description ?? "Пакет кредитов Ruvie"}
+                    {item.description ?? t("Пакет кредитов Ruvie")}
                   </p>
                   <p className="mt-7 text-4xl font-black tabular-nums">
-                    {formatUzs(item.priceUzs)}
+                    {new Intl.NumberFormat(locale, {
+                      style: "currency",
+                      currency: "UZS",
+                      maximumFractionDigits: 0,
+                    }).format(item.priceUzs)}
                   </p>
                   <p className="mt-4 flex items-center gap-2 text-xl font-black">
-                    {item.credits} кредитов
+                    {item.credits} {t("кредитов")}
                   </p>
                   <div className="my-6 h-px bg-black/8" />
-                  <p className="text-xs font-bold text-[#5e5e63]">Хватит на</p>
+                  <p className="text-xs font-bold text-[#5e5e63]">
+                    {t("Хватит на")}
+                  </p>
                   <p className="mt-3 flex items-center gap-2 text-sm">
                     <CheckCircle2 className="size-5 fill-success text-white" />
                     {fullGenerationCount(item.credits, generationCost)}{" "}
-                    генераций интерьера
+                    {t("генераций интерьера")}
                   </p>
                   <p className="mt-3 flex items-center gap-2 text-sm">
                     <CheckCircle2 className="size-5 fill-success text-white" />
-                    Кредиты не сгорают
+                    {t("Кредиты не сгорают")}
                   </p>
                   <LoadingButton
                     className={cn(
@@ -168,11 +178,11 @@ export function CreditsGrid() {
                     size="lg"
                     disabled={disabled || createOrder.isPending}
                     pending={isCreating}
-                    pendingText="Открываем…"
+                    pendingText={t("Открываем…")}
                     onClick={() => createOrder.mutate(item.code)}
                   >
                     <CreditCard className="size-4" />
-                    Купить
+                    {t("Купить")}
                   </LoadingButton>
                 </article>
               );
@@ -181,25 +191,27 @@ export function CreditsGrid() {
 
           <Alert className="mt-5">
             <ShieldCheck />
-            <AlertTitle>Генерация стоит {generationCost} кредита</AlertTitle>
+            <AlertTitle>
+              {t("Генерация стоит")} {generationCost} {t("кредита")}
+            </AlertTitle>
             <AlertDescription>
-              При технической ошибке кредиты автоматически возвращаются.
+              {t("При технической ошибке кредиты автоматически возвращаются.")}
             </AlertDescription>
           </Alert>
 
           {paymentMode === "mock" ? (
             <p className="mt-4 text-xs text-warning">
-              Сейчас включён тестовый режим оплаты.
+              {t("Сейчас включён тестовый режим оплаты.")}
             </p>
           ) : null}
           {disabled ? (
             <p className="mt-4 text-xs text-warning">
-              Оплата временно недоступна.
+              {t("Оплата временно недоступна.")}
             </p>
           ) : null}
           {createOrder.error ? (
             <Alert variant="destructive" className="mt-4">
-              <AlertTitle>Не удалось открыть оплату</AlertTitle>
+              <AlertTitle>{t("Не удалось открыть оплату")}</AlertTitle>
               <AlertDescription>{createOrder.error.message}</AlertDescription>
             </Alert>
           ) : null}
@@ -209,16 +221,19 @@ export function CreditsGrid() {
       <RuviePanel className="mx-auto mt-6 max-w-[1280px] p-6">
         <h2 className="flex items-center gap-2 text-xl font-black italic">
           <ReceiptText className="size-5 text-primary" />
-          Последние операции
+          {t("Последние операции")}
         </h2>
         {transactionsQuery.isLoading ? (
-          <LoadingRegion label="Загружаем операции…" className="mt-4 space-y-3">
+          <LoadingRegion
+            label={t("Загружаем операции…")}
+            className="mt-4 space-y-3"
+          >
             <Skeleton className="h-14 w-full" />
             <Skeleton className="h-14 w-full" />
           </LoadingRegion>
         ) : transactionsQuery.error ? (
           <Alert variant="destructive" className="mt-4">
-            <AlertTitle>Не удалось загрузить операции</AlertTitle>
+            <AlertTitle>{t("Не удалось загрузить операции")}</AlertTitle>
             <AlertDescription>
               <p>{transactionsQuery.error.message}</p>
               <Button
@@ -226,13 +241,13 @@ export function CreditsGrid() {
                 variant="outline"
                 onClick={() => void transactionsQuery.refetch()}
               >
-                Повторить
+                {t("Повторить")}
               </Button>
             </AlertDescription>
           </Alert>
         ) : transactions.length === 0 ? (
           <p className="py-6 text-sm text-muted-foreground">
-            Операций пока нет.
+            {t("Операций пока нет.")}
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-border">
@@ -244,7 +259,9 @@ export function CreditsGrid() {
                   className="flex items-center justify-between gap-4 py-4"
                 >
                   <div>
-                    <p className="text-sm font-semibold">{presented.label}</p>
+                    <p className="text-sm font-semibold">
+                      {t(presented.label)}
+                    </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {creditDateFormatter.format(
                         new Date(transaction.createdAt),
@@ -263,7 +280,8 @@ export function CreditsGrid() {
                       {presented.amountText}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {presented.balanceText}
+                      {t("Баланс после операции")}: {transaction.balanceAfter}{" "}
+                      {t("кредитов")}
                     </p>
                   </div>
                 </li>

@@ -3,6 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { getDb } from "@/server/shared/db/prisma";
 import { PRIVACY_POLICY_VERSION, PUBLIC_OFFER_VERSION } from "@config/legal";
+import { authCookieDomain } from "@/server/shared/auth/cookie-domain";
 
 export const LEGAL_ACCEPTANCE_COOKIE = "ruvie_legal_acceptance";
 export const LEGAL_ACCEPTANCE_COOKIE_VALUE = `${PRIVACY_POLICY_VERSION}:${PUBLIC_OFFER_VERSION}`;
@@ -34,7 +35,10 @@ export async function consumeLegalAcceptance(userId: string) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
+    domain: authCookieDomain(
+      process.env.NODE_ENV,
+      process.env.AUTH_COOKIE_DOMAIN,
+    ),
     maxAge: 0,
   });
 }
