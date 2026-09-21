@@ -2,7 +2,12 @@ import "server-only";
 
 import { access } from "node:fs/promises";
 import { GoogleGenAI } from "@google/genai";
+import { getVercelOidcToken } from "@vercel/oidc";
 import { parseVertexCredentials } from "./credentials.ts";
+import {
+  createVercelWorkloadIdentityClient,
+  parseVercelWorkloadIdentityConfig,
+} from "./workload-identity.ts";
 
 export async function createVertexGenAi(timeoutSeconds: number) {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID?.trim();
@@ -10,14 +15,22 @@ export async function createVertexGenAi(timeoutSeconds: number) {
   const credentialsJson =
     process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
   const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+  const workloadIdentity = parseVercelWorkloadIdentityConfig(process.env);
 
-  if (!project || (!credentialsJson && !credentialsPath)) {
+  if (!project || (!workloadIdentity && !credentialsJson && !credentialsPath)) {
     throw new Error("VERTEX_PROVIDER_NOT_CONFIGURED");
   }
 
-  let googleAuthOptions:
-    { credentials: ReturnType<typeof parseVertexCredentials> } | undefined;
-  if (credentialsJson) {
+  let googleAuthOptions;
+  if (workloadIdentity) {
+    googleAuthOptions = {
+      authClient: createVercelWorkloadIdentityClient(
+        workloadIdentity,
+        getVercelOidcToken,
+      ),
+      projectId: project,
+    };
+  } else if (credentialsJson) {
     googleAuthOptions = {
       credentials: parseVertexCredentials(credentialsJson),
     };

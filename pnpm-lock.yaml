@@ -31,6 +31,9 @@ importers:
       "@tanstack/react-query":
         specifier: 5.101.3
         version: 5.101.3(react@19.2.7)
+      "@vercel/oidc":
+        specifier: ^3.8.8
+        version: 3.8.8
       axios:
         specifier: ^1.19.0
         version: 1.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -252,6 +255,26 @@ importers:
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)(jsdom@26.1.0(canvas@3.2.3)(supports-color@8.1.1))(lightningcss@1.32.0)(sugarss@5.0.1(postcss@8.5.20))(supports-color@8.1.1)(terser@5.51.2)
 
 packages:
+
+  "@vercel/cli-config@0.2.7":
+    resolution:
+      {
+        integrity: sha512-KeSN2HBp8puZrj7kVjSEneDi9yBqW4nAD9AnhGhdYjGNpHl7IkXZVb3HnNe0WWc5+20RlUtmAGWNPQ8qP5QBhQ==,
+      }
+
+  "@vercel/cli-exec@1.0.1":
+    resolution:
+      {
+        integrity: sha512-g9XerViJ/paZujufXYcu5XYI2vU2rtB4sgdpjUHde5RnOkdmpu0ngH46LCFGHoPXO/C+qDPSczIHIRN+8Q2YKQ==,
+      }
+    engines: { node: ">= 18" }
+
+  "@vercel/oidc@3.8.8":
+    resolution:
+      {
+        integrity: sha512-aeq4/sgVh80zO6j2H+7FRfsG6NOXBrvzV1EEO8IdXPEJgwHIPakP+BFq3QmprsEQ18bIimds07kvaYhm2lehtg==,
+      }
+    engines: { node: ">= 20" }
   "@adobe/css-tools@4.5.0":
     resolution:
       {
@@ -7353,6 +7376,12 @@ packages:
       }
     hasBin: true
 
+  jose@5.10.0:
+    resolution:
+      {
+        integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==,
+      }
+
   jose@6.2.8:
     resolution:
       {
@@ -8267,6 +8296,13 @@ packages:
         integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==,
       }
     engines: { node: ">= 0.8.0" }
+
+  os-paths@4.4.0:
+    resolution:
+      {
+        integrity: sha512-wrAwOeXp1RRMFfQY8Sy7VaGVmPocaLwSFOYCGKSyo8qmJ+/yaafCl5BCA1IQZWqFSRBrKDYFeR9d/VyQzfH/jg==,
+      }
+    engines: { node: ">= 6.0" }
 
   ora@8.2.0:
     resolution:
@@ -10380,6 +10416,20 @@ packages:
       }
     engines: { node: ">=20" }
 
+  xdg-app-paths@5.5.1:
+    resolution:
+      {
+        integrity: sha512-hI3flOB4PLZIy5prbtTpirobtPE2ZtZ52szO+2mM9Efp6ErM398La+C1lIpNWDfNoQk+6Lsi6nMcCwVB7pxeMQ==,
+      }
+    engines: { node: ">= 6.0" }
+
+  xdg-portable@7.3.0:
+    resolution:
+      {
+        integrity: sha512-sqMMuL1rc0FmMBOzCpd0yuy9trqF2yTTVe+E9ogwCSWQCdDEtQUwrZPT6AxqtsFGRNxycgncbP/xmOOSPw5ZUw==,
+      }
+    engines: { node: ">= 6.0" }
+
   xml-name-validator@5.0.0:
     resolution:
       {
@@ -10456,6 +10506,12 @@ packages:
         integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==,
       }
 
+  zod@4.1.11:
+    resolution:
+      {
+        integrity: sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==,
+      }
+
   zod@4.4.3:
     resolution:
       {
@@ -10463,6 +10519,21 @@ packages:
       }
 
 snapshots:
+
+  "@vercel/cli-config@0.2.7":
+    dependencies:
+      xdg-app-paths: 5.5.1
+      zod: 4.1.11
+
+  "@vercel/cli-exec@1.0.1":
+    dependencies:
+      execa: 5.1.1
+
+  "@vercel/oidc@3.8.8":
+    dependencies:
+      "@vercel/cli-config": 0.2.7
+      "@vercel/cli-exec": 1.0.1
+      jose: 5.10.0
   "@adobe/css-tools@4.5.0": {}
 
   "@alloc/quick-lru@5.2.0": {}
@@ -15033,6 +15104,8 @@ snapshots:
 
   jiti@2.7.0: {}
 
+  jose@5.10.0: {}
+
   jose@6.2.8: {}
 
   js-cookie@3.0.8: {}
@@ -15549,6 +15622,8 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
       word-wrap: 1.2.5
+
+  os-paths@4.4.0: {}
 
   ora@8.2.0:
     dependencies:
@@ -17210,6 +17285,15 @@ snapshots:
       is-wsl: 3.1.1
       powershell-utils: 0.1.0
 
+  xdg-app-paths@5.5.1:
+    dependencies:
+      os-paths: 4.4.0
+      xdg-portable: 7.3.0
+
+  xdg-portable@7.3.0:
+    dependencies:
+      os-paths: 4.4.0
+
   xml-name-validator@5.0.0: {}
 
   xmlchars@2.2.0: {}
@@ -17245,5 +17329,7 @@ snapshots:
       zod: 4.4.3
 
   zod@3.25.76: {}
+
+  zod@4.1.11: {}
 
   zod@4.4.3: {}

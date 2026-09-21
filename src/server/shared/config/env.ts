@@ -32,6 +32,10 @@ const serverEnvSchema = z
     GOOGLE_CLOUD_LOCATION: z.string().min(1).optional(),
     GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1).optional(),
     GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
+    GCP_PROJECT_NUMBER: z.string().regex(/^\d+$/).optional(),
+    GCP_SERVICE_ACCOUNT_EMAIL: z.email().optional(),
+    GCP_WORKLOAD_IDENTITY_POOL_ID: z.string().min(1).optional(),
+    GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: z.string().min(1).optional(),
     TRIGGER_SECRET_KEY: z.string().min(1).optional(),
     SENTRY_DSN: z.url().optional(),
     ADMIN_ORIGINS: z.string().min(1).optional(),
@@ -83,6 +87,16 @@ const serverEnvSchema = z
       });
     }
     if (env.AI_PROVIDER === "vertex") {
+      const workloadIdentityFields = [
+        env.GCP_PROJECT_NUMBER,
+        env.GCP_SERVICE_ACCOUNT_EMAIL,
+        env.GCP_WORKLOAD_IDENTITY_POOL_ID,
+        env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID,
+      ];
+      const workloadIdentityFieldCount =
+        workloadIdentityFields.filter(Boolean).length;
+      const hasWorkloadIdentity = workloadIdentityFieldCount === 4;
+
       if (!env.GOOGLE_CLOUD_PROJECT_ID)
         context.addIssue({
           code: "custom",
@@ -96,6 +110,7 @@ const serverEnvSchema = z
           message: "Обязателен для Vertex AI",
         });
       if (
+        !hasWorkloadIdentity &&
         !env.GOOGLE_APPLICATION_CREDENTIALS_JSON &&
         !env.GOOGLE_APPLICATION_CREDENTIALS
       )
@@ -103,7 +118,14 @@ const serverEnvSchema = z
           code: "custom",
           path: ["GOOGLE_APPLICATION_CREDENTIALS_JSON"],
           message:
-            "Для Vertex AI необходим GOOGLE_APPLICATION_CREDENTIALS_JSON или GOOGLE_APPLICATION_CREDENTIALS",
+            "Для Vertex AI необходим полный набор Workload Identity Federation или локальные Google credentials",
+        });
+      if (workloadIdentityFieldCount > 0 && !hasWorkloadIdentity)
+        context.addIssue({
+          code: "custom",
+          path: ["GCP_PROJECT_NUMBER"],
+          message:
+            "Набор переменных Workload Identity Federation заполнен не полностью",
         });
     }
     try {

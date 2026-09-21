@@ -78,6 +78,7 @@
 - [x] `AI_PROVIDER=vertex`.
 - [x] `GOOGLE_CLOUD_PROJECT_ID` задан в production.
 - [x] Production runtime получает действующие Google Cloud credentials.
+- [ ] Vercel production использует Workload Identity Federation без постоянного JSON-ключа.
 - [ ] Service account имеет только необходимые права Vertex AI.
 - [x] `GOOGLE_CLOUD_LOCATION` подтвержден.
 - [x] `VERTEX_IMAGE_MODEL` настроен в production.
