@@ -11,6 +11,8 @@ const room = {
   id: "00000000-0000-4000-8000-000000000010",
   code: "living-room",
   name: "Гостиная",
+  nameEn: "Living room",
+  nameUz: "Mehmonxona",
   promptModifier: "Назначение помещения: гостиная и зона отдыха.",
   active: true,
   sortOrder: 10,
@@ -43,8 +45,11 @@ test("lists rooms and creates a room through the admin form", async () => {
   fireEvent.change(await screen.findByLabelText(/Код/), {
     target: { value: "bedroom" },
   });
-  fireEvent.change(screen.getByLabelText(/Название/), {
+  fireEvent.change(screen.getByLabelText(/Название \(RU\)/), {
     target: { value: "Спальня" },
+  });
+  fireEvent.change(screen.getByLabelText(/Название \(EN\)/), {
+    target: { value: "Bedroom" },
   });
   fireEvent.change(screen.getByLabelText(/Инструкция для AI/), {
     target: { value: "Назначение помещения: спокойная спальня." },

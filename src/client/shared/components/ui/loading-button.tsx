@@ -1,7 +1,10 @@
+"use client";
+
 import * as React from "react";
 import { LoaderCircle } from "lucide-react";
 
 import { cn } from "@/shared/lib";
+import { useAppText } from "@/shared/providers/app-text";
 import { Button } from "./button";
 
 type LoadingButtonProps = React.ComponentProps<typeof Button> & {
@@ -11,11 +14,12 @@ type LoadingButtonProps = React.ComponentProps<typeof Button> & {
 
 function LoadingButton({
   pending = false,
-  pendingText = "Загружаем…",
+  pendingText,
   disabled,
   children,
   ...props
 }: LoadingButtonProps) {
+  const t = useAppText();
   return (
     <Button
       disabled={disabled || pending}
@@ -41,7 +45,7 @@ function LoadingButton({
           aria-hidden={!pending || undefined}
         >
           <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-          {pendingText}
+          {pendingText ?? t("Загружаем…")}
         </span>
       </span>
     </Button>

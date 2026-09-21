@@ -81,6 +81,8 @@ test("protected routes use a client guard and axios sends the session token", as
   assert.doesNotMatch(apiClient, /getRefreshToken\(\)/);
   assert.match(apiClient, /\/auth\/refresh/);
   assert.match(apiClient, /Authorization/);
+  assert.match(apiClient, /Accept-Language/);
+  assert.match(apiClient, /NEXT_LOCALE/);
   assert.match(apiClient, /Bearer/);
   assert.match(tokenCookies, /from "js-cookie"/);
   assert.match(tokenCookies, /Cookies\.get/);

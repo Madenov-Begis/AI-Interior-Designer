@@ -1,9 +1,13 @@
+"use client";
+
 import { LoadingRegion, Skeleton } from "@/shared/ui";
+import { useAppText } from "@/shared/providers";
 
 export default function DashboardLoading() {
+  const t = useAppText();
   return (
     <LoadingRegion
-      label="Загружаем раздел приложения…"
+      label={t("Загружаем раздел приложения…")}
       className="mx-auto max-w-[1480px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
     >
       <Skeleton className="h-3 w-32" />

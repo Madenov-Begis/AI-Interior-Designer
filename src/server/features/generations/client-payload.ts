@@ -5,6 +5,8 @@ import {
   readGenerationLabels,
 } from "@/server/features/generations/service";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import type { Locale } from "@/i18n/routing";
+import { localizeGenerationMessage } from "@/server/shared/i18n/api-locale";
 
 export class GenerationClientPayloadError extends Error {
   constructor(
@@ -18,6 +20,7 @@ export class GenerationClientPayloadError extends Error {
 export async function getGenerationClientPayload(
   userId: string,
   generationId: string,
+  locale: Locale = "en",
 ) {
   const generation = await getOwnedGeneration(userId, generationId);
   if (!generation) {
@@ -60,7 +63,11 @@ export async function getGenerationClientPayload(
         : null,
       references: generation.references,
       errorCode: generation.errorCode,
-      errorMessage: generation.errorMessage,
+      errorMessage: localizeGenerationMessage(
+        locale,
+        generation.errorCode,
+        generation.errorMessage,
+      ),
       createdAt: generation.createdAt.toISOString(),
       completedAt: generation.completedAt?.toISOString() ?? null,
     },

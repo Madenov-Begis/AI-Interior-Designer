@@ -21,7 +21,6 @@ import {
 } from "../api/client.ts";
 import {
   fullGenerationCount,
-  presentCreditBalance,
   presentCreditTransaction,
 } from "../model/presentation.ts";
 import { cn } from "@/shared/lib";
@@ -97,7 +96,6 @@ export function CreditsGrid() {
   const { items: packages, paymentMode } = packagesQuery.data;
   const transactions = transactionsQuery.data?.items ?? [];
   const disabled = paymentMode === "disabled";
-  const presentedBalance = presentCreditBalance(balance);
 
   return (
     <div className="ruvie-grid min-h-[calc(100dvh-72px)] p-4 sm:p-8">
@@ -118,9 +116,9 @@ export function CreditsGrid() {
               </span>
               <b
                 className="block text-lg tabular-nums"
-                aria-label={presentedBalance.ariaLabel}
+                aria-label={t("Баланс: {balance} кредитов", { balance })}
               >
-                {presentedBalance.text}
+                {t("{balance} кредитов", { balance })}
               </b>
             </span>
           </div>
@@ -141,9 +139,11 @@ export function CreditsGrid() {
                       {t("Выбирают чаще")}
                     </Badge>
                   ) : null}
-                  <h2 className="text-3xl font-black italic">{item.name}</h2>
+                  <h2 className="text-3xl font-black italic">{t(item.name)}</h2>
                   <p className="mt-1 text-sm text-[#5e5e63]">
-                    {item.description ?? t("Пакет кредитов Ruvie")}
+                    {item.description
+                      ? t(item.description)
+                      : t("Пакет кредитов Ruvie")}
                   </p>
                   <p className="mt-7 text-4xl font-black tabular-nums">
                     {new Intl.NumberFormat(locale, {

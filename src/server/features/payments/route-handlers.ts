@@ -6,6 +6,11 @@ import {
   paymentOrderIdSchema,
 } from "./schema.ts";
 import { paymentOrderSummary } from "./summary.ts";
+import type { Locale } from "@/i18n/routing";
+import {
+  localeFromHeaders,
+  localizeApiMessage,
+} from "../../shared/i18n/api-locale.ts";
 
 type RouteUser = { id: string };
 
@@ -38,14 +43,19 @@ function jsonResponse(body: unknown, requestId: string, init?: ResponseInit) {
   return response;
 }
 
-function paymentErrorResponse(error: unknown, requestId: string) {
+function paymentErrorResponse(
+  error: unknown,
+  requestId: string,
+  locale: Locale,
+) {
   const mapped = paymentHttpError(error);
+  const message = localizeApiMessage(locale, mapped.code, mapped.message);
   const apiError =
     mapped.details === undefined
-      ? { code: mapped.code, message: mapped.message }
+      ? { code: mapped.code, message }
       : {
           code: mapped.code,
-          message: mapped.message,
+          message,
           details: mapped.details,
         };
   return jsonResponse({ error: apiError, meta: { requestId } }, requestId, {
@@ -58,6 +68,7 @@ export async function handlePaymentOrderPost(
   requestId: string,
   dependencies: CreatePaymentOrderDependencies,
 ) {
+  const locale = localeFromHeaders(request.headers);
   try {
     const user = await dependencies.requireCurrentUser();
     const input = paymentOrderCreateSchema.parse(await request.json());
@@ -68,7 +79,7 @@ export async function handlePaymentOrderPost(
     return jsonResponse(
       {
         data: {
-          order: paymentOrderSummary(result.order),
+          order: paymentOrderSummary(result.order, locale),
           checkoutUrl: result.checkoutUrl,
         },
         meta: { requestId },
@@ -77,15 +88,17 @@ export async function handlePaymentOrderPost(
       { status: 201 },
     );
   } catch (error) {
-    return paymentErrorResponse(error, requestId);
+    return paymentErrorResponse(error, requestId, locale);
   }
 }
 
 export async function handlePaymentOrderGet(
+  request: Request,
   context: { params: Promise<{ id: string }> },
   requestId: string,
   dependencies: GetPaymentOrderDependencies,
 ) {
+  const locale = localeFromHeaders(request.headers);
   try {
     const user = await dependencies.requireCurrentUser();
     const id = paymentOrderIdSchema.parse((await context.params).id);
@@ -97,7 +110,7 @@ export async function handlePaymentOrderGet(
     return jsonResponse(
       {
         data: {
-          order: paymentOrderSummary(order),
+          order: paymentOrderSummary(order, locale),
           balance,
         },
         meta: { requestId },
@@ -105,7 +118,7 @@ export async function handlePaymentOrderGet(
       requestId,
     );
   } catch (error) {
-    return paymentErrorResponse(error, requestId);
+    return paymentErrorResponse(error, requestId, locale);
   }
 }
 
@@ -115,6 +128,7 @@ export async function handleMockOutcomePost(
   requestId: string,
   dependencies: MockOutcomeDependencies,
 ) {
+  const locale = localeFromHeaders(request.headers);
   try {
     const user = await dependencies.requireCurrentUser();
     const id = paymentOrderIdSchema.parse((await context.params).id);
@@ -127,7 +141,7 @@ export async function handleMockOutcomePost(
     return jsonResponse(
       {
         data: {
-          order: paymentOrderSummary(result.order),
+          order: paymentOrderSummary(result.order, locale),
           balance: result.balance,
         },
         meta: { requestId },
@@ -135,6 +149,6 @@ export async function handleMockOutcomePost(
       requestId,
     );
   } catch (error) {
-    return paymentErrorResponse(error, requestId);
+    return paymentErrorResponse(error, requestId, locale);
   }
 }

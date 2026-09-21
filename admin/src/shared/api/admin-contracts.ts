@@ -1,12 +1,7 @@
 export type UserRole = "USER" | "ADMIN";
 export type UserStatus = "ACTIVE" | "BLOCKED" | "DELETED";
 export type GenerationStatus =
-  | "QUEUED"
-  | "PROCESSING"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CANCELLED"
-  | "REJECTED";
+  "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REJECTED";
 
 export type PageInfo = {
   page: number;
@@ -35,7 +30,12 @@ export type AdminLoginSession = {
 };
 
 export type AdminStats = {
-  period: { key: "today" | "7d" | "30d"; from: string; to: string; timeZone: string };
+  period: {
+    key: "today" | "7d" | "30d";
+    from: string;
+    to: string;
+    timeZone: string;
+  };
   totals: { users: number; projects: number; generations: number };
   activity: { activeUsers: number; generations: number; failed: number };
   queue: { queued: number; processing: number };
@@ -154,7 +154,11 @@ export type CreditPackage = {
   id: string;
   code: string;
   name: string;
+  nameEn: string | null;
+  nameUz: string | null;
   description: string | null;
+  descriptionEn: string | null;
+  descriptionUz: string | null;
   credits: number;
   priceUzs: number;
   popular: boolean;
@@ -168,6 +172,8 @@ export type RoomType = {
   id: string;
   code: string;
   name: string;
+  nameEn: string | null;
+  nameUz: string | null;
   promptModifier: string;
   active: boolean;
   sortOrder: number;

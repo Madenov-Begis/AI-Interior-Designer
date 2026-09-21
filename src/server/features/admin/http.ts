@@ -18,17 +18,28 @@ export async function parseAdminJson(request: NextRequest) {
   }
 }
 
-export function adminApiError(
+export async function adminApiError(
   error: unknown,
   requestId: string,
   fallback: string,
 ) {
   if (error instanceof UnauthorizedError)
-    return apiError("UNAUTHORIZED", error.message, requestId, 401);
+    return apiError("UNAUTHORIZED", error.message, requestId, 401, undefined, {
+      locale: "ru",
+    });
   if (error instanceof ForbiddenError)
-    return apiError("FORBIDDEN", error.message, requestId, 403);
+    return apiError("FORBIDDEN", error.message, requestId, 403, undefined, {
+      locale: "ru",
+    });
   if (error instanceof RateLimitError) {
-    const response = apiError("RATE_LIMITED", error.message, requestId, 429);
+    const response = await apiError(
+      "RATE_LIMITED",
+      error.message,
+      requestId,
+      429,
+      undefined,
+      { locale: "ru" },
+    );
     response.headers.set("retry-after", String(error.retryAfter));
     return response;
   }
@@ -39,32 +50,53 @@ export function adminApiError(
       requestId,
       422,
       error.flatten(),
+      { locale: "ru" },
     );
   if (error instanceof AdminServiceError)
-    return apiError(error.code, error.message, requestId, error.status);
+    return apiError(
+      error.code,
+      error.message,
+      requestId,
+      error.status,
+      undefined,
+      { locale: "ru" },
+    );
   if (error instanceof CreditBalanceError) {
     const message =
       error.code === "INSUFFICIENT_CREDITS"
         ? "Недостаточно кредитов для списания"
         : "Не удалось изменить баланс";
-    return apiError(error.code, message, requestId, 409);
+    return apiError(error.code, message, requestId, 409, undefined, {
+      locale: "ru",
+    });
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2025")
-      return apiError("NOT_FOUND", "Запись не найдена", requestId, 404);
+      return apiError(
+        "NOT_FOUND",
+        "Запись не найдена",
+        requestId,
+        404,
+        undefined,
+        { locale: "ru" },
+      );
     if (error.code === "P2002")
       return apiError(
         "CONFLICT",
         "Такая запись уже существует",
         requestId,
         409,
+        undefined,
+        { locale: "ru" },
       );
   }
   console.error("Unexpected admin API error", {
     requestId,
     name: error instanceof Error ? error.name : typeof error,
   });
-  return apiError("INTERNAL_ERROR", fallback, requestId, 500);
+  return apiError("INTERNAL_ERROR", fallback, requestId, 500, undefined, {
+    locale: "ru",
+  });
 }
 
 export function adminMutationLimit(request: NextRequest) {

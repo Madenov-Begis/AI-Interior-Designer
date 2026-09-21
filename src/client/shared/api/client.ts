@@ -35,6 +35,44 @@ type RefreshedSession = {
 
 let refreshRequest: Promise<RefreshedSession> | null = null;
 
+function currentLocale() {
+  if (typeof document === "undefined") return "en";
+  const value = document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith("NEXT_LOCALE="))
+    ?.split("=")[1];
+  return value === "ru" || value === "uz" || value === "en" ? value : "en";
+}
+
+function clientMessage(
+  key: "sessionExpired" | "refreshFailed" | "authUnavailable" | "requestFailed",
+) {
+  const locale = currentLocale();
+  const messages = {
+    en: {
+      sessionExpired: "Your session has expired",
+      refreshFailed: "Could not refresh the session. Please try again",
+      authUnavailable: "Could not refresh the session. Check your connection",
+      requestFailed: "The request failed",
+    },
+    ru: {
+      sessionExpired: "Сессия истекла",
+      refreshFailed: "Не удалось обновить сессию. Попробуйте ещё раз",
+      authUnavailable: "Не удалось обновить сессию. Проверьте соединение",
+      requestFailed: "Запрос не выполнен",
+    },
+    uz: {
+      sessionExpired: "Sessiya muddati tugadi",
+      refreshFailed: "Sessiyani yangilab bo‘lmadi. Qayta urinib ko‘ring",
+      authUnavailable:
+        "Sessiyani yangilab bo‘lmadi. Internet aloqasini tekshiring",
+      requestFailed: "So‘rov bajarilmadi",
+    },
+  } as const;
+  return messages[locale][key];
+}
+
 export class ApiClientError extends Error {
   readonly code: string;
   readonly status: number | null;
@@ -89,14 +127,18 @@ async function refreshSession(failedToken: string | null) {
       method: "POST",
       credentials: "include",
       signal: AbortSignal.timeout(30_000),
-      headers: { Accept: "application/json", "x-request-id": requestId() },
+      headers: {
+        Accept: "application/json",
+        "Accept-Language": currentLocale(),
+        "x-request-id": requestId(),
+      },
     });
     if (!response.ok)
       throw new ApiClientError(
         "REFRESH_FAILED",
         response.status === 401
-          ? "Сессия истекла"
-          : "Не удалось обновить сессию. Попробуйте ещё раз",
+          ? clientMessage("sessionExpired")
+          : clientMessage("refreshFailed"),
         response.status,
         response.headers.get("x-request-id"),
       );
@@ -138,6 +180,9 @@ apiClient.interceptors.request.use(async (config) => {
   }
   if (!config.headers.has("x-request-id")) {
     config.headers.set("x-request-id", requestId());
+  }
+  if (!config.headers.has("Accept-Language")) {
+    config.headers.set("Accept-Language", currentLocale());
   }
 
   if (!config.headers.has("Authorization")) {
@@ -183,7 +228,7 @@ apiClient.interceptors.response.use(
               ? refreshError
               : new ApiClientError(
                   "AUTH_UNAVAILABLE",
-                  "Не удалось обновить сессию. Проверьте соединение",
+                  clientMessage("authUnavailable"),
                   503,
                   null,
                 ),
@@ -201,7 +246,7 @@ apiClient.interceptors.response.use(
     const payload = error.response?.data;
     const normalized = new ApiClientError(
       payload?.error?.code ?? "REQUEST_FAILED",
-      payload?.error?.message ?? error.message ?? "Запрос не выполнен",
+      payload?.error?.message ?? clientMessage("requestFailed"),
       status,
       payload?.meta?.requestId ??
         error.response?.headers["x-request-id"] ??

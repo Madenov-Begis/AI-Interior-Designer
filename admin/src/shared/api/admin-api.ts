@@ -1,7 +1,12 @@
 import axios, { AxiosHeaders } from "axios";
-import { clearAdminCredentials, getAdminAuthorization } from "@/shared/auth/admin-session";
+import {
+  clearAdminCredentials,
+  getAdminAuthorization,
+} from "@/shared/auth/admin-session";
 
-const apiBase = (import.meta.env.VITE_API_BASE_URL ?? "https://api.ruvie.cc").replace(/\/$/, "");
+const apiBase = (
+  import.meta.env.VITE_API_BASE_URL ?? "https://api.ruvie.cc"
+).replace(/\/$/, "");
 
 type ApiSuccess<T> = { data: T; meta: { requestId: string } };
 type ApiFailure = {
@@ -30,6 +35,7 @@ export const adminAxios = axios.create({
 adminAxios.interceptors.request.use((config) => {
   const authorization = getAdminAuthorization();
   if (authorization) config.headers.set("Authorization", authorization);
+  config.headers.set("Accept-Language", "ru");
   return config;
 });
 
@@ -95,10 +101,13 @@ export function adminApi<T>(path: string, init: RequestInit = {}) {
     });
 }
 
-export function queryString(values: Record<string, string | number | null | undefined>) {
+export function queryString(
+  values: Record<string, string | number | null | undefined>,
+) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(values)) {
-    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+    if (value !== undefined && value !== null && value !== "")
+      params.set(key, String(value));
   }
   const query = params.toString();
   return query ? `?${query}` : "";

@@ -43,6 +43,7 @@ import {
   SOURCE_Y,
   type CanvasSize,
 } from "../model/canvas-layout";
+import { useAppText } from "@/shared/providers";
 
 type ViewportTransform = CanvasTransform;
 type ViewportSize = CanvasSize;
@@ -107,6 +108,7 @@ export const CanvasViewport = forwardRef<
   },
   ref,
 ) {
+  const t = useAppText();
   const viewportRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{
     pointerId: number;
@@ -530,7 +532,7 @@ export const CanvasViewport = forwardRef<
       className={`canvas-viewport ${
         isPanning ? "canvas-viewport--panning" : ""
       }`}
-      aria-label="Холст проекта"
+      aria-label={t("Холст проекта")}
       aria-describedby="canvas-viewport-instructions"
       role="region"
       tabIndex={0}
@@ -541,10 +543,7 @@ export const CanvasViewport = forwardRef<
       onPointerCancel={finishPan}
     >
       <p id="canvas-viewport-instructions" className="sr-only">
-        Перетаскивайте свободную область, чтобы перемещать холст. Колесо или
-        трекпад прокручивает холст, Control или Command с колесом изменяет
-        масштаб. Клавиши плюс и минус меняют масштаб, ноль показывает всё,
-        единица показывает выбранный объект.
+        {t("Перетаскивайте свободную область, чтобы перемещать холст. Колесо или трекпад прокручивает холст, Control или Command с колесом изменяет масштаб. Клавиши плюс и минус меняют масштаб, ноль показывает всё, единица показывает выбранный объект.")}
       </p>
       <div
         className="canvas-world"
@@ -555,9 +554,11 @@ export const CanvasViewport = forwardRef<
         }}
       >
         <article
-          aria-label={`Исходное изображение${
-            selectedItemId === "source" ? ", выбрано" : ""
-          }`}
+          aria-label={
+            selectedItemId === "source"
+              ? t("{label}, выбрано", { label: t("Исходное изображение") })
+              : t("Исходное изображение")
+          }
           data-canvas-item
           className={`canvas-item ${
             selectedItemId === "source" ? "canvas-item--selected" : ""
@@ -588,20 +589,20 @@ export const CanvasViewport = forwardRef<
             style={{ height: CARD_HEADER_HEIGHT }}
           >
             <div className="min-w-0">
-              <p className="text-sm font-black">Исходное изображение</p>
+              <p className="text-sm font-black">{t("Исходное изображение")}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Разметка не изменяет оригинал
+                {t("Разметка не изменяет оригинал")}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {selectedItemId === "source" ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent">
                   <Check size={14} strokeWidth={3} aria-hidden="true" />
-                  Выбран
+                  {t("Выбран")}
                 </span>
               ) : null}
               <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Оригинал
+                {t("Оригинал")}
               </span>
             </div>
           </header>
@@ -613,7 +614,7 @@ export const CanvasViewport = forwardRef<
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={source.imageUrl}
-              alt="Исходная фотография помещения"
+              alt={t("Исходная фотография помещения")}
               className="absolute inset-0 size-full object-contain"
               draggable={false}
               decoding="async"
@@ -643,9 +644,13 @@ export const CanvasViewport = forwardRef<
           return (
             <article
               key={generation.id}
-              aria-label={`${generation.ariaLabel ?? "Результат генерации"}${
-                selectedItemId === generation.id ? ", выбрано" : ""
-              }`}
+              aria-label={
+                selectedItemId === generation.id
+                  ? t("{label}, выбрано", {
+                      label: generation.ariaLabel ?? t("Результат генерации"),
+                    })
+                  : generation.ariaLabel ?? t("Результат генерации")
+              }
               data-canvas-item
               className={`canvas-item ${
                 selectedItemId === generation.id ? "canvas-item--selected" : ""
@@ -697,13 +702,13 @@ export const CanvasViewport = forwardRef<
 
       <div
         className="canvas-zoom-controls"
-        aria-label="Масштаб холста"
+        aria-label={t("Масштаб холста")}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <button
           type="button"
-          aria-label="Уменьшить масштаб"
-          title="Уменьшить масштаб"
+          aria-label={t("Уменьшить масштаб")}
+          title={t("Уменьшить масштаб")}
           disabled={transform.scale <= MIN_CANVAS_SCALE + 0.0001}
           onClick={() => zoomFromCenter(1 / CANVAS_ZOOM_STEP)}
         >
@@ -712,16 +717,16 @@ export const CanvasViewport = forwardRef<
         <button
           type="button"
           className="canvas-zoom-controls__value"
-          aria-label="Сбросить масштаб до 100%"
-          title="Сбросить масштаб до 100%"
+          aria-label={t("Сбросить масштаб до 100%")}
+          title={t("Сбросить масштаб до 100%")}
           onClick={resetZoom}
         >
           <span aria-live="polite">{Math.round(transform.scale * 100)}%</span>
         </button>
         <button
           type="button"
-          aria-label="Увеличить масштаб"
-          title="Увеличить масштаб"
+          aria-label={t("Увеличить масштаб")}
+          title={t("Увеличить масштаб")}
           disabled={transform.scale >= MAX_CANVAS_SCALE - 0.0001}
           onClick={() => zoomFromCenter(CANVAS_ZOOM_STEP)}
         >
@@ -729,16 +734,16 @@ export const CanvasViewport = forwardRef<
         </button>
         <button
           type="button"
-          aria-label="Показать выбранный объект"
-          title="Показать выбранный объект"
+          aria-label={t("Показать выбранный объект")}
+          title={t("Показать выбранный объект")}
           onClick={() => focusItem(selectedItemId)}
         >
           <Focus size={17} />
         </button>
         <button
           type="button"
-          aria-label="Вписать содержимое"
-          title="Вписать содержимое"
+          aria-label={t("Вписать содержимое")}
+          title={t("Вписать содержимое")}
           onClick={fitToContent}
         >
           <Maximize2 size={17} />

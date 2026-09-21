@@ -29,6 +29,7 @@ import {
   configureCanvasTools,
   type ErasableFabricObject,
 } from "../model/canvas-tools";
+import { useAppText } from "@/shared/providers";
 
 type Props = {
   projectId?: string;
@@ -46,6 +47,7 @@ type Props = {
 
 export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
   function VisualPromptEditor(props, ref) {
+    const t = useAppText();
     const { user } = useAppSession();
     const draftStore = useMemo(
       () =>
@@ -141,12 +143,12 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             ?.save(readCanvasState(canvas), savedStateRef.current)
             .catch(() => {
               persistenceStateCallbackRef.current(
-                "Локальный черновик недоступен. Не закрывайте страницу до сохранения разметки.",
+                t("Локальный черновик недоступен. Не закрывайте страницу до сохранения разметки."),
               );
             });
         } catch {
           persistenceStateCallbackRef.current(
-            "Локальный черновик недоступен. Не закрывайте страницу до сохранения разметки.",
+            t("Локальный черновик недоступен. Не закрывайте страницу до сохранения разметки."),
           );
         }
       }
@@ -157,12 +159,12 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         void persistLatestRef.current().catch((error: unknown) => {
           persistenceStateCallbackRef.current(
             error instanceof Error
-              ? `Не удалось сохранить разметку: ${error.message}`
-              : "Не удалось сохранить разметку",
+              ? `${t("Не удалось сохранить разметку")}: ${t(error.message)}`
+              : t("Не удалось сохранить разметку"),
           );
         });
       }, 800);
-    }, [props.projectId, draftStore, readCanvasState]);
+    }, [props.projectId, draftStore, readCanvasState, t]);
 
     const configureCanvas = useCallback(
       (
@@ -310,7 +312,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       // separate queue, so drawing and undo remain available during slow saves.
       const captured = enqueueCanvasOperation(async () => {
         const canvas = canvasRef.current;
-        if (!canvas) throw new Error("Редактор разметки ещё не готов");
+        if (!canvas) throw new Error(t("Редактор разметки ещё не готов"));
         canvas.requestRenderAll();
         const state = readCanvasState(canvas);
         const overlay = canvas.getObjects().length
@@ -360,6 +362,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       enqueueCanvasOperation,
       readCanvasState,
       acknowledgeDraft,
+      t,
     ]);
 
     useEffect(() => {
@@ -404,7 +407,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         if (dirtyRef.current && !draftConflictRef.current) {
           void persistLatestRef.current().catch(() => {
             persistenceStateCallbackRef.current(
-              "Не удалось сохранить разметку. Черновик остаётся в этом браузере.",
+              t("Не удалось сохранить разметку. Черновик остаётся в этом браузере."),
             );
           });
         }
@@ -415,7 +418,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         window.removeEventListener("beforeunload", beforeUnload);
         window.removeEventListener("online", retryPersist);
       };
-    }, []);
+    }, [t]);
 
     useImperativeHandle(
       ref,
@@ -473,8 +476,8 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
               }).catch((error: unknown) => {
                 persistenceStateCallbackRef.current(
                   error instanceof Error
-                    ? `Не удалось стереть разметку: ${error.message}`
-                    : "Не удалось стереть разметку",
+                    ? `${t("Не удалось стереть разметку")}: ${t(error.message)}`
+                    : t("Не удалось стереть разметку"),
                 );
               });
             });
@@ -515,7 +518,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
                 )) ?? null;
             } catch {
               persistenceStateCallbackRef.current(
-                "Не удалось прочитать локальный черновик.",
+                t("Не удалось прочитать локальный черновик."),
               );
             }
             if (disposed) return;
@@ -550,7 +553,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
             captureHistory(false, false);
             if (restored?.conflict) {
               persistenceStateCallbackRef.current(
-                "Восстановлен локальный черновик, но на сервере другая версия. Проверьте разметку перед дальнейшей работой.",
+                t("Восстановлен локальный черновик, но на сервере другая версия. Проверьте разметку перед дальнейшей работой."),
               );
             } else if (
               migratedCoordinateSpace ||
@@ -560,8 +563,8 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
               void persist().catch((error: unknown) => {
                 persistenceStateCallbackRef.current(
                   error instanceof Error
-                    ? `Разметка восстановлена, но не удалось сохранить обновлённые координаты: ${error.message}`
-                    : "Разметка восстановлена, но не удалось сохранить обновлённые координаты",
+                    ? `${t("Разметка восстановлена, но не удалось сохранить обновлённые координаты")}: ${t(error.message)}`
+                    : t("Разметка восстановлена, но не удалось сохранить обновлённые координаты"),
                 );
               });
             }
@@ -570,7 +573,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
         .catch(() => {
           if (!disposed)
             persistenceStateCallbackRef.current(
-              "Не удалось восстановить редактор. Перезагрузите страницу; локальный черновик сохранён.",
+              t("Не удалось восстановить редактор. Перезагрузите страницу; локальный черновик сохранён."),
             );
         });
 
@@ -602,6 +605,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
       props.sourceHeight,
       draftStore,
       persist,
+      t,
     ]);
 
     useEffect(() => {
@@ -618,7 +622,7 @@ export const VisualPromptEditor = forwardRef<VisualPromptEditorHandle, Props>(
     return (
       <canvas
         ref={canvasElementRef}
-        aria-label="Разметка исходной фотографии"
+        aria-label={t("Разметка исходной фотографии")}
       />
     );
   },

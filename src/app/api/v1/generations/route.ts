@@ -5,7 +5,14 @@ import { attachHistoryResultUrls } from "@/server/features/generations/history-m
 import { listOwnedGenerations } from "@/server/features/generations/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import {
+  localeFromHeaders,
+  localizeGenerationMessage,
+} from "@/server/shared/i18n/api-locale";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
 
 export async function GET(request: NextRequest) {
@@ -30,7 +37,21 @@ export async function GET(request: NextRequest) {
         );
       },
     );
-    return apiSuccess({ ...generations, items }, requestId);
+    const locale = localeFromHeaders(request.headers);
+    return apiSuccess(
+      {
+        ...generations,
+        items: items.map((item) => ({
+          ...item,
+          errorMessage: localizeGenerationMessage(
+            locale,
+            item.errorCode,
+            item.errorMessage,
+          ),
+        })),
+      },
+      requestId,
+    );
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

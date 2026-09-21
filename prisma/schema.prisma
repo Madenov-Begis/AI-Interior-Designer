@@ -276,6 +276,8 @@ model RoomType {
   id             String       @id @default(uuid()) @db.Uuid
   code           String       @unique
   name           String
+  nameEn         String?
+  nameUz         String?
   promptModifier String
   active         Boolean      @default(true)
   sortOrder      Int          @default(0)
@@ -351,17 +353,21 @@ model CreditTransaction {
 }
 
 model CreditPackage {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique
-  name        String
-  description String?
-  credits     Int
-  priceUzs    Int
-  popular     Boolean  @default(false)
-  active      Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique
+  name          String
+  nameEn        String?
+  nameUz        String?
+  description   String?
+  descriptionEn String?
+  descriptionUz String?
+  credits       Int
+  priceUzs      Int
+  popular       Boolean  @default(false)
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([active, sortOrder])
 }
@@ -374,6 +380,8 @@ model PaymentOrder {
   status          PaymentOrderStatus @default(PENDING)
   packageCode     String
   packageName     String
+  packageNameEn   String?
+  packageNameUz   String?
   credits         Int
   amountUzs       Int
   expiresAt       DateTime
@@ -407,9 +415,9 @@ model PaymentEvent {
 
 // Private infrastructure tables, accessed only by the server through Prisma.
 model RateLimitBucket {
-  key       String   @id
-  count     Int
-  resetAt   DateTime @db.Timestamptz(6)
+  key     String   @id
+  count   Int
+  resetAt DateTime @db.Timestamptz(6)
 
   @@index([resetAt])
 }

@@ -3,6 +3,7 @@
 import { AlertCircle, Ban, CheckCircle2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import { Badge } from "@/shared/ui";
 import {
   Button,
@@ -25,13 +26,13 @@ import {
   checkoutControlsDisabled,
   checkoutPresentation,
   checkoutTerminalMessageClassName,
-  formatUzs,
 } from "../model/presentation.ts";
 import {
   CheckoutReconciliationError,
   reconcileCheckoutOutcome,
 } from "../model/checkout-reconciliation.ts";
 import { apiData } from "@/shared/api";
+import { useAppText } from "@/shared/providers";
 
 type PaymentOrder = {
   id: string;
@@ -72,6 +73,8 @@ const checkoutStatusLabels: Record<CheckoutStatus, string> = {
 };
 
 export function MockCheckout({ orderId }: { orderId: string }) {
+  const locale = useLocale();
+  const t = useAppText();
   const queryClient = useQueryClient();
   const queryKey = paymentOrderQueryKey(orderId);
   const orderQuery = useQuery({
@@ -108,7 +111,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
 
   if (orderQuery.isLoading) {
     return (
-      <LoadingRegion label="Загружаем тестовый заказ…">
+      <LoadingRegion label={t("Загружаем тестовый заказ…")}>
         <Skeleton className="mx-auto min-h-[430px] max-w-xl rounded-xl" />
       </LoadingRegion>
     );
@@ -120,13 +123,13 @@ export function MockCheckout({ orderId }: { orderId: string }) {
           className="grid justify-items-start gap-3 p-5 text-sm text-destructive"
           role="alert"
         >
-          <p>{orderQuery.error?.message ?? "Не удалось загрузить заказ"}</p>
+          <p>{t(orderQuery.error?.message ?? "Не удалось загрузить заказ")}</p>
           <Button
             size="sm"
             variant="outline"
             onClick={() => void orderQuery.refetch()}
           >
-            Повторить
+            {t("Повторить")}
           </Button>
         </CardContent>
       </Card>
@@ -142,39 +145,49 @@ export function MockCheckout({ orderId }: { orderId: string }) {
     reconciliationUnresolved,
   });
   const outcomeError = outcome.error ?? outcome.data?.submissionError;
+  const terminalMessage =
+    order.status === "PAID"
+      ? orderQuery.data.balance == null
+        ? t("Оплата прошла успешно. Кредиты зачислены на баланс.")
+        : t("Оплата прошла успешно. Новый баланс: {balance} кредитов.", {
+            balance: orderQuery.data.balance,
+          })
+      : result.message
+        ? t(result.message)
+        : null;
 
   return (
     <Card className="mx-auto max-w-xl overflow-hidden">
       <CardHeader className="border-b border-border bg-secondary/35">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Badge variant="warning">Тестовый режим оплаты</Badge>
+          <Badge variant="warning">{t("Тестовый режим оплаты")}</Badge>
           <Badge variant={order.status === "PAID" ? "success" : "secondary"}>
-            {checkoutStatusLabels[order.status]}
+            {t(checkoutStatusLabels[order.status])}
           </Badge>
         </div>
-        <CardTitle className="pt-4">Проверка тестовой оплаты</CardTitle>
+        <CardTitle className="pt-4">{t("Проверка тестовой оплаты")}</CardTitle>
         <CardDescription>
-          Реальные деньги не списываются. Выберите исход тестового заказа.
+          {t("Реальные деньги не списываются. Выберите исход тестового заказа.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-5 sm:p-6">
         <dl className="grid gap-4 rounded-xl border border-border bg-secondary/25 p-4">
           <div className="flex items-start justify-between gap-4">
-            <dt className="text-sm text-muted-foreground">Пакет</dt>
+            <dt className="text-sm text-muted-foreground">{t("Пакет")}</dt>
             <dd className="text-right text-sm font-semibold">
-              {order.packageName}
+              {t(order.packageName)}
             </dd>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <dt className="text-sm text-muted-foreground">Кредиты</dt>
+            <dt className="text-sm text-muted-foreground">{t("Кредиты")}</dt>
             <dd className="text-right text-sm font-semibold tabular-nums">
               {order.credits}
             </dd>
           </div>
           <div className="flex items-start justify-between gap-4 border-t border-border pt-4">
-            <dt className="text-sm text-muted-foreground">К оплате</dt>
+            <dt className="text-sm text-muted-foreground">{t("К оплате")}</dt>
             <dd className="text-right font-mono text-lg font-semibold tabular-nums">
-              {formatUzs(order.amountUzs)}
+              {new Intl.NumberFormat(locale).format(order.amountUzs)} {t("сум")}
             </dd>
           </div>
         </dl>
@@ -184,53 +197,53 @@ export function MockCheckout({ orderId }: { orderId: string }) {
             className="min-h-11 w-full"
             disabled={controlsDisabled}
             pending={outcome.isPending && outcome.variables === "PAID"}
-            pendingText="Обрабатываем…"
+            pendingText={t("Обрабатываем…")}
             onClick={() => outcome.mutate("PAID")}
-            aria-label="Симулировать успешную оплату"
+            aria-label={t("Симулировать успешную оплату")}
           >
             <CheckCircle2 className="size-4" />
-            Симулировать успешную оплату
+            {t("Симулировать успешную оплату")}
           </LoadingButton>
           <LoadingButton
             variant="destructive"
             className="min-h-11 w-full"
             disabled={controlsDisabled}
             pending={outcome.isPending && outcome.variables === "FAILED"}
-            pendingText="Обрабатываем…"
+            pendingText={t("Обрабатываем…")}
             onClick={() => outcome.mutate("FAILED")}
-            aria-label="Симулировать ошибку оплаты"
+            aria-label={t("Симулировать ошибку оплаты")}
           >
             <AlertCircle className="size-4" />
-            Симулировать ошибку
+            {t("Симулировать ошибку")}
           </LoadingButton>
           <LoadingButton
             variant="outline"
             className="min-h-11 w-full"
             disabled={controlsDisabled}
             pending={outcome.isPending && outcome.variables === "CANCELLED"}
-            pendingText="Обрабатываем…"
+            pendingText={t("Обрабатываем…")}
             onClick={() => outcome.mutate("CANCELLED")}
-            aria-label="Отменить тестовую оплату"
+            aria-label={t("Отменить тестовую оплату")}
           >
             <Ban className="size-4" />
-            Отменить оплату
+            {t("Отменить оплату")}
           </LoadingButton>
         </div>
 
         <div className="mt-5 min-h-12" aria-live="polite">
           {outcome.isPending ? (
             <p className="text-sm text-muted-foreground">
-              Обрабатываем тестовый результат…
+              {t("Обрабатываем тестовый результат…")}
             </p>
           ) : null}
           {outcomeError ? (
             <p className="text-sm text-destructive" role="alert">
-              {outcomeError.message}
+              {t(outcomeError.message)}
             </p>
           ) : null}
-          {result.message ? (
+          {terminalMessage ? (
             <p className={checkoutTerminalMessageClassName(order.status)}>
-              {result.message}
+              {terminalMessage}
             </p>
           ) : null}
         </div>
@@ -242,7 +255,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
             className={buttonClassName("outline", "mt-3 min-h-11 w-full")}
           >
             <CreditCard className="size-4" />
-            {result.destination.label}
+            {t(result.destination.label)}
           </Link>
         ) : (
           <Link
@@ -253,7 +266,7 @@ export function MockCheckout({ orderId }: { orderId: string }) {
               "mt-3 min-h-11 w-full text-muted-foreground",
             )}
           >
-            Вернуться к пакетам
+            {t("Вернуться к пакетам")}
           </Link>
         )}
       </CardContent>

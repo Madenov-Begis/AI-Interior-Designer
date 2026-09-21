@@ -30,6 +30,8 @@ import {
 type RoomValues = {
   code: string;
   name: string;
+  nameEn: string;
+  nameUz: string;
   promptModifier: string;
   active: boolean;
   sortOrder: number;
@@ -38,6 +40,8 @@ type RoomValues = {
 const emptyValues: RoomValues = {
   code: "",
   name: "",
+  nameEn: "",
+  nameUz: "",
   promptModifier: "",
   active: true,
   sortOrder: 0,
@@ -62,6 +66,8 @@ function RoomForm({
       ? {
           code: item.code,
           name: item.name,
+          nameEn: item.nameEn ?? "",
+          nameUz: item.nameUz ?? "",
           promptModifier: item.promptModifier,
           active: item.active,
           sortOrder: item.sortOrder,
@@ -74,6 +80,10 @@ function RoomForm({
           : "2–32 символа: строчные буквы, цифры и дефис",
       name: (value) =>
         value.trim().length >= 2 ? null : "Введите название комнаты",
+      nameEn: (value) =>
+        value.trim().length >= 2
+          ? null
+          : "Введите название комнаты на английском",
       promptModifier: (value) =>
         value.trim().length >= 10
           ? null
@@ -85,6 +95,8 @@ function RoomForm({
       const payload = {
         ...(item ? {} : { code: values.code }),
         name: values.name.trim(),
+        nameEn: values.nameEn.trim(),
+        nameUz: values.nameUz.trim() || null,
         promptModifier: values.promptModifier.trim(),
         active: values.active,
         sortOrder: values.sortOrder,
@@ -129,11 +141,25 @@ function RoomForm({
           {...form.getInputProps("code")}
         />
         <TextInput
-          label="Название"
+          label="Название (RU)"
           placeholder="Гостиная"
           required
           maxLength={80}
           {...form.getInputProps("name")}
+        />
+        <TextInput
+          label="Название (EN)"
+          placeholder="Living room"
+          required
+          maxLength={80}
+          {...form.getInputProps("nameEn")}
+        />
+        <TextInput
+          label="Название (UZ)"
+          description="Если не заполнено, пользователю показывается английское название"
+          placeholder="Mehmonxona"
+          maxLength={80}
+          {...form.getInputProps("nameUz")}
         />
         <RoomPromptField
           label="Инструкция для AI"

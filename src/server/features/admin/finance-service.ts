@@ -174,7 +174,11 @@ function creditPackageDto(item: {
   id: string;
   code: string;
   name: string;
+  nameEn: string | null;
+  nameUz: string | null;
   description: string | null;
+  descriptionEn: string | null;
+  descriptionUz: string | null;
   credits: number;
   priceUzs: number;
   popular: boolean;

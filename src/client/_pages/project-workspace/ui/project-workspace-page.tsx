@@ -12,8 +12,10 @@ import {
 } from "@/shared/ui";
 import { ApiClientError } from "@/shared/api";
 import { projectsQueries } from "@/shared/api/projects";
+import { useAppText } from "@/shared/providers";
 
 export function ProjectWorkspacePage() {
+  const t = useAppText();
   const { id } = useParams<{ id: string }>();
   const workspace = useQuery(projectsQueries.workspace(id));
 
@@ -42,29 +44,29 @@ export function ProjectWorkspacePage() {
         {workspace.isError ? (
           <>
             <h1 className="text-xl font-semibold">
-              {notFound ? "Проект не найден" : "Не удалось открыть проект"}
+              {notFound ? t("Проект не найден") : t("Не удалось открыть проект")}
             </h1>
             <p className="text-sm text-muted-foreground" role="alert">
-              {(workspace.error as Error).message}
+              {t((workspace.error as Error).message)}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {!notFound ? (
                 <LoadingButton
                   pending={workspace.isFetching}
-                  pendingText="Пробуем снова…"
+                  pendingText={t("Пробуем снова…")}
                   onClick={() => workspace.refetch()}
                 >
-                  Повторить
+                  {t("Повторить")}
                 </LoadingButton>
               ) : null}
               <Link href="/app/projects" className={buttonClassName("outline")}>
-                Все проекты
+                {t("Все проекты")}
               </Link>
             </div>
           </>
         ) : (
           <LoadingRegion
-            label="Открываем проект и подготавливаем рабочее пространство…"
+            label={t("Открываем проект и подготавливаем рабочее пространство…")}
             className="absolute inset-0 grid min-h-0 min-w-0 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]"
           >
             <section className="page-grid relative min-h-0 overflow-hidden">

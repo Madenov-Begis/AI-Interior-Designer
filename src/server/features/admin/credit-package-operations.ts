@@ -3,7 +3,11 @@ import { AdminServiceError } from "./errors.ts";
 
 export type CreditPackageMutation = {
   name: string;
+  nameEn: string;
+  nameUz: string | null;
   description: string | null;
+  descriptionEn: string | null;
+  descriptionUz: string | null;
   credits: number;
   priceUzs: number;
   popular: boolean;

@@ -4,20 +4,25 @@ import { listActiveRoomTypesWithDatabase } from "./operations.ts";
 
 test("public room catalog filters inactive rooms and never selects the AI prompt", async () => {
   let query: unknown;
-  const items = await listActiveRoomTypesWithDatabase({
-    roomType: {
-      async findMany(input) {
-        query = input;
-        return [
-          {
-            id: "00000000-0000-4000-8000-000000000010",
-            code: "living-room",
-            name: "Гостиная",
-          },
-        ];
+  const items = await listActiveRoomTypesWithDatabase(
+    {
+      roomType: {
+        async findMany(input) {
+          query = input;
+          return [
+            {
+              id: "00000000-0000-4000-8000-000000000010",
+              code: "living-room",
+              name: "Гостиная",
+              nameEn: "Living room",
+              nameUz: "Mehmonxona",
+            },
+          ];
+        },
       },
     },
-  });
+    "ru",
+  );
 
   assert.deepEqual(items, [
     {
@@ -29,6 +34,6 @@ test("public room catalog filters inactive rooms and never selects the AI prompt
   assert.deepEqual(query, {
     where: { active: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { code: "asc" }],
-    select: { id: true, code: true, name: true },
+    select: { id: true, code: true, name: true, nameEn: true, nameUz: true },
   });
 });

@@ -34,6 +34,7 @@ import {
 } from "@/server/features/visual-prompt/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
+import { localeFromHeaders } from "@/server/shared/i18n/api-locale";
 import {
   requireCurrentUser,
   UnauthorizedError,
@@ -128,8 +129,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     let visualPromptImageId: string | undefined;
     let parsedCanvasState:
-      | ReturnType<typeof parseVisualPromptCanvasState>
-      | undefined;
+      ReturnType<typeof parseVisualPromptCanvasState> | undefined;
     if (overlay instanceof File) {
       const state = parseVisualPromptCanvasState(canvasStateValue);
       parsedCanvasState = state;
@@ -170,6 +170,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const payload = await getGenerationClientPayload(
       user.id,
       reserved.generation.id,
+      localeFromHeaders(request.headers),
     );
     return apiSuccess(
       {
@@ -197,7 +198,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
     if (error instanceof RateLimitError) {
-      const response = apiError("RATE_LIMITED", error.message, requestId, 429);
+      const response = await apiError(
+        "RATE_LIMITED",
+        error.message,
+        requestId,
+        429,
+      );
       response.headers.set("retry-after", String(error.retryAfter));
       return response;
     }

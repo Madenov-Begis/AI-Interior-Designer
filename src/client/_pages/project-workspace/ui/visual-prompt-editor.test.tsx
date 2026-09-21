@@ -1,7 +1,9 @@
 import { createRef } from "react";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { VisualPromptEditorHandle } from "@/features/visual-prompt";
+import { appMessages } from "@/i18n/app-messages";
 import { CanvasDraftStore } from "@/shared/lib/browser/canvas-draft";
 import type { VisualPromptCanvasState } from "@/features/visual-prompt";
 import { VisualPromptEditor } from "./visual-prompt-editor";
@@ -81,13 +83,15 @@ function mountEditor(initialState: VisualPromptCanvasState | null = null) {
   const message = vi.fn();
   const ref = createRef<VisualPromptEditorHandle>();
   const view = render(
-    <VisualPromptEditor
-      {...props}
-      initialState={initialState}
-      ref={ref}
-      onHistoryStateChange={history}
-      onPersistenceStateChange={message}
-    />,
+    <NextIntlClientProvider locale="ru" messages={appMessages.ru}>
+      <VisualPromptEditor
+        {...props}
+        initialState={initialState}
+        ref={ref}
+        onHistoryStateChange={history}
+        onPersistenceStateChange={message}
+      />
+    </NextIntlClientProvider>,
   );
   return { ...view, ref, history, message };
 }

@@ -15,6 +15,7 @@ import { mediaQueries } from "@/shared/api/media.query";
 import { useRef, useState } from "react";
 import { buttonClassName } from "@/shared/ui";
 import { apiData } from "@/shared/api";
+import { useAppText } from "@/shared/providers";
 
 export type ReferenceItem = {
   id: string;
@@ -37,6 +38,7 @@ export function ReferenceManager({
   maxCount = 10,
   variant = "section",
 }: Props) {
+  const t = useAppText();
   const inputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"files" | "urls">("files");
   const [addOpen, setAddOpen] = useState(false);
@@ -60,10 +62,12 @@ export function ReferenceManager({
     if (!files?.length || busy) return;
     if (references.length + files.length > maxCount)
       return setMessage(
-        `Можно добавить ещё ${Math.max(0, maxCount - references.length)} изображений`,
+        t("Можно добавить ещё {count} изображений", {
+          count: Math.max(0, maxCount - references.length),
+        }),
       );
     setBusy(true);
-    setMessage("Проверяем и загружаем референсы…");
+    setMessage(t("Проверяем и загружаем референсы…"));
     try {
       const formData = new FormData();
       Array.from(files).forEach((file) => formData.append("files", file));
@@ -75,13 +79,17 @@ export function ReferenceManager({
       const added = payload.references;
       setReferences((current) => [...current, ...added]);
       setMessage(
-        `Добавлено: ${added.length}. Всего ${references.length + added.length} из ${maxCount}`,
+        t("Добавлено: {added}. Всего {total} из {max}", {
+          added: added.length,
+          total: references.length + added.length,
+          max: maxCount,
+        }),
       );
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Не удалось загрузить референсы",
+          : t("Не удалось загрузить референсы"),
       );
     } finally {
       setBusy(false);
@@ -97,10 +105,12 @@ export function ReferenceManager({
     if (!values.length || busy) return;
     if (references.length + values.length > maxCount)
       return setMessage(
-        `Можно импортировать ещё ${Math.max(0, maxCount - references.length)} ссылок`,
+        t("Можно импортировать ещё {count} ссылок", {
+          count: Math.max(0, maxCount - references.length),
+        }),
       );
     setBusy(true);
-    setMessage("Безопасно проверяем и импортируем ссылки…");
+    setMessage(t("Безопасно проверяем и импортируем ссылки…"));
     try {
       const payload = await apiData<{
         results: Array<
@@ -139,15 +149,19 @@ export function ReferenceManager({
       ) as Array<{ url: string; message: string }>;
       setMessage(
         failed.length
-          ? `Добавлено ${added.length}; ошибок ${failed.length}: ${failed[0].message}`
-          : `Добавлено ссылок: ${added.length}`,
+          ? t("Добавлено {added}; ошибок {failed}: {message}", {
+              added: added.length,
+              failed: failed.length,
+              message: failed[0].message,
+            })
+          : t("Добавлено ссылок: {count}", { count: added.length }),
       );
       if (!failed.length) setUrls("");
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Не удалось импортировать ссылки",
+          : t("Не удалось импортировать ссылки"),
       );
     } finally {
       setBusy(false);
@@ -160,7 +174,7 @@ export function ReferenceManager({
   ) {
     if (busy) return;
     setBusy(true);
-    setMessage("Сохраняем порядок референсов…");
+    setMessage(t("Сохраняем порядок референсов…"));
     setReferences(next.map((item, position) => ({ ...item, position })));
     try {
       await apiData({
@@ -168,11 +182,11 @@ export function ReferenceManager({
         method: "PATCH",
         data: { referenceIds: next.map((item) => item.id) },
       });
-      setMessage("Порядок референсов сохранён");
+      setMessage(t("Порядок референсов сохранён"));
     } catch (error) {
       setReferences(previous);
       setMessage(
-        error instanceof Error ? error.message : "Не удалось изменить порядок",
+        error instanceof Error ? t(error.message) : t("Не удалось изменить порядок"),
       );
     } finally {
       setBusy(false);
@@ -191,7 +205,7 @@ export function ReferenceManager({
   async function remove(referenceId: string) {
     if (busy) return;
     setBusy(true);
-    setMessage("Удаляем референс…");
+    setMessage(t("Удаляем референс…"));
     try {
       await apiData({
         url: `/projects/${projectId}/references/${referenceId}`,
@@ -202,10 +216,10 @@ export function ReferenceManager({
           .filter((item) => item.id !== referenceId)
           .map((item, position) => ({ ...item, position })),
       );
-      setMessage("Референс удалён");
+      setMessage(t("Референс удалён"));
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Не удалось удалить референс",
+        error instanceof Error ? t(error.message) : t("Не удалось удалить референс"),
       );
     } finally {
       setBusy(false);
@@ -215,17 +229,17 @@ export function ReferenceManager({
   async function clearAll() {
     if (!references.length || busy) return;
     setBusy(true);
-    setMessage("Удаляем все референсы…");
+    setMessage(t("Удаляем все референсы…"));
     try {
       await apiData({
         url: `/projects/${projectId}/references`,
         method: "DELETE",
       });
       setReferences([]);
-      setMessage("Все референсы удалены");
+      setMessage(t("Все референсы удалены"));
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Не удалось очистить список",
+        error instanceof Error ? t(error.message) : t("Не удалось очистить список"),
       );
     } finally {
       setBusy(false);
@@ -262,7 +276,7 @@ export function ReferenceManager({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.previewUrl}
-                  alt={`Референс ${index + 1}`}
+                  alt={t("Референс {number}", { number: index + 1 })}
                   className="size-full object-cover"
                   loading="lazy"
                   decoding="async"
@@ -274,7 +288,7 @@ export function ReferenceManager({
                   onClick={() => move(index, -1)}
                   disabled={index === 0 || busy}
                   className="grid size-11 place-items-center text-muted transition-colors hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
-                  aria-label="Переместить влево"
+                  aria-label={t("Переместить влево")}
                 >
                   <ArrowLeft size={16} />
                 </button>
@@ -283,7 +297,7 @@ export function ReferenceManager({
                   onClick={() => move(index, 1)}
                   disabled={index === references.length - 1 || busy}
                   className="grid size-11 place-items-center border-x border-border text-muted transition-colors hover:bg-surface-elevated hover:text-foreground disabled:opacity-30"
-                  aria-label="Переместить вправо"
+                  aria-label={t("Переместить вправо")}
                 >
                   <ArrowRight size={16} />
                 </button>
@@ -292,7 +306,7 @@ export function ReferenceManager({
                   onClick={() => void remove(item.id)}
                   disabled={busy}
                   className="grid size-11 place-items-center text-red-300 transition-colors hover:bg-surface-elevated disabled:opacity-30"
-                  aria-label="Удалить референс"
+                  aria-label={t("Удалить референс")}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -305,7 +319,10 @@ export function ReferenceManager({
             disabled={busy || references.length >= maxCount}
             aria-expanded={addOpen}
             aria-controls="compact-reference-add"
-            aria-label={`Добавить референс. Добавлено ${references.length} из ${maxCount}`}
+            aria-label={t("Добавить референс. Добавлено {count} из {max}", {
+              count: references.length,
+              max: maxCount,
+            })}
             className="grid min-h-[137px] w-[92px] shrink-0 place-items-center rounded-xl border border-dashed border-muted bg-background text-center text-muted transition-colors hover:border-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
           >
             <span>
@@ -321,7 +338,7 @@ export function ReferenceManager({
           <div
             id="compact-reference-add"
             role="dialog"
-            aria-label="Добавить референс"
+            aria-label={t("Добавить референс")}
             className="mt-2 rounded-xl border border-border bg-background p-3 shadow-xl"
           >
             <div className="flex items-center gap-1">
@@ -336,7 +353,7 @@ export function ReferenceManager({
                 }`}
               >
                 <Upload size={15} aria-hidden="true" />
-                Файлы
+                {t("Файлы")}
               </button>
               <button
                 type="button"
@@ -349,13 +366,13 @@ export function ReferenceManager({
                 }`}
               >
                 <Link2 size={15} aria-hidden="true" />
-                Ссылка
+                {t("Ссылка")}
               </button>
               <button
                 type="button"
                 onClick={() => setAddOpen(false)}
                 className="grid size-11 place-items-center rounded-lg text-muted hover:bg-surface-elevated hover:text-foreground"
-                aria-label="Закрыть добавление референсов"
+                aria-label={t("Закрыть добавление референсов")}
               >
                 <X size={16} />
               </button>
@@ -372,7 +389,7 @@ export function ReferenceManager({
                 )}
               >
                 <Upload size={16} aria-hidden="true" />
-                Выбрать изображения
+                {t("Выбрать изображения")}
               </button>
             ) : (
               <div className="mt-3 grid gap-2">
@@ -394,7 +411,7 @@ export function ReferenceManager({
                     "rounded-lg py-2 disabled:opacity-40",
                   )}
                 >
-                  Импортировать ссылки
+                  {t("Импортировать ссылки")}
                 </button>
               </div>
             )}
@@ -413,7 +430,7 @@ export function ReferenceManager({
                 aria-hidden="true"
               />
             ) : null}
-            <span>{message}</span>
+            <span>{t(message)}</span>
           </p>
           {references.length > 0 && (
             <button
@@ -422,7 +439,7 @@ export function ReferenceManager({
               disabled={busy}
               className="min-h-11 shrink-0 rounded-lg px-2 text-xs font-bold text-red-300 hover:bg-surface-elevated hover:text-red-200 disabled:opacity-40"
             >
-              Очистить
+              {t("Очистить")}
             </button>
           )}
         </div>
@@ -435,9 +452,9 @@ export function ReferenceManager({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black tracking-[0.18em] text-accent uppercase">
-            Шаг 2 из 3
+            {t("Шаг 2 из 3")}
           </p>
-          <h2 className="mt-2 text-2xl font-black italic">Референсы</h2>
+          <h2 className="mt-2 text-2xl font-black italic">{t("Референсы")}</h2>
         </div>
         <span className="rounded-full bg-surface-elevated px-4 py-2 text-sm font-bold">
           {references.length} / {maxCount}
@@ -450,14 +467,14 @@ export function ReferenceManager({
           onClick={() => setTab("files")}
           className={`rounded-lg px-4 py-2 text-sm font-bold ${tab === "files" ? "bg-accent text-accent-foreground" : "bg-surface-elevated text-muted"}`}
         >
-          Файлы
+          {t("Файлы")}
         </button>
         <button
           type="button"
           onClick={() => setTab("urls")}
           className={`rounded-lg px-4 py-2 text-sm font-bold ${tab === "urls" ? "bg-accent text-accent-foreground" : "bg-surface-elevated text-muted"}`}
         >
-          Ссылки
+          {t("Ссылки")}
         </button>
       </div>
 
@@ -474,7 +491,7 @@ export function ReferenceManager({
             )}
           >
             <Upload size={17} aria-hidden="true" />
-            Выбрать изображения
+            {t("Выбрать изображения")}
           </button>
         </div>
       ) : (
@@ -497,7 +514,7 @@ export function ReferenceManager({
               "rounded-xl disabled:opacity-40",
             )}
           >
-            Импортировать ссылки
+            {t("Импортировать ссылки")}
           </button>
         </div>
       )}
@@ -513,7 +530,7 @@ export function ReferenceManager({
             aria-hidden="true"
           />
         ) : null}
-        <span>{message}</span>
+        <span>{t(message)}</span>
       </p>
 
       {references.length > 0 && (
@@ -533,7 +550,7 @@ export function ReferenceManager({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={item.previewUrl}
-                    alt={`Референс ${index + 1}`}
+                    alt={t("Референс {number}", { number: index + 1 })}
                     className="size-full object-cover"
                     loading="lazy"
                     decoding="async"
@@ -545,7 +562,7 @@ export function ReferenceManager({
                     onClick={() => move(index, -1)}
                     disabled={index === 0 || busy}
                     className="grid place-items-center rounded-md bg-surface-elevated py-2 disabled:opacity-30"
-                    aria-label="Переместить влево"
+                    aria-label={t("Переместить влево")}
                   >
                     <ArrowLeft size={16} />
                   </button>
@@ -554,7 +571,7 @@ export function ReferenceManager({
                     onClick={() => move(index, 1)}
                     disabled={index === references.length - 1 || busy}
                     className="grid place-items-center rounded-md bg-surface-elevated py-2 disabled:opacity-30"
-                    aria-label="Переместить вправо"
+                    aria-label={t("Переместить вправо")}
                   >
                     <ArrowRight size={16} />
                   </button>
@@ -563,7 +580,7 @@ export function ReferenceManager({
                     onClick={() => void remove(item.id)}
                     disabled={busy}
                     className="grid place-items-center rounded-md bg-surface-elevated py-2 text-red-300"
-                    aria-label="Удалить референс"
+                    aria-label={t("Удалить референс")}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -577,7 +594,7 @@ export function ReferenceManager({
             disabled={busy}
             className="mt-4 text-sm font-bold text-red-300 hover:text-red-200"
           >
-            Очистить весь список
+            {t("Очистить весь список")}
           </button>
         </div>
       )}

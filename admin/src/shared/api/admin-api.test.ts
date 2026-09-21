@@ -31,6 +31,7 @@ describe("adminApi Axios client", () => {
 
     await expect(adminApi<{ ok: boolean }>("/session")).resolves.toEqual({ ok: true });
     expect(adapter.mock.calls[0]?.[0].headers.get("Authorization")).toBe("Bearer token");
+    expect(adapter.mock.calls[0]?.[0].headers.get("Accept-Language")).toBe("ru");
   });
 
   it("preserves the backend error code and request id", async () => {

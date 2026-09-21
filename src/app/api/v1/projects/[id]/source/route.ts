@@ -62,7 +62,12 @@ export async function POST(
     if (error instanceof GenerationEmergencyStopError)
       return apiError(error.code, error.message, requestId, 503);
     if (error instanceof RateLimitError) {
-      const response = apiError("RATE_LIMITED", error.message, requestId, 429);
+      const response = await apiError(
+        "RATE_LIMITED",
+        error.message,
+        requestId,
+        429,
+      );
       response.headers.set("retry-after", String(error.retryAfter));
       return response;
     }

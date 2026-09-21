@@ -3,6 +3,8 @@ import { AdminServiceError } from "./errors.ts";
 
 export type RoomTypeMutation = {
   name: string;
+  nameEn: string;
+  nameUz: string | null;
   promptModifier: string;
   active: boolean;
   sortOrder: number;

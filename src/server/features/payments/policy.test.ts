@@ -44,13 +44,22 @@ test("rejects unsafe mock payment configurations", () => {
 });
 
 test("keeps an immutable order snapshot when package config changes", () => {
-  const source = { code: "mini", name: "Мини", credits: 20, priceUzs: 25_000 };
+  const source = {
+    code: "mini",
+    name: "Мини",
+    nameEn: "Mini",
+    nameUz: "Mini",
+    credits: 20,
+    priceUzs: 25_000,
+  };
   const snapshot = snapshotCreditPackage(source);
   source.credits = 999;
   source.priceUzs = 1;
   assert.deepEqual(snapshot, {
     packageCode: "mini",
     packageName: "Мини",
+    packageNameEn: "Mini",
+    packageNameUz: "Mini",
     credits: 20,
     amountUzs: 25_000,
   });

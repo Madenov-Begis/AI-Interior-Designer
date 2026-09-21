@@ -8,6 +8,7 @@ import { generationIdSchema } from "@/server/features/generations/schema";
 import { cancelOwnedGeneration } from "@/server/features/generations/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
+import { localeFromHeaders } from "@/server/shared/i18n/api-locale";
 import {
   requireCurrentUser,
   UnauthorizedError,
@@ -33,7 +34,14 @@ export async function POST(
         409,
       );
     }
-    return apiSuccess(await getGenerationClientPayload(user.id, id), requestId);
+    return apiSuccess(
+      await getGenerationClientPayload(
+        user.id,
+        id,
+        localeFromHeaders(request.headers),
+      ),
+      requestId,
+    );
   } catch (error) {
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

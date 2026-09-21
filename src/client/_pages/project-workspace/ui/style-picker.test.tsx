@@ -1,5 +1,7 @@
 import { render, within } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
 import { expect, test, vi } from "vitest";
+import { appMessages } from "@/i18n/app-messages";
 import { StylePicker } from "./style-picker";
 
 const styles = [
@@ -9,7 +11,9 @@ const styles = [
 
 function renderPicker() {
   const { container } = render(
-    <StylePicker styles={styles} value={undefined} onChange={vi.fn()} />,
+    <NextIntlClientProvider locale="ru" messages={appMessages.ru}>
+      <StylePicker styles={styles} value={undefined} onChange={vi.fn()} />
+    </NextIntlClientProvider>,
   );
   const scroller = within(container).getByRole("radiogroup", {
     name: "Стиль интерьера",

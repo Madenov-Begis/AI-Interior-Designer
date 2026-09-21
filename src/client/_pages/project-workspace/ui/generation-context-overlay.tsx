@@ -2,6 +2,7 @@
 
 import { SquarePen } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
+import { useAppText } from "@/shared/providers";
 
 type Props = {
   editorOpen: boolean;
@@ -16,6 +17,7 @@ export function GenerationContextOverlay({
   onToggleEditor,
   onDismiss,
 }: Props) {
+  const t = useAppText();
   const overlayRef = useRef<HTMLDivElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const previousEditorOpenRef = useRef(editorOpen);
@@ -56,7 +58,7 @@ export function GenerationContextOverlay({
     >
       <div
         className="generation-context-actions"
-        aria-label="Действия с вариантом"
+        aria-label={t("Действия с вариантом")}
       >
         <button
           ref={editButtonRef}
@@ -69,7 +71,7 @@ export function GenerationContextOverlay({
           onClick={onToggleEditor}
         >
           <SquarePen size={16} aria-hidden="true" />
-          Доработать
+          {t("Доработать")}
         </button>
       </div>
       {editorOpen ? composer : null}

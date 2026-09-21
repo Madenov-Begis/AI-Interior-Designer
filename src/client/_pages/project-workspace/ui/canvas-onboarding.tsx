@@ -9,6 +9,7 @@ import type {
 } from "react-joyride";
 import type { CanvasOnboardingStep } from "../model/canvas-onboarding";
 import { CANVAS_ONBOARDING_STEP } from "../model/canvas-onboarding";
+import { useAppText } from "@/shared/providers";
 
 const Joyride = dynamic<JoyrideProps>(
   () => import("react-joyride").then((module) => module.Joyride),
@@ -29,6 +30,7 @@ function CanvasOnboardingTooltip({
   skipProps,
   tooltipProps,
 }: TooltipRenderProps) {
+  const t = useAppText();
   const actions = step.data as CanvasOnboardingStepData;
 
   return (
@@ -38,7 +40,7 @@ function CanvasOnboardingTooltip({
     >
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
-          Возможности холста
+          {t("Возможности холста")}
         </span>
         <span className="text-xs tabular-nums text-muted-foreground">
           {index + 1} / {size}
@@ -57,7 +59,7 @@ function CanvasOnboardingTooltip({
           onClick={actions.onSkip}
           className="min-h-10 rounded-lg px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
         >
-          Пропустить
+          {t("Пропустить")}
         </button>
         <button
           {...primaryProps}
@@ -65,14 +67,14 @@ function CanvasOnboardingTooltip({
           onClick={actions.onPrimary}
           className="min-h-10 rounded-lg bg-primary px-4 text-sm font-black text-primary-foreground hover:brightness-105"
         >
-          {isLastStep ? "Готово" : "Следующее"}
+          {isLastStep ? t("Готово") : t("Следующее")}
         </button>
       </div>
     </div>
   );
 }
 
-const steps = [
+const stepSources = [
   {
     target: "[data-onboarding='canvas']",
     placement: "center" as const,
@@ -126,6 +128,7 @@ export function CanvasOnboardingTrigger({
   active: boolean;
   onStart(): void;
 }) {
+  const t = useAppText();
   if (active) return null;
 
   return (
@@ -133,11 +136,11 @@ export function CanvasOnboardingTrigger({
       type="button"
       onClick={onStart}
       className="absolute top-3 left-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold shadow-xl transition-colors hover:bg-secondary"
-      aria-label="Показать обучение по холсту"
-      title="Обучение по холсту"
+      aria-label={t("Показать обучение по холсту")}
+      title={t("Обучение по холсту")}
     >
       <CircleHelp size={18} aria-hidden="true" />
-      <span className="hidden sm:inline">Как работать</span>
+      <span className="hidden sm:inline">{t("Как работать")}</span>
     </button>
   );
 }
@@ -155,10 +158,13 @@ export function CanvasOnboarding({
   onAdvance(step: CanvasOnboardingStep): void;
   onFinish(): void;
 }) {
+  const t = useAppText();
   const controlledSteps = useMemo(
     () =>
-      steps.map((item, index) => ({
+      stepSources.map((item, index) => ({
         ...item,
+        title: t(item.title),
+        content: t(item.content),
         data: {
           onSkip: onFinish,
           onPrimary:
@@ -167,7 +173,7 @@ export function CanvasOnboarding({
               : () => onAdvance(index as CanvasOnboardingStep),
         } satisfies CanvasOnboardingStepData,
       })),
-    [onAdvance, onFinish],
+    [onAdvance, onFinish, t],
   );
 
   if (!active) return null;

@@ -8,7 +8,13 @@ import {
 } from "@/shared/providers";
 import { RuvieLogo } from "@/shared/ui";
 
-export function LegalDocumentView({ html }: { html: string }) {
+export function LegalDocumentView({
+  html,
+  translated = false,
+}: {
+  html: string;
+  translated?: boolean;
+}) {
   const t = useAppText();
 
   return (
@@ -31,6 +37,13 @@ export function LegalDocumentView({ html }: { html: string }) {
               </Link>
             </div>
           </div>
+          {translated ? (
+            <p className="mb-6 rounded-xl border border-border bg-secondary/35 px-4 py-3 text-sm text-muted-foreground">
+              {t(
+                "Перевод подготовлен для удобства. При расхождениях применяется русская версия.",
+              )}
+            </p>
+          ) : null}
           <div dangerouslySetInnerHTML={{ __html: html }} />
         </article>
       </main>

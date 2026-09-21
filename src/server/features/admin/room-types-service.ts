@@ -12,6 +12,8 @@ function roomTypeDto(item: {
   id: string;
   code: string;
   name: string;
+  nameEn: string | null;
+  nameUz: string | null;
   promptModifier: string;
   active: boolean;
   sortOrder: number;

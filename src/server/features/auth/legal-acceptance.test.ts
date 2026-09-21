@@ -43,10 +43,17 @@ test("OAuth requires and persists versioned legal acceptance", async () => {
   assert.match(migration, /REVOKE ALL.+anon, authenticated/i);
 });
 
-test("legal pages and footer expose both documents", async () => {
-  const [privacyPage, offerPage, footer] = await Promise.all([
+test("legal pages and footer expose both localized documents", async () => {
+  const [privacyPage, offerPage, legalDocument, footer] = await Promise.all([
     readFile(new URL("../../../app/privacy/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../../../app/offer/page.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL(
+        "../../../app/_components/markdown-legal-document.tsx",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
     readFile(
       new URL(
         "../../../client/_pages/landing/ui/site-footer.tsx",
@@ -56,8 +63,9 @@ test("legal pages and footer expose both documents", async () => {
     ),
   ]);
 
-  assert.match(privacyPage, /privacy-policy\.md/);
-  assert.match(offerPage, /public-offer\.md/);
+  assert.match(privacyPage, /document="privacy-policy"/);
+  assert.match(offerPage, /document="public-offer"/);
+  assert.match(legalDocument, /`\$\{document\}\.\$\{locale\}\.md`/);
   assert.match(footer, /LEGAL_ROUTES\.privacy/);
   assert.match(footer, /LEGAL_ROUTES\.offer/);
 });

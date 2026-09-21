@@ -11,6 +11,8 @@ function harness(input: { activeCount: number; active?: boolean }) {
     id: "room-1",
     code: "living-room",
     name: "Гостиная",
+    nameEn: "Living room",
+    nameUz: "Mehmonxona",
     promptModifier: "Назначение помещения: гостиная.",
     active: input.active ?? true,
     sortOrder: 10,

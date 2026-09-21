@@ -13,7 +13,7 @@ const user = {
 function malformedRequest() {
   return new Request("http://localhost/api/v1/payment-orders", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "accept-language": "ru" },
     body: '{"packageCode":',
   });
 }
@@ -38,6 +38,36 @@ test("create-order POST returns validation 400 for malformed JSON before service
     },
     meta: { requestId: "request-create" },
   });
+});
+
+test("public payment errors keep their code and localize the message", async () => {
+  for (const [locale, message] of [
+    ["en", "Check the entered data"],
+    ["uz", "Kiritilgan ma’lumotlarni tekshiring"],
+  ] as const) {
+    const request = new Request("http://localhost/api/v1/payment-orders", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "accept-language": locale,
+      },
+      body: '{"packageCode":',
+    });
+    const response = await handlePaymentOrderPost(
+      request,
+      `request-${locale}`,
+      {
+        requireCurrentUser: async () => user,
+        createPaymentOrder: async () => {
+          throw new Error("SERVICE_OPERATION_ENTERED");
+        },
+      },
+    );
+    const payload = await response.json();
+    assert.equal(response.status, 400);
+    assert.equal(payload.error.code, "VALIDATION_ERROR");
+    assert.equal(payload.error.message, message);
+  }
 });
 
 test("mock-outcome POST returns validation 400 for malformed JSON before service operations", async () => {
@@ -65,6 +95,9 @@ test("mock-outcome POST returns validation 400 for malformed JSON before service
 
 test("owned PAID order GET returns its trusted balance without payment internals", async () => {
   const response = await handlePaymentOrderGet(
+    new Request("http://localhost/api/v1/payment-orders/order", {
+      headers: { "accept-language": "ru" },
+    }),
     { params: Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" }) },
     "request-owned-paid",
     {
@@ -77,6 +110,8 @@ test("owned PAID order GET returns its trusted balance without payment internals
         status: "PAID",
         packageCode: "standard",
         packageName: "Стандарт",
+        packageNameEn: "Standard",
+        packageNameUz: "Standart",
         credits: 60,
         amountUzs: 69_000,
         expiresAt: new Date("2026-07-29T10:30:00.000Z"),
@@ -102,6 +137,9 @@ test("owned PAID order GET returns its trusted balance without payment internals
 
 test("owned PENDING order GET does not depend on an unrelated balance read", async () => {
   const response = await handlePaymentOrderGet(
+    new Request("http://localhost/api/v1/payment-orders/order", {
+      headers: { "accept-language": "ru" },
+    }),
     { params: Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" }) },
     "request-owned-pending",
     {
@@ -114,6 +152,8 @@ test("owned PENDING order GET does not depend on an unrelated balance read", asy
         status: "PENDING",
         packageCode: "standard",
         packageName: "Стандарт",
+        packageNameEn: "Standard",
+        packageNameUz: "Standart",
         credits: 60,
         amountUzs: 69_000,
         expiresAt: new Date("2026-07-29T10:30:00.000Z"),

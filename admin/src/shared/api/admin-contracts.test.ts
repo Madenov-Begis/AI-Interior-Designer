@@ -1,10 +1,17 @@
 import { expect, it } from "vitest";
-import type { AdminGeneration, CreditPackage, CreditTransaction } from "./admin-contracts";
+import type {
+  AdminGeneration,
+  CreditPackage,
+  CreditTransaction,
+} from "./admin-contracts";
 
 it("generation fixture uses the explicit contract without a model", () => {
   const generation: AdminGeneration = {
     id: "00000000-0000-4000-8000-000000000000",
-    user: { id: "00000000-0000-4000-8000-000000000001", account: "Администратор" },
+    user: {
+      id: "00000000-0000-4000-8000-000000000001",
+      account: "Администратор",
+    },
     project: { id: "00000000-0000-4000-8000-000000000002", name: "Гостиная" },
     parentGenerationId: null,
     status: "QUEUED",
@@ -30,7 +37,10 @@ it("generation fixture uses the explicit contract without a model", () => {
 it("credit transaction fixture does not expose wallet or idempotency key", () => {
   const transaction: CreditTransaction = {
     id: "00000000-0000-4000-8000-000000000000",
-    user: { id: "00000000-0000-4000-8000-000000000001", account: "Пользователь" },
+    user: {
+      id: "00000000-0000-4000-8000-000000000001",
+      account: "Пользователь",
+    },
     kind: "ADMIN_ADJUSTMENT",
     amount: 5,
     balanceAfter: 20,
@@ -48,7 +58,11 @@ it("credit package fixture exposes only editable catalog fields", () => {
     id: "00000000-0000-4000-8000-000000000000",
     code: "standard",
     name: "Стандарт",
+    nameEn: "Standard",
+    nameUz: "Standart",
     description: "Оптимально для ремонта",
+    descriptionEn: "Best for renovation",
+    descriptionUz: "Ta’mirlash uchun maqbul",
     credits: 60,
     priceUzs: 69_000,
     popular: true,

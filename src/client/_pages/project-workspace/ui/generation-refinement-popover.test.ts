@@ -109,7 +109,7 @@ test("eraser uses the Fabric 7 compatible erasing brush", () => {
 });
 
 test("trash clears all markup without a browser confirmation", () => {
-  assert.match(toolbarSource, /label="Удалить всю разметку"/);
+  assert.match(toolbarSource, /label=\{t\("Удалить всю разметку"\)\}/);
   assert.match(workspaceSource, /clearCurrentVisualPrompt/);
   assert.match(workspaceSource, /await editor\.clear\(\)/);
   assert.match(visualPromptEditorSource, /canvas\.clear\(\)/);

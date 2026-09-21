@@ -34,6 +34,7 @@ import {
   ToggleGroupItem,
 } from "@/shared/ui";
 import { cn } from "@/shared/lib";
+import { useAppText } from "@/shared/providers";
 
 export type WorkspaceToolbarProps = {
   tool: VisualPromptTool;
@@ -119,6 +120,7 @@ export function WorkspaceToolbar({
   onRedo,
   onClear,
 }: WorkspaceToolbarProps) {
+  const t = useAppText();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const hasDrawingSettings =
     tool === "pen" ||
@@ -130,14 +132,14 @@ export function WorkspaceToolbar({
   return (
     <div
       className="workspace-toolbar"
-      aria-label="Инструменты разметки"
+      aria-label={t("Инструменты разметки")}
       data-onboarding="drawing-tools"
     >
       <div className="workspace-toolbar__rail">
         {TOOLS.map(({ id, label, icon: Icon }) => (
           <ToolbarButton
             key={id}
-            label={label}
+            label={t(label)}
             pressed={tool === id}
             onClick={() => {
               onToolChange(id);
@@ -153,7 +155,7 @@ export function WorkspaceToolbar({
         {hasDrawingSettings ? (
           <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
             <PopoverTrigger asChild>
-              <ToolbarButton label="Цвет и толщина" pressed={settingsOpen}>
+              <ToolbarButton label={t("Цвет и толщина")} pressed={settingsOpen}>
                 <span
                   className="relative grid size-5 place-items-center"
                   style={hasColorSettings ? { color } : undefined}
@@ -177,11 +179,11 @@ export function WorkspaceToolbar({
               className="w-80"
             >
               <PopoverHeader>
-                <PopoverTitle>Параметры разметки</PopoverTitle>
+                <PopoverTitle>{t("Параметры разметки")}</PopoverTitle>
                 <PopoverDescription>
                   {hasColorSettings
-                    ? "Выберите цвет и толщину линии"
-                    : "Настройте толщину ластика"}
+                    ? t("Выберите цвет и толщину линии")
+                    : t("Настройте толщину ластика")}
                 </PopoverDescription>
               </PopoverHeader>
 
@@ -189,7 +191,7 @@ export function WorkspaceToolbar({
                 {hasColorSettings ? (
                   <>
                     <Field>
-                      <FieldLabel>Цвет</FieldLabel>
+                      <FieldLabel>{t("Цвет")}</FieldLabel>
                       <ToggleGroup
                         type="single"
                         value={
@@ -203,7 +205,7 @@ export function WorkspaceToolbar({
                           if (value) onColorChange(value);
                         }}
                         spacing={2}
-                        aria-label="Цвет линии"
+                        aria-label={t("Цвет линии")}
                       >
                         {COLORS.map((preset) => {
                           const selected =
@@ -213,8 +215,8 @@ export function WorkspaceToolbar({
                             <ToggleGroupItem
                               key={preset.value}
                               value={preset.value}
-                              aria-label={preset.label}
-                              title={preset.label}
+                              aria-label={t(preset.label)}
+                              title={t(preset.label)}
                               className={cn(
                                 "size-9 rounded-full border-2 p-0",
                                 selected
@@ -237,7 +239,7 @@ export function WorkspaceToolbar({
 
                     <Field>
                       <FieldLabel className="w-full cursor-pointer items-center justify-between rounded-lg border border-border px-3 py-2.5">
-                        <span>Свой цвет</span>
+                        <span>{t("Свой цвет")}</span>
                         <span className="flex items-center gap-2 font-mono text-xs uppercase text-muted-foreground">
                           <span
                             className="size-5 rounded-full border border-border"
@@ -253,7 +255,7 @@ export function WorkspaceToolbar({
                             onColorChange(event.target.value)
                           }
                           className="sr-only"
-                          aria-label="Выбрать свой цвет"
+                          aria-label={t("Выбрать свой цвет")}
                         />
                       </FieldLabel>
                     </Field>
@@ -262,7 +264,7 @@ export function WorkspaceToolbar({
 
                 <Field>
                   <FieldLabel htmlFor="workspace-stroke-width">
-                    {tool === "eraser" ? "Толщина ластика" : "Толщина линии"}
+                    {tool === "eraser" ? t("Толщина ластика") : t("Толщина линии")}
                     <span className="ml-auto tabular-nums text-muted-foreground">
                       {strokeWidth}px
                     </span>
@@ -277,7 +279,7 @@ export function WorkspaceToolbar({
                       if (value !== undefined) onStrokeWidthChange(value);
                     }}
                     aria-label={
-                      tool === "eraser" ? "Толщина ластика" : "Толщина линии"
+                      tool === "eraser" ? t("Толщина ластика") : t("Толщина линии")
                     }
                   />
                 </Field>
@@ -286,13 +288,13 @@ export function WorkspaceToolbar({
           </Popover>
         ) : null}
 
-        <ToolbarButton label="Отменить" disabled={!canUndo} onClick={onUndo}>
+        <ToolbarButton label={t("Отменить")} disabled={!canUndo} onClick={onUndo}>
           <Undo2 size={19} strokeWidth={2.1} />
         </ToolbarButton>
-        <ToolbarButton label="Повторить" disabled={!canRedo} onClick={onRedo}>
+        <ToolbarButton label={t("Повторить")} disabled={!canRedo} onClick={onRedo}>
           <Redo2 size={19} strokeWidth={2.1} />
         </ToolbarButton>
-        <ToolbarButton label="Удалить всю разметку" onClick={onClear}>
+        <ToolbarButton label={t("Удалить всю разметку")} onClick={onClear}>
           <Trash2 size={19} strokeWidth={2.1} />
         </ToolbarButton>
       </div>

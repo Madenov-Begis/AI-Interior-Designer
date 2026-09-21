@@ -10,7 +10,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const requestId = getRequestId(request.headers);
-  return handlePaymentOrderGet(context, requestId, {
+  return handlePaymentOrderGet(request, context, requestId, {
     requireCurrentUser,
     getOwnedPaymentOrder,
     getCreditBalance: async (userId) =>

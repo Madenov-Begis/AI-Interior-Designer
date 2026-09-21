@@ -1,5 +1,8 @@
+"use client";
+
 import { cn } from "@/shared/lib";
 import { getPaginationItems } from "@/shared/lib/pagination";
+import { useAppText } from "@/shared/providers/app-text";
 import {
   Pagination,
   PaginationContent,
@@ -23,6 +26,7 @@ export function AppPagination({
   buildHref,
   className,
 }: AppPaginationProps) {
+  const t = useAppText();
   if (pageCount <= 1) return null;
 
   const currentPage = Math.min(Math.max(1, page), pageCount);
@@ -54,7 +58,7 @@ export function AppPagination({
                 href={buildHref(item)}
                 prefetch={false}
                 isActive={item === currentPage}
-                aria-label={`Перейти на страницу ${item}`}
+                aria-label={t("Перейти на страницу {page}", { page: item })}
               >
                 {item}
               </PaginationLink>

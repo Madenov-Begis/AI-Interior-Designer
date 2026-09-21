@@ -1,7 +1,20 @@
 import type { Locale } from "./routing";
+import { pageMessages } from "./page-messages.ts";
+import { workspaceMessages } from "./workspace-messages.ts";
 
 export function appMessageKey(source: string) {
   return source.replaceAll(".", "﹒");
+}
+
+export function formatAppMessage(
+  template: string,
+  values?: Record<string, string | number>,
+) {
+  let result = template;
+  for (const [key, value] of Object.entries(values ?? {})) {
+    result = result.replaceAll(`{${key}}`, String(value));
+  }
+  return result;
 }
 
 function normalizeKeys(messages: Record<string, string>) {
@@ -11,6 +24,8 @@ function normalizeKeys(messages: Record<string, string>) {
 }
 
 const en: Record<string, string> = {
+  ...pageMessages.en,
+  ...workspaceMessages.en,
   "Личный кабинет": "Your account",
   "Войдите, чтобы начать интерьер": "Sign in to start designing",
   "Ваши проекты, изображения и ветки изменений будут доступны на любом устройстве.":
@@ -138,6 +153,8 @@ const en: Record<string, string> = {
 };
 
 const uz: Record<string, string> = {
+  ...pageMessages.uz,
+  ...workspaceMessages.uz,
   "Личный кабинет": "Shaxsiy kabinet",
   "Войдите, чтобы начать интерьер": "Dizayn yaratish uchun kiring",
   "Ваши проекты, изображения и ветки изменений будут доступны на любом устройстве.":

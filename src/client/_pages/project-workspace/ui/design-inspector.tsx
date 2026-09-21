@@ -25,6 +25,7 @@ import {
   type GenerationWallet,
   generationWalletPresentation,
 } from "@/features/generate-design";
+import { useAppText } from "@/shared/providers";
 
 export type DesignInspectorProps = {
   projectId: string;
@@ -77,6 +78,7 @@ export function DesignInspector({
   disabledReasons,
   onGenerate,
 }: DesignInspectorProps) {
+  const t = useAppText();
   const promptIsInvalid =
     prompt.length > 0 && (prompt.trim().length < 3 || prompt.length > 4000);
   const walletPresentation = generationWalletPresentation(
@@ -96,7 +98,7 @@ export function DesignInspector({
               id="inspector-references-title"
               className="text-xs font-semibold text-foreground"
             >
-              Референсы
+              {t("Референсы")}
             </h2>
           </div>
           <ReferenceManager
@@ -123,13 +125,13 @@ export function DesignInspector({
                 htmlFor="generation-prompt"
                 className="block text-sm font-semibold text-foreground"
               >
-                Опишите желаемый результат
+                {t("Опишите желаемый результат")}
               </label>
               <p
                 id="generation-prompt-help"
                 className="mt-1 text-xs leading-5 text-muted-foreground"
               >
-                Что изменить, добавить или сохранить.
+                {t("Что изменить, добавить или сохранить.")}
               </p>
             </div>
             <span
@@ -153,7 +155,7 @@ export function DesignInspector({
                 ? "generation-prompt-help generation-prompt-error"
                 : "generation-prompt-help"
             }
-            placeholder="Например: замените диван на светлый, добавьте тёплое освещение и сохраните расположение окон"
+            placeholder={t("Например: замените диван на светлый, добавьте тёплое освещение и сохраните расположение окон")}
             className="mt-3 min-h-36 resize-none border-border bg-background text-base focus-visible:border-primary focus-visible:ring-primary/25"
           />
           {promptIsInvalid && (
@@ -161,7 +163,7 @@ export function DesignInspector({
               id="generation-prompt-error"
               className="mt-2 text-xs leading-5 text-red-300"
             >
-              Инструкция должна содержать от 3 до 4000 символов.
+              {t("Инструкция должна содержать от 3 до 4000 символов.")}
             </p>
           )}
         </section>
@@ -179,10 +181,10 @@ export function DesignInspector({
                 id="inspector-room-title"
                 className="block text-sm font-semibold text-foreground"
               >
-                Комната
+                {t("Комната")}
               </label>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Уточняет назначение и эргономику интерьера.
+                {t("Уточняет назначение и эргономику интерьера.")}
               </p>
             </div>
           </div>
@@ -198,38 +200,38 @@ export function DesignInspector({
             >
               <SelectValue
                 placeholder={
-                  dataLoading ? "Загружаем комнаты…" : "Выберите комнату"
+                  dataLoading ? t("Загружаем комнаты…") : t("Выберите комнату")
                 }
               />
             </SelectTrigger>
             <SelectContent portalContainer={selectPortalContainer}>
               {rooms.map((room) => (
                 <SelectItem key={room.id} value={room.id}>
-                  {room.name}
+                  {t(room.name)}
                 </SelectItem>
               ))}
             </SelectContent>
           </RoomSelect>
           <p id="inspector-room-help" className="sr-only">
-            Обязательное поле. Выберите назначение помещения для этой генерации.
+            {t("Обязательное поле. Выберите назначение помещения для этой генерации.")}
           </p>
           {dataError ? (
             <div
               className="mt-2 flex items-center justify-between gap-3 text-xs"
               role="alert"
             >
-              <span className="text-red-300">{dataError}</span>
+              <span className="text-red-300">{t(dataError)}</span>
               <button
                 type="button"
                 onClick={onDataRetry}
                 className="min-h-10 shrink-0 cursor-pointer rounded-lg px-3 font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
-                Повторить
+                {t("Повторить")}
               </button>
             </div>
           ) : !dataLoading && rooms.length === 0 ? (
             <p className="mt-2 text-xs leading-5 text-red-300" role="alert">
-              Доступных комнат пока нет. Обратитесь к администратору.
+              {t("Доступных комнат пока нет. Обратитесь к администратору.")}
             </p>
           ) : null}
         </section>
@@ -244,7 +246,7 @@ export function DesignInspector({
 
         <fieldset>
           <legend className="text-xs font-semibold text-foreground">
-            Формат
+            {t("Формат")}
           </legend>
           <div className="mt-2 grid grid-cols-5 gap-1.5">
             <label
@@ -262,7 +264,7 @@ export function DesignInspector({
                 onChange={() => onAspectRatioChange("SOURCE")}
                 className="sr-only"
               />
-              <span>Как в исходнике</span>
+              <span>{t("Как в исходнике")}</span>
               <span className="font-mono text-xs">
                 {GENERATION_ASPECT_RATIO_LABELS[sourceAspectRatio]}
               </span>
@@ -294,13 +296,17 @@ export function DesignInspector({
       <div className="shrink-0 border-t border-border bg-card px-4 py-3">
         <div className="flex items-center justify-between gap-3 text-xs">
           <p className="font-semibold text-foreground">
-            {dataLoading ? "Проверяем баланс…" : walletPresentation.balanceText}
+            {dataLoading
+              ? t("Проверяем баланс…")
+              : credits
+                ? t("Баланс: {balance} кредитов", { balance: credits.balance })
+                : t("Баланс недоступен")}
           </p>
           <Link
             href="/app/credits"
             className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-primary/25 px-3 font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            Пополнить
+            {t("Пополнить")}
           </Link>
         </div>
 
@@ -315,7 +321,7 @@ export function DesignInspector({
               aria-hidden="true"
             />
             <span>
-              {disabledReasons.join(" ")}
+              {disabledReasons.map((reason) => t(reason)).join(" ")}
               {walletPresentation.balanceInsufficient &&
               walletPresentation.purchaseLink ? (
                 <>
@@ -324,7 +330,7 @@ export function DesignInspector({
                     href={walletPresentation.purchaseLink.href}
                     className="font-semibold text-primary underline-offset-2 hover:underline"
                   >
-                    {walletPresentation.purchaseLink.label}
+                    {t(walletPresentation.purchaseLink.label)}
                   </Link>
                 </>
               ) : null}
@@ -333,7 +339,7 @@ export function DesignInspector({
         )}
         {generationError ? (
           <p className="mt-3 text-xs leading-5 text-red-300" role="alert">
-            {generationError}
+            {t(generationError)}
             {generationErrorCode === "INSUFFICIENT_CREDITS" &&
             walletPresentation.purchaseLink ? (
               <>
@@ -342,7 +348,7 @@ export function DesignInspector({
                   href={walletPresentation.purchaseLink.href}
                   className="font-semibold underline underline-offset-2"
                 >
-                  {walletPresentation.purchaseLink.label}
+                  {t(walletPresentation.purchaseLink.label)}
                 </Link>
               </>
             ) : null}
@@ -354,12 +360,14 @@ export function DesignInspector({
             onClick={onGenerate}
             disabled={disabledReasons.length > 0}
             pending={generationPending}
-            pendingText="Запускаем…"
+            pendingText={t("Запускаем…")}
             className="mt-2 w-full"
             size="lg"
           >
             <ImagePlus size={18} aria-hidden="true" />
-            {walletPresentation.buttonLabel}
+            {t("Создать дизайн · {cost} кредита", {
+              cost: credits?.generationCost ?? 4,
+            })}
           </LoadingButton>
         </div>
       </div>

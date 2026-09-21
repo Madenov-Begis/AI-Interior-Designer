@@ -30,8 +30,7 @@ export function RuvieLogo({
         className,
       )}
       aria-label={
-        ariaLabel ??
-        (href === "/" ? `${APP_NAME} — главная` : `${APP_NAME} — открыть холст`)
+        ariaLabel ?? APP_NAME
       }
     >
       <RuvieWordmark />

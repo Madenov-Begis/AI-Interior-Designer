@@ -17,6 +17,8 @@ export type PaymentStatus = keyof typeof ALLOWED_PAYMENT_TRANSITIONS;
 export type CreditPackageSnapshotSource = {
   code: string;
   name: string;
+  nameEn: string | null;
+  nameUz: string | null;
   credits: number;
   priceUzs: number;
 };
@@ -31,6 +33,8 @@ export function snapshotCreditPackage(
   return {
     packageCode: creditPackage.code,
     packageName: creditPackage.name,
+    packageNameEn: creditPackage.nameEn,
+    packageNameUz: creditPackage.nameUz,
     credits: creditPackage.credits,
     amountUzs: creditPackage.priceUzs,
   };

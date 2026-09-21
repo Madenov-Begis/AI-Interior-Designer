@@ -7,7 +7,11 @@ import {
 } from "@/server/features/projects/workspace";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { requireCurrentUser, UnauthorizedError } from "@/server/features/auth/current-user";
+import { localeFromHeaders } from "@/server/shared/i18n/api-locale";
+import {
+  requireCurrentUser,
+  UnauthorizedError,
+} from "@/server/features/auth/current-user";
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +21,14 @@ export async function GET(
   try {
     const user = await requireCurrentUser();
     const projectId = projectIdSchema.parse((await context.params).id);
-    return apiSuccess(await getProjectWorkspace(user, projectId), requestId);
+    return apiSuccess(
+      await getProjectWorkspace(
+        user,
+        projectId,
+        localeFromHeaders(request.headers),
+      ),
+      requestId,
+    );
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return apiError("UNAUTHORIZED", error.message, requestId, 401);

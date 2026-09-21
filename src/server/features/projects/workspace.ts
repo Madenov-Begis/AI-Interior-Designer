@@ -7,6 +7,8 @@ import { findOwnedProject } from "@/server/features/projects/service";
 import type { VisualPromptCanvasState } from "@/server/features/visual-prompt/types";
 import type { CurrentUser } from "@/server/features/auth/claims";
 import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import type { Locale } from "@/i18n/routing";
+import { localizeGenerationMessage } from "@/server/shared/i18n/api-locale";
 
 export class ProjectWorkspaceNotFoundError extends Error {}
 
@@ -23,6 +25,7 @@ async function signFile(bucket: string, path: string) {
 export async function getProjectWorkspace(
   user: CurrentUser,
   projectId: string,
+  locale: Locale = "en",
 ): Promise<DesignWorkspaceProps> {
   const project = await findOwnedProject(user.id, projectId);
   if (!project) throw new ProjectWorkspaceNotFoundError("Проект не найден");
@@ -100,7 +103,11 @@ export async function getProjectWorkspace(
           : null,
         references: generation.references,
         errorCode: generation.errorCode,
-        errorMessage: generation.errorMessage,
+        errorMessage: localizeGenerationMessage(
+          locale,
+          generation.errorCode,
+          generation.errorMessage,
+        ),
         createdAt: generation.createdAt.toISOString(),
         completedAt: generation.completedAt?.toISOString() ?? null,
       })),

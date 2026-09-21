@@ -266,7 +266,11 @@ test("concurrent package changes leave exactly one active popular package", asyn
         createCreditPackageWithDatabase(db, {
           code: `${prefix}_${i}`,
           name: "Test",
+          nameEn: "Test",
+          nameUz: null,
           description: null,
+          descriptionEn: null,
+          descriptionUz: null,
           credits: 10,
           priceUzs: 100,
           popular: true,

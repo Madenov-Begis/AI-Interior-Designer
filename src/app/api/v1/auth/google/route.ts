@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   authErrorUrl,
+  encodeOAuthReturnState,
+  OAUTH_RETURN_STATE_COOKIE,
   oauthCallbackUrl,
   safeReturnOrigin,
   safeReturnPath,
@@ -23,11 +25,8 @@ export async function GET(request: NextRequest) {
     env.APP_ORIGINS,
     appUrl,
   );
-  const callbackUrl = oauthCallbackUrl(
-    request.nextUrl.origin,
-    safeReturnPath(request.nextUrl.searchParams.get("next")),
-    returnOrigin,
-  );
+  const safeNext = safeReturnPath(request.nextUrl.searchParams.get("next"));
+  const callbackUrl = oauthCallbackUrl(request.nextUrl.origin);
   if (
     !isCurrentLegalAcceptance(
       request.nextUrl.searchParams.get("legalAcceptance"),
@@ -56,5 +55,17 @@ export async function GET(request: NextRequest) {
     domain: authCookieDomain(env.NODE_ENV, env.AUTH_COOKIE_DOMAIN),
     maxAge: 15 * 60,
   });
+  response.cookies.set(
+    OAUTH_RETURN_STATE_COOKIE,
+    encodeOAuthReturnState(safeNext, returnOrigin),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: env.NODE_ENV === "production",
+      path: "/",
+      domain: authCookieDomain(env.NODE_ENV, env.AUTH_COOKIE_DOMAIN),
+      maxAge: 15 * 60,
+    },
+  );
   return response;
 }

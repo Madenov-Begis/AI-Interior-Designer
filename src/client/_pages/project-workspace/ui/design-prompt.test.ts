@@ -32,5 +32,5 @@ test("generation action panel keeps the primary action compact", () => {
   assert.doesNotMatch(inspectorSource, /Стоимость генерации/);
   assert.doesNotMatch(inspectorSource, /GENERATION_REFUND_MESSAGE/);
   assert.doesNotMatch(inspectorSource, /availableGenerationsText/);
-  assert.match(inspectorSource, /walletPresentation\.buttonLabel/);
+  assert.match(inspectorSource, /t\("Создать дизайн · \{cost\} кредита"/);
 });

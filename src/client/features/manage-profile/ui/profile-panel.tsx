@@ -349,7 +349,7 @@ export function ProfilePanel() {
               </div>
               <p
                 className={`mt-3 min-h-5 text-xs ${
-                  copyStatus?.startsWith("Не удалось")
+                  copyStatus === t("Не удалось скопировать email.")
                     ? "text-destructive"
                     : "text-success"
                 }`}
@@ -379,7 +379,7 @@ export function ProfilePanel() {
               ) : (
                 <LogOut data-icon="inline-start" />
               )}
-              {logout.isPending ? "Выходим…" : "Выйти"}
+              {logout.isPending ? t("Выходим…") : t("Выйти")}
             </Button>
             {logout.error ? (
               <p

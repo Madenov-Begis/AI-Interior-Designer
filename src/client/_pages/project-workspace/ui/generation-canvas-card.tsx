@@ -25,6 +25,7 @@ import type {
 } from "@/features/visual-prompt";
 import { apiData } from "@/shared/api";
 import { CARD_HEADER_HEIGHT, containedMediaRect } from "../model/canvas-layout";
+import { useAppText } from "@/shared/providers";
 
 type GenerationCanvasCardProps = {
   generation: WorkspaceGeneration;
@@ -63,17 +64,27 @@ const statusLabels: Record<WorkspaceGeneration["status"], string> = {
   CANCELLED: "Отменено",
 };
 
-function formatElapsed(createdAt: string, now: number) {
+function formatElapsed(
+  createdAt: string,
+  now: number,
+  t: ReturnType<typeof useAppText>,
+) {
   const startedAt = new Date(createdAt).getTime();
   if (!Number.isFinite(startedAt)) return null;
   const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
-  if (seconds < 60) return `${seconds} сек`;
+  if (seconds < 60) return t("{count} сек", { count: seconds });
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds % 60;
-  return remainder > 0 ? `${minutes} мин ${remainder} сек` : `${minutes} мин`;
+  return remainder > 0
+    ? t("{minutes} мин {seconds} сек", { minutes, seconds: remainder })
+    : t("{count} мин", { count: minutes });
 }
 
-function useElapsedLabel(active: boolean, createdAt: string) {
+function useElapsedLabel(
+  active: boolean,
+  createdAt: string,
+  t: ReturnType<typeof useAppText>,
+) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -82,7 +93,7 @@ function useElapsedLabel(active: boolean, createdAt: string) {
     return () => window.clearInterval(interval);
   }, [active]);
 
-  return active ? formatElapsed(createdAt, now) : null;
+  return active ? formatElapsed(createdAt, now, t) : null;
 }
 
 function CardHeader({
@@ -98,26 +109,29 @@ function CardHeader({
   resultUrl?: string;
   onOpenResult(resultUrl: string): void;
 }) {
+  const t = useAppText();
   return (
     <header
       className="flex shrink-0 items-center justify-between border-b border-border px-5"
       style={{ height: CARD_HEADER_HEIGHT }}
     >
       <div className="min-w-0">
-        <p className="text-sm font-black">Вариант {variantNumber}</p>
+        <p className="text-sm font-black">
+          {t("Вариант {number}", { number: variantNumber })}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {status === "SUCCEEDED" ? "Готовый дизайн" : "AI-генерация"}
+          {status === "SUCCEEDED" ? t("Готовый дизайн") : t("AI-генерация")}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {selected ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-bold text-accent">
             <Check size={14} strokeWidth={3} aria-hidden="true" />
-            Выбран
+            {t("Выбран")}
           </span>
         ) : null}
         <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-          {statusLabels[status]}
+          {t(statusLabels[status])}
         </span>
         {resultUrl ? (
           <button
@@ -131,10 +145,12 @@ function CardHeader({
               "secondary",
               "h-10 rounded-lg px-3 text-xs",
             )}
-            aria-label={`Открыть и скачать вариант ${variantNumber}`}
+            aria-label={t("Открыть и скачать вариант {number}", {
+              number: variantNumber,
+            })}
           >
             <ExternalLink size={15} aria-hidden="true" />
-            Открыть
+            {t("Открыть")}
           </button>
         ) : null}
       </div>
@@ -172,9 +188,10 @@ function ActionErrorNotice({
 }: {
   error: GenerationActionErrorPresentation;
 }) {
+  const t = useAppText();
   return (
     <p className="text-xs text-red-300" role="alert">
-      {error.message}
+      {t(error.message)}
       {error.purchaseLink ? (
         <>
           {" "}
@@ -184,7 +201,7 @@ function ActionErrorNotice({
             onClick={(event) => event.stopPropagation()}
             className="font-semibold underline underline-offset-2"
           >
-            {error.purchaseLink.label}
+            {t(error.purchaseLink.label)}
           </Link>
         </>
       ) : null}
@@ -211,6 +228,7 @@ export function GenerationCanvasCard({
   onRetry,
   onOpenResult,
 }: GenerationCanvasCardProps) {
+  const t = useAppText();
   const resultQuery = useQuery({
     queryKey: ["generation-result", generation.resultUserId],
     queryFn: () => readSignedResultUrl(generation.resultUserId!),
@@ -225,6 +243,7 @@ export function GenerationCanvasCard({
   const elapsedLabel = useElapsedLabel(
     generation.status === "QUEUED" || generation.status === "PROCESSING",
     generation.createdAt,
+    t,
   );
   const resultWidth = generation.resultUser?.width ?? null;
   const resultHeight = generation.resultUser?.height ?? null;
@@ -240,19 +259,19 @@ export function GenerationCanvasCard({
     resultUnavailable ||
     resultQuery.isError ||
     Boolean(actionError);
-  let announcement = statusLabels[generation.status];
+  let announcement = t(statusLabels[generation.status]);
   if (actionError) {
-    announcement = actionError.message;
+    announcement = t(actionError.message);
   } else if (resultQuery.isError) {
-    announcement = resultQuery.error.message;
+    announcement = t(resultQuery.error.message);
   } else if (resultUnavailable) {
-    announcement = "Результат недоступен";
+    announcement = t("Результат недоступен");
   } else if (generation.status === "FAILED") {
-    announcement = generation.errorMessage ?? "Не удалось создать интерьер";
+    announcement = t(generation.errorMessage ?? "Не удалось создать интерьер");
   } else if (generation.status === "REJECTED") {
-    announcement = generation.errorMessage ?? "Запрос отклонён";
+    announcement = t(generation.errorMessage ?? "Запрос отклонён");
   } else if (generation.status === "SUCCEEDED" && resultQuery.isPending) {
-    announcement = "Загружаем вариант";
+    announcement = t("Загружаем вариант");
   }
 
   let content: React.ReactNode;
@@ -262,9 +281,9 @@ export function GenerationCanvasCard({
       content = (
         <StatusPanel
           icon={<Clock3 size={30} className="text-accent" aria-hidden="true" />}
-          title="В очереди"
-          message={`Запрос зарезервирован и ожидает запуска.${
-            elapsedLabel ? ` Прошло ${elapsedLabel}.` : ""
+          title={t("В очереди")}
+          message={`${t("Запрос зарезервирован и ожидает запуска.")}${
+            elapsedLabel ? ` ${t("Прошло {time}.", { time: elapsedLabel })}` : ""
           }`}
         >
           <LoadingButton
@@ -274,11 +293,11 @@ export function GenerationCanvasCard({
               onCancel();
             }}
             pending={cancelPending}
-            pendingText="Отменяем…"
+            pendingText={t("Отменяем…")}
             variant="secondary"
             className="mt-2 rounded-xl"
           >
-            Отменить
+            {t("Отменить")}
           </LoadingButton>
           {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
@@ -294,9 +313,9 @@ export function GenerationCanvasCard({
               aria-hidden="true"
             />
           }
-          title="Создаём интерьер"
-          message={`Результат появится здесь автоматически.${
-            elapsedLabel ? ` Прошло ${elapsedLabel}.` : ""
+          title={t("Создаём интерьер")}
+          message={`${t("Результат появится здесь автоматически.")}${
+            elapsedLabel ? ` ${t("Прошло {time}.", { time: elapsedLabel })}` : ""
           }`}
         >
           <div
@@ -315,8 +334,8 @@ export function GenerationCanvasCard({
             icon={
               <ImageOff size={30} className="text-muted" aria-hidden="true" />
             }
-            title="Результат недоступен"
-            message="Файл результата ещё не привязан к генерации."
+            title={t("Результат недоступен")}
+            message={t("Файл результата ещё не привязан к генерации.")}
           />
         );
       } else if (resultQuery.isPending) {
@@ -329,7 +348,7 @@ export function GenerationCanvasCard({
                 aria-hidden="true"
               />
             }
-            title="Загружаем вариант"
+            title={t("Загружаем вариант")}
           />
         );
       } else if (resultQuery.isError) {
@@ -338,8 +357,8 @@ export function GenerationCanvasCard({
             icon={
               <ImageOff size={30} className="text-muted" aria-hidden="true" />
             }
-            title="Не удалось открыть изображение"
-            message={resultQuery.error.message}
+            title={t("Не удалось открыть изображение")}
+            message={t(resultQuery.error.message)}
           >
             <LoadingButton
               onPointerDown={(event) => event.stopPropagation()}
@@ -348,12 +367,12 @@ export function GenerationCanvasCard({
                 void resultQuery.refetch();
               }}
               pending={resultQuery.isFetching}
-              pendingText="Загружаем…"
+              pendingText={t("Загружаем…")}
               variant="secondary"
               className="mt-2 rounded-xl"
             >
               <RotateCcw size={16} aria-hidden="true" />
-              Повторить загрузку
+              {t("Повторить загрузку")}
             </LoadingButton>
           </StatusPanel>
         );
@@ -373,7 +392,9 @@ export function GenerationCanvasCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={resultQuery.data}
-                alt={`Готовый интерьер, вариант ${variantNumber}`}
+                alt={t("Готовый интерьер, вариант {number}", {
+                  number: variantNumber,
+                })}
                 className="absolute inset-0 size-full object-contain"
                 draggable={false}
                 decoding="async"
@@ -412,8 +433,8 @@ export function GenerationCanvasCard({
               aria-hidden="true"
             />
           }
-          title="Не удалось создать интерьер"
-          message={generation.errorMessage ?? "Произошла техническая ошибка."}
+          title={t("Не удалось создать интерьер")}
+          message={t(generation.errorMessage ?? "Произошла техническая ошибка.")}
         >
           <LoadingButton
             onPointerDown={(event) => event.stopPropagation()}
@@ -422,12 +443,12 @@ export function GenerationCanvasCard({
               onRetry();
             }}
             pending={retryPending}
-            pendingText="Повторяем…"
+            pendingText={t("Повторяем…")}
             variant="primary"
             className="rounded-xl"
           >
             <RotateCcw size={16} aria-hidden="true" />
-            Повторить
+            {t("Повторить")}
           </LoadingButton>
           {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
@@ -443,11 +464,11 @@ export function GenerationCanvasCard({
               aria-hidden="true"
             />
           }
-          title="Запрос отклонён"
-          message={
+          title={t("Запрос отклонён")}
+          message={t(
             generation.errorMessage ??
-            "Запрос не прошёл проверку безопасности. Измените описание и попробуйте снова."
-          }
+              "Запрос не прошёл проверку безопасности. Измените описание и попробуйте снова.",
+          )}
         >
           <LoadingButton
             onPointerDown={(event) => event.stopPropagation()}
@@ -456,12 +477,12 @@ export function GenerationCanvasCard({
               onRetry();
             }}
             pending={retryPending}
-            pendingText="Запускаем…"
+            pendingText={t("Запускаем…")}
             variant="primary"
             className="rounded-xl"
           >
             <RotateCcw size={16} aria-hidden="true" />
-            Повторить
+            {t("Повторить")}
           </LoadingButton>
           {actionError ? <ActionErrorNotice error={actionError} /> : null}
         </StatusPanel>
@@ -471,8 +492,8 @@ export function GenerationCanvasCard({
       content = (
         <StatusPanel
           icon={<X size={30} className="text-muted" aria-hidden="true" />}
-          title="Генерация отменена"
-          message="Этот вариант не был запущен."
+          title={t("Генерация отменена")}
+          message={t("Этот вариант не был запущен.")}
         />
       );
       break;

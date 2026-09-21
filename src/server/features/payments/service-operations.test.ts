@@ -20,6 +20,8 @@ type OrderRow = {
   status: OrderStatus;
   packageCode: string;
   packageName: string;
+  packageNameEn: string | null;
+  packageNameUz: string | null;
   credits: number;
   amountUzs: number;
   expiresAt: Date;
@@ -277,6 +279,8 @@ function seedOrder(overrides: Partial<OrderRow> = {}): OrderRow {
     status: "PENDING",
     packageCode: "standard",
     packageName: "Стандарт",
+    packageNameEn: "Standard",
+    packageNameUz: "Standart",
     credits: 60,
     amountUzs: 69_000,
     expiresAt: new Date("2026-07-29T10:30:00.000Z"),
@@ -293,6 +297,8 @@ const packageResolver = async (code: string) =>
     ? {
         code: "standard",
         name: "Стандарт",
+        nameEn: "Standard",
+        nameUz: "Standart",
         credits: 60,
         priceUzs: 69_000,
         popular: true,

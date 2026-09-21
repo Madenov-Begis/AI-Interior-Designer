@@ -38,12 +38,22 @@ import type {
   VisualPromptEditorHandle,
   VisualPromptTool,
 } from "@/features/visual-prompt";
+import { useAppText } from "@/shared/providers";
 
 type ReadyDesignWorkspaceProps = Omit<DesignWorkspaceProps, "project"> & {
   project: DesignWorkspaceProps["project"] & {
     source: NonNullable<DesignWorkspaceProps["project"]["source"]>;
   };
 };
+
+const statusLabelsForAria = {
+  QUEUED: "В очереди",
+  PROCESSING: "Создаётся",
+  SUCCEEDED: "Готово",
+  FAILED: "Ошибка",
+  REJECTED: "Отклонено",
+  CANCELLED: "Отменено",
+} as const;
 
 export function DesignWorkspace(props: DesignWorkspaceProps) {
   if (!props.project.source) {
@@ -64,6 +74,7 @@ function ReadyDesignWorkspace({
   initialReferences,
   initialGenerations,
 }: ReadyDesignWorkspaceProps) {
+  const t = useAppText();
   const source = project.source;
   const sourceUrl = useQuery(
     mediaQueries.signedUrl(source.fileId, source.url, source.expiresAt),
@@ -299,7 +310,10 @@ function ReadyDesignWorkspace({
   }
   const canvasGenerations = canvasGenerationInstances.map((item) => ({
     id: item.nodeId,
-    ariaLabel: `Вариант ${item.variantNumber}, статус ${item.generation.status}`,
+    ariaLabel: t("Вариант {number}, статус {status}", {
+      number: item.variantNumber,
+      status: t(statusLabelsForAria[item.generation.status]),
+    }),
     interactive:
       item.generation.status === "SUCCEEDED" &&
       Boolean(item.generation.resultUserId),
@@ -377,7 +391,7 @@ function ReadyDesignWorkspace({
       <div className="grid min-h-0 flex-1 min-[1200px]:grid-cols-[minmax(0,1fr)_380px]">
         <section
           className="relative min-h-0 overflow-hidden bg-background"
-          aria-label="Холст проекта"
+          aria-label={t("Холст проекта")}
         >
           <CanvasOnboardingTrigger
             active={onboardingActive}
@@ -423,8 +437,11 @@ function ReadyDesignWorkspace({
               onClick={() => loadMore.mutate()}
             >
               {loadMore.isPending
-                ? "Загрузка…"
-                : `Загрузить предыдущие варианты (${generationsQuery.data.items.length} из ${generationsQuery.data.total})`}
+                ? t("Загрузка…")
+                : t("Загрузить предыдущие варианты ({shown} из {total})", {
+                    shown: generationsQuery.data.items.length,
+                    total: generationsQuery.data.total,
+                  })}
             </button>
           ) : null}
           {generationsQuery.isError || loadMore.isError || canvasActionError ? (
@@ -432,9 +449,12 @@ function ReadyDesignWorkspace({
               role="alert"
               className="absolute bottom-24 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-red-400/30 bg-surface px-4 py-3 text-sm text-red-300 shadow-xl"
             >
-              {canvasActionError ??
-                loadMore.error?.message ??
-                generationsQuery.error?.message}
+              {t(
+                canvasActionError ??
+                  loadMore.error?.message ??
+                  generationsQuery.error?.message ??
+                  "Ошибка",
+              )}
             </div>
           ) : null}
           <WorkspaceToolbar

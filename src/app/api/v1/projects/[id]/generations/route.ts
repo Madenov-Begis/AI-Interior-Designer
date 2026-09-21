@@ -27,6 +27,7 @@ import {
 } from "@/server/features/visual-prompt/service";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
+import { localeFromHeaders } from "@/server/shared/i18n/api-locale";
 import {
   requireCurrentUser,
   UnauthorizedError,
@@ -89,7 +90,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
       select: { id: true },
     });
     if (existing) {
-      return generationResponse(user.id, existing.id, true, requestId);
+      return generationResponse(
+        user.id,
+        existing.id,
+        true,
+        requestId,
+        localeFromHeaders(request.headers),
+      );
     }
     ensureGenerationsEnabled();
 
@@ -143,6 +150,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       reserved.generation.id,
       reserved.isExisting,
       requestId,
+      localeFromHeaders(request.headers),
     );
   } catch (error) {
     if (uploadOwnerId && unattachedVisualPromptId) {
@@ -152,7 +160,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       ).catch(() => undefined);
     }
     if (error instanceof RateLimitError) {
-      const response = apiError("RATE_LIMITED", error.message, requestId, 429);
+      const response = await apiError(
+        "RATE_LIMITED",
+        error.message,
+        requestId,
+        429,
+      );
       response.headers.set("retry-after", String(error.retryAfter));
       return response;
     }
@@ -207,8 +220,13 @@ async function generationResponse(
   generationId: string,
   isExisting: boolean,
   requestId: string,
+  locale: import("@/i18n/routing").Locale,
 ) {
-  const payload = await getGenerationClientPayload(userId, generationId);
+  const payload = await getGenerationClientPayload(
+    userId,
+    generationId,
+    locale,
+  );
   return apiSuccess(
     {
       ...payload,

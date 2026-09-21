@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: `${APP_NAME} — AI-дизайн интерьера по фото`,
+  title: `${APP_NAME} — AI interior design from a photo`,
   description:
-    "Загрузите фото комнаты и получите реалистичный интерьер за несколько минут с сохранением стен, окон и ракурса.",
+    "Upload a room photo and create a realistic interior while preserving walls, windows, and perspective.",
 };
 
 export default function RootLayout({

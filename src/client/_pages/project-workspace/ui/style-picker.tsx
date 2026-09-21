@@ -2,6 +2,7 @@
 
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useAppText } from "@/shared/providers";
 
 export type StylePickerProps = {
   styles: Array<{ code: string; name: string; imageUrl: string }>;
@@ -10,6 +11,7 @@ export type StylePickerProps = {
 };
 
 export function StylePicker({ styles, value, onChange }: StylePickerProps) {
+  const t = useAppText();
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,17 +53,17 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
 
   return (
     <fieldset className="min-w-0 max-w-full overflow-hidden">
-      <legend className="text-xs font-semibold text-foreground">Стиль</legend>
+      <legend className="text-xs font-semibold text-foreground">{t("Стиль")}</legend>
       <div className="mt-1 flex min-w-0 items-center justify-between gap-3">
         <p className="min-w-0 text-xs leading-5 text-muted-foreground">
-          Один выбор — без сложных настроек.
+          {t("Один выбор — без сложных настроек.")}
         </p>
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={() => scrollStyles(-1)}
             className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            aria-label="Показать предыдущие стили"
+            aria-label={t("Показать предыдущие стили")}
           >
             <ChevronLeft size={16} aria-hidden="true" />
           </button>
@@ -69,7 +71,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
             type="button"
             onClick={() => scrollStyles(1)}
             className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            aria-label="Показать следующие стили"
+            aria-label={t("Показать следующие стили")}
           >
             <ChevronRight size={16} aria-hidden="true" />
           </button>
@@ -80,7 +82,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
           ref={scrollerRef}
           className="flex w-full min-w-0 gap-2 overflow-x-auto overscroll-x-contain py-2 [scrollbar-width:thin]"
           role="radiogroup"
-          aria-label="Стиль интерьера"
+          aria-label={t("Стиль интерьера")}
           tabIndex={0}
         >
           {styles.map((style) => {
@@ -108,8 +110,10 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
                   className="sr-only"
                   aria-label={
                     selected
-                      ? `${style.name}, выбран. Нажмите ещё раз, чтобы снять выбор`
-                      : style.name
+                      ? t("{style}, выбран. Нажмите ещё раз, чтобы снять выбор", {
+                          style: t(style.name),
+                        })
+                      : t(style.name)
                   }
                 />
                 <span className="block aspect-[4/3] overflow-hidden bg-surface-elevated">
@@ -123,7 +127,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
                   />
                 </span>
                 <span className="block truncate px-2 py-2 text-xs font-semibold">
-                  {style.name}
+                  {t(style.name)}
                 </span>
                 {selected && (
                   <span

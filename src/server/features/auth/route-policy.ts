@@ -1,6 +1,8 @@
 const PROTECTED_SEGMENTS = ["/app", "/admin"];
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
+export const OAUTH_RETURN_STATE_COOKIE = "ruvie_oauth_return_state";
+
 export function isProtectedPath(pathname: string) {
   return PROTECTED_SEGMENTS.some(
     (segment) => pathname === segment || pathname.startsWith(`${segment}/`),
@@ -51,21 +53,38 @@ export function isLocalDevelopmentOrigin(origin: string) {
   );
 }
 
-export function oauthCallbackUrl(
-  requestOrigin: string,
-  next: string,
-  returnOrigin: string,
-) {
-  const callbackUrl = new URL("/auth/callback", requestOrigin);
+export function oauthCallbackUrl(requestOrigin: string) {
+  return new URL("/auth/callback", requestOrigin);
+}
 
-  // Production must use the exact URL configured in the Supabase redirect
-  // allowlist. Local development keeps the cross-origin handoff parameters.
-  if (isLocalDevelopmentOrigin(requestOrigin)) {
-    callbackUrl.searchParams.set("next", safeReturnPath(next));
-    callbackUrl.searchParams.set("returnOrigin", returnOrigin);
+export function encodeOAuthReturnState(next: string, returnOrigin: string) {
+  return Buffer.from(
+    JSON.stringify({ next: safeReturnPath(next), returnOrigin }),
+    "utf8",
+  ).toString("base64url");
+}
+
+export function decodeOAuthReturnState(value: string | undefined) {
+  if (!value) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(
+      Buffer.from(value, "base64url").toString("utf8"),
+    );
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      !("next" in parsed) ||
+      !("returnOrigin" in parsed) ||
+      typeof parsed.next !== "string" ||
+      typeof parsed.returnOrigin !== "string"
+    ) {
+      return null;
+    }
+    return { next: parsed.next, returnOrigin: parsed.returnOrigin };
+  } catch {
+    return null;
   }
-
-  return callbackUrl;
 }
 
 export function authErrorUrl(returnOrigin: string, error: string) {

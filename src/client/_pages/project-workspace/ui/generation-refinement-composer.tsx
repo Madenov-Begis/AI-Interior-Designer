@@ -18,6 +18,7 @@ import {
   loadRefinementDraft,
   saveRefinementDraft,
 } from "@/features/generate-design";
+import { useAppText } from "@/shared/providers";
 
 type Props = {
   generationId: string;
@@ -42,6 +43,7 @@ export function GenerationRefinementComposer({
   onClose,
   onSubmit,
 }: Props) {
+  const t = useAppText();
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState(() =>
     typeof window === "undefined"
@@ -110,10 +112,9 @@ export function GenerationRefinementComposer({
         }}
       >
         <DialogHeader className="pr-8">
-          <DialogTitle>Опишите изменения</DialogTitle>
+          <DialogTitle>{t("Опишите изменения")}</DialogTitle>
           <DialogDescription>
-            Изменится выбранный вариант. Добавятся только новая разметка и новые
-            референсы
+            {t("Изменится выбранный вариант. Добавятся только новая разметка и новые референсы")}
           </DialogDescription>
         </DialogHeader>
         <div
@@ -137,7 +138,7 @@ export function GenerationRefinementComposer({
             htmlFor={`refinement-prompt-${generationId}`}
             className="sr-only"
           >
-            Что изменить в этом варианте?
+            {t("Что изменить в этом варианте?")}
           </label>
           <textarea
             ref={promptRef}
@@ -146,7 +147,7 @@ export function GenerationRefinementComposer({
             onChange={(event) => setPrompt(event.target.value)}
             rows={3}
             maxLength={4000}
-            placeholder="Например: сделай фасады темнее и добавь светильник из референса"
+            placeholder={t("Например: сделай фасады темнее и добавь светильник из референса")}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-5 outline-none transition-colors focus:border-accent"
           />
           <p
@@ -169,7 +170,7 @@ export function GenerationRefinementComposer({
                       current.filter((_, itemIndex) => itemIndex !== index),
                     )
                   }
-                  aria-label={`Удалить файл ${file.name}`}
+                  aria-label={t("Удалить файл {name}", { name: file.name })}
                 >
                   <X size={13} />
                 </button>
@@ -184,7 +185,7 @@ export function GenerationRefinementComposer({
               )}
             >
               <ImagePlus size={17} />
-              Референс
+              {t("Референс")}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -206,35 +207,37 @@ export function GenerationRefinementComposer({
                 walletPresentation.balanceInsufficient
               }
               pending={pending}
-              pendingText="Создаём…"
+              pendingText={t("Создаём…")}
               variant="primary"
               className="ml-auto rounded-xl"
             >
               <ImagePlus size={17} aria-hidden="true" />
-              {walletPresentation.buttonLabel}
+              {t("Создать доработку · {cost} кредита", {
+                cost: generationCost ?? 4,
+              })}
             </LoadingButton>
           </div>
           {files.length > 0 ? (
             <p className="mt-2 text-xs text-muted" aria-live="polite">
-              Новые референсы: {files.length} из 10
+              {t("Новые референсы: {count} из 10", { count: files.length })}
             </p>
           ) : null}
           {walletPresentation.balanceInsufficient &&
           walletPresentation.disabledReason &&
           walletPresentation.purchaseLink ? (
             <p className="mt-3 text-sm text-muted-foreground" role="status">
-              {walletPresentation.disabledReason}{" "}
+              {t(walletPresentation.disabledReason)}{" "}
               <Link
                 href={walletPresentation.purchaseLink.href}
                 className="font-semibold text-primary underline-offset-2 hover:underline"
               >
-                {walletPresentation.purchaseLink.label}
+                {t(walletPresentation.purchaseLink.label)}
               </Link>
             </p>
           ) : null}
           {error ? (
             <p className="mt-3 text-sm text-red-300" role="alert">
-              {error}
+              {t(error)}
               {errorCode === "INSUFFICIENT_CREDITS" &&
               walletPresentation.purchaseLink ? (
                 <>
@@ -243,7 +246,7 @@ export function GenerationRefinementComposer({
                     href={walletPresentation.purchaseLink.href}
                     className="font-semibold underline underline-offset-2"
                   >
-                    {walletPresentation.purchaseLink.label}
+                    {t(walletPresentation.purchaseLink.label)}
                   </Link>
                 </>
               ) : null}

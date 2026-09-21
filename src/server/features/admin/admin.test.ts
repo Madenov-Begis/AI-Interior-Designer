@@ -16,31 +16,51 @@ import {
   usersListSchema,
 } from "./schemas.ts";
 import { adminPeriodRange, zonedDateKey } from "./time.ts";
-import { adminAccessViolation, removesActiveAdminAccess } from "./user-access-policy.ts";
-import { issueAdminToken, matchesAdminAccessCode, verifyAdminToken } from "./admin-token.ts";
+import {
+  adminAccessViolation,
+  removesActiveAdminAccess,
+} from "./user-access-policy.ts";
+import {
+  issueAdminToken,
+  matchesAdminAccessCode,
+  verifyAdminToken,
+} from "./admin-token.ts";
 
 test("AdminPhone is development-only and strictly formatted", () => {
-  assert.deepEqual(getLocalAdminPhone("AdminPhone +998901234567", "development"), {
-    phone: "+998901234567",
-    disabled: false,
-  });
-  assert.deepEqual(getLocalAdminPhone("AdminPhone +998901234567", "production"), {
-    phone: null,
-    disabled: true,
-  });
-  assert.equal(getLocalAdminPhone("AdminPhone 998901234567", "development").phone, null);
+  assert.deepEqual(
+    getLocalAdminPhone("AdminPhone +998901234567", "development"),
+    {
+      phone: "+998901234567",
+      disabled: false,
+    },
+  );
+  assert.deepEqual(
+    getLocalAdminPhone("AdminPhone +998901234567", "production"),
+    {
+      phone: null,
+      disabled: true,
+    },
+  );
+  assert.equal(
+    getLocalAdminPhone("AdminPhone 998901234567", "development").phone,
+    null,
+  );
 });
 
 test("admin access code issues a signed expiring token", () => {
   const previousCode = process.env.ADMIN_ACCESS_CODE;
   const previousSecret = process.env.ADMIN_TOKEN_SECRET;
   process.env.ADMIN_ACCESS_CODE = "abcde";
-  process.env.ADMIN_TOKEN_SECRET = "test-secret-that-is-longer-than-32-characters";
+  process.env.ADMIN_TOKEN_SECRET =
+    "test-secret-that-is-longer-than-32-characters";
   try {
     assert.equal(matchesAdminAccessCode("abcde"), true);
     assert.equal(matchesAdminAccessCode("wrong"), false);
     const issued = issueAdminToken("admin-id", 1_000_000);
-    assert.equal(verifyAdminToken(issued.token, 1_000_001)?.subject, "admin-id");
+    assert.equal(
+      verifyAdminToken(issued.token, 1_000_001)?.subject,
+      "admin-id",
+    );
     assert.equal(
       verifyAdminToken(`${issued.token.slice(0, -1)}x`, 1_000_001),
       null,
@@ -58,18 +78,34 @@ test("admin access code issues a signed expiring token", () => {
 });
 
 test("admin CORS uses an exact production allowlist", () => {
-  const origins = getAdminOrigins("production", "https://admin.example, https://ops.example");
+  const origins = getAdminOrigins(
+    "production",
+    "https://admin.example, https://ops.example",
+  );
   assert.equal(origins.has("https://admin.example"), true);
   assert.equal(origins.has("http://localhost:5173"), false);
-  assert.equal(isAdminOriginAllowed("https://admin.example.evil", "production", "https://admin.example"), false);
-  assert.equal(isAdminOriginAllowed("http://localhost:5173", "development", undefined), true);
+  assert.equal(
+    isAdminOriginAllowed(
+      "https://admin.example.evil",
+      "production",
+      "https://admin.example",
+    ),
+    false,
+  );
+  assert.equal(
+    isAdminOriginAllowed("http://localhost:5173", "development", undefined),
+    true,
+  );
 });
 
 test("list schemas enforce page bounds, enums, UUID and date range", () => {
   assert.deepEqual(usersListSchema.parse({}), { page: 1, pageSize: 25 });
   assert.equal(usersListSchema.safeParse({ page: 0 }).success, false);
   assert.equal(usersListSchema.safeParse({ pageSize: 101 }).success, false);
-  assert.equal(generationsListSchema.safeParse({ status: "UNKNOWN" }).success, false);
+  assert.equal(
+    generationsListSchema.safeParse({ status: "UNKNOWN" }).success,
+    false,
+  );
   assert.equal(
     paymentOrdersListSchema.safeParse({
       from: "2026-08-12T10:00:00.000Z",
@@ -78,21 +114,38 @@ test("list schemas enforce page bounds, enums, UUID and date range", () => {
     false,
   );
   assert.equal(adminPeriodSchema.safeParse("year").success, false);
-  assert.equal(creditTransactionsListSchema.safeParse({ kind: "UNKNOWN" }).success, false);
-  assert.equal(generationsListSchema.safeParse({ from: "yesterday" }).success, false);
+  assert.equal(
+    creditTransactionsListSchema.safeParse({ kind: "UNKNOWN" }).success,
+    false,
+  );
+  assert.equal(
+    generationsListSchema.safeParse({ from: "yesterday" }).success,
+    false,
+  );
 });
 
 test("mutation schemas reject unknown fields", () => {
   assert.equal(updateUserSchema.safeParse({}).success, false);
-  assert.equal(updateUserSchema.safeParse({ status: "ACTIVE", unexpected: true }).success, false);
   assert.equal(
-    creditAdjustmentSchema.safeParse({ amount: 0, reason: "Тест", idempotencyKey: crypto.randomUUID() }).success,
+    updateUserSchema.safeParse({ status: "ACTIVE", unexpected: true }).success,
+    false,
+  );
+  assert.equal(
+    creditAdjustmentSchema.safeParse({
+      amount: 0,
+      reason: "Тест",
+      idempotencyKey: crypto.randomUUID(),
+    }).success,
     false,
   );
   const validPackage = {
     code: "standard",
     name: "Стандарт",
+    nameEn: "Standard",
+    nameUz: "Standart",
     description: "Оптимально для ремонта",
+    descriptionEn: "Best for renovation",
+    descriptionUz: "Ta’mirlash uchun maqbul",
     credits: 60,
     priceUzs: 69_000,
     popular: true,
@@ -100,22 +153,46 @@ test("mutation schemas reject unknown fields", () => {
     sortOrder: 20,
   };
   assert.equal(createCreditPackageSchema.safeParse(validPackage).success, true);
-  assert.equal(createCreditPackageSchema.safeParse({ ...validPackage, code: "Standard" }).success, false);
-  assert.equal(createCreditPackageSchema.safeParse({ ...validPackage, active: false }).success, false);
+  assert.equal(
+    createCreditPackageSchema.safeParse({ ...validPackage, code: "Standard" })
+      .success,
+    false,
+  );
+  assert.equal(
+    createCreditPackageSchema.safeParse({ ...validPackage, active: false })
+      .success,
+    false,
+  );
   assert.equal(updateCreditPackageSchema.safeParse({}).success, false);
-  assert.equal(updateCreditPackageSchema.safeParse({ code: "new-code" }).success, false);
+  assert.equal(
+    updateCreditPackageSchema.safeParse({ code: "new-code" }).success,
+    false,
+  );
   const validRoom = {
     code: "living-room",
     name: "Гостиная",
+    nameEn: "Living room",
+    nameUz: "Mehmonxona",
     promptModifier: "Назначение помещения: гостиная.",
     active: true,
     sortOrder: 10,
   };
   assert.equal(createRoomTypeSchema.safeParse(validRoom).success, true);
-  assert.equal(createRoomTypeSchema.safeParse({ ...validRoom, code: "Living Room" }).success, false);
-  assert.equal(createRoomTypeSchema.safeParse({ ...validRoom, promptModifier: "коротко" }).success, false);
+  assert.equal(
+    createRoomTypeSchema.safeParse({ ...validRoom, code: "Living Room" })
+      .success,
+    false,
+  );
+  assert.equal(
+    createRoomTypeSchema.safeParse({ ...validRoom, promptModifier: "коротко" })
+      .success,
+    false,
+  );
   assert.equal(updateRoomTypeSchema.safeParse({}).success, false);
-  assert.equal(updateRoomTypeSchema.safeParse({ code: "bedroom" }).success, false);
+  assert.equal(
+    updateRoomTypeSchema.safeParse({ code: "bedroom" }).success,
+    false,
+  );
 });
 
 test("admin access policy prevents self-lockout and removal of the last admin", () => {
@@ -126,19 +203,38 @@ test("admin access policy prevents self-lockout and removal of the last admin", 
   });
   assert.equal(removesAccess, true);
   assert.equal(
-    adminAccessViolation({ actorId: "a", targetId: "a", removesAccess, otherActiveAdmins: 3 }),
+    adminAccessViolation({
+      actorId: "a",
+      targetId: "a",
+      removesAccess,
+      otherActiveAdmins: 3,
+    }),
     "SELF_LOCKOUT",
   );
   assert.equal(
-    adminAccessViolation({ actorId: "a", targetId: "b", removesAccess, otherActiveAdmins: 0 }),
+    adminAccessViolation({
+      actorId: "a",
+      targetId: "b",
+      removesAccess,
+      otherActiveAdmins: 0,
+    }),
     "LAST_ADMIN",
   );
   assert.equal(
-    adminAccessViolation({ actorId: "a", targetId: "b", removesAccess, otherActiveAdmins: 1 }),
+    adminAccessViolation({
+      actorId: "a",
+      targetId: "b",
+      removesAccess,
+      otherActiveAdmins: 1,
+    }),
     null,
   );
   assert.equal(
-    removesActiveAdminAccess({ currentRole: "ADMIN", currentStatus: "BLOCKED", nextRole: "USER" }),
+    removesActiveAdminAccess({
+      currentRole: "ADMIN",
+      currentStatus: "BLOCKED",
+      nextRole: "USER",
+    }),
     false,
   );
 });

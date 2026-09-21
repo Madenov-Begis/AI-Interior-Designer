@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/server/shared/integrations/supabase/server";
 import { upsertProfileFromAuthUser } from "@/server/features/auth/current-user";
 import {
+  decodeOAuthReturnState,
   isLocalDevelopmentOrigin,
+  OAUTH_RETURN_STATE_COOKIE,
   safeReturnOrigin,
   safeReturnPath,
 } from "@/server/features/auth/route-policy";
@@ -12,15 +14,42 @@ import {
 } from "@/server/shared/auth/session-cookies";
 import { serverEnv } from "@/server/shared/config/env";
 import { consumeLegalAcceptance } from "@/server/features/auth/legal-acceptance";
+import { authCookieDomain } from "@/server/shared/auth/cookie-domain";
+
+function clearOAuthReturnState(
+  response: NextResponse,
+  nodeEnv: string,
+  configuredDomain: string | undefined,
+) {
+  response.cookies.set(OAUTH_RETURN_STATE_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: nodeEnv === "production",
+    path: "/",
+    domain: authCookieDomain(nodeEnv, configuredDomain),
+    maxAge: 0,
+  });
+  return response;
+}
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const safeNext = safeReturnPath(request.nextUrl.searchParams.get("next"));
   const env = serverEnv();
+  const returnState = decodeOAuthReturnState(
+    request.cookies.get(OAUTH_RETURN_STATE_COOKIE)?.value,
+  );
+  const safeNext = safeReturnPath(
+    request.nextUrl.searchParams.get("next") ?? returnState?.next ?? null,
+  );
+  const localFallback = isLocalDevelopmentOrigin(request.nextUrl.origin)
+    ? request.nextUrl.origin
+    : env.APP_URL;
   const appUrl = safeReturnOrigin(
-    request.nextUrl.searchParams.get("returnOrigin"),
+    request.nextUrl.searchParams.get("returnOrigin") ??
+      returnState?.returnOrigin ??
+      null,
     env.APP_ORIGINS,
-    env.APP_URL,
+    localFallback,
   );
 
   if (code) {
@@ -40,11 +69,19 @@ export async function GET(request: NextRequest) {
               oauth_expires_in: String(session.expires_in),
             }).toString();
           }
-          return NextResponse.redirect(redirectUrl);
+          return clearOAuthReturnState(
+            NextResponse.redirect(redirectUrl),
+            env.NODE_ENV,
+            env.AUTH_COOKIE_DOMAIN,
+          );
         } catch {
           await clearSessionCookies();
-          return NextResponse.redirect(
-            new URL("/login?error=profile_setup", appUrl),
+          return clearOAuthReturnState(
+            NextResponse.redirect(
+              new URL("/login?error=profile_setup", appUrl),
+            ),
+            env.NODE_ENV,
+            env.AUTH_COOKIE_DOMAIN,
           );
         }
       }
@@ -53,5 +90,9 @@ export async function GET(request: NextRequest) {
 
   await clearSessionCookies();
 
-  return NextResponse.redirect(new URL("/login?error=oauth_callback", appUrl));
+  return clearOAuthReturnState(
+    NextResponse.redirect(new URL("/login?error=oauth_callback", appUrl)),
+    env.NODE_ENV,
+    env.AUTH_COOKIE_DOMAIN,
+  );
 }

@@ -3,11 +3,14 @@ import { paymentHttpError } from "@/server/features/payments/http";
 import { listActiveCreditPackages } from "@/server/features/payments/packages";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
+import { localeFromHeaders } from "@/server/shared/i18n/api-locale";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
   try {
-    const packages = await listActiveCreditPackages();
+    const packages = await listActiveCreditPackages(
+      localeFromHeaders(request.headers),
+    );
     const response = apiSuccess(
       {
         items: packages,

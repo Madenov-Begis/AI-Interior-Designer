@@ -7,9 +7,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   outputFileTracingIncludes: {
     "/*": [
-      "node_modules/sharp/**/*",
-      "node_modules/.pnpm/@img+sharp-libvips-linux-x64@*/node_modules/@img/sharp-libvips-linux-x64/**/*",
+      "./node_modules/.pnpm/@img+sharp-libvips-*/node_modules/@img/**/*.so*",
     ],
+  },
+  outputFileTracingExcludes: {
+    "/*": ["./.env*", "./admin/.env*"],
   },
   async headers() {
     const isDevelopment = process.env.NODE_ENV === "development";

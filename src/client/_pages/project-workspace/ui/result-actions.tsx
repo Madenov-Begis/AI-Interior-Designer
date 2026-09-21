@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { downloadWorkspaceGeneration } from "../api/workspace-generation-download";
 import type { WorkspaceGeneration } from "../model/workspace-types";
 import { LoadingButton } from "@/shared/ui";
+import { useLocale } from "next-intl";
+import { useAppText } from "@/shared/providers";
 
 export type ResultActionsProps = {
   generation: WorkspaceGeneration;
@@ -12,10 +14,10 @@ export type ResultActionsProps = {
   onClose(): void;
 };
 
-function formatCreationDate(value: string) {
+function formatCreationDate(value: string, locale: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "long",
     timeStyle: "short",
   }).format(date);
@@ -26,6 +28,8 @@ export function ResultActions({
   resultUrl,
   onClose,
 }: ResultActionsProps) {
+  const t = useAppText();
+  const locale = useLocale();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [downloadPending, setDownloadPending] = useState(false);
@@ -51,7 +55,7 @@ export function ResultActions({
       await downloadWorkspaceGeneration(generation.id);
     } catch (error) {
       setDownloadError(
-        error instanceof Error ? error.message : "Не удалось скачать результат",
+        error instanceof Error ? t(error.message) : t("Не удалось скачать результат"),
       );
     } finally {
       setDownloadPending(false);
@@ -81,14 +85,14 @@ export function ResultActions({
       <div className="sticky top-0 z-10 flex min-h-16 items-center justify-between gap-4 border-b border-border bg-surface/95 px-5 pt-[env(safe-area-inset-top)] backdrop-blur md:pt-0">
         <div>
           <h2 id="result-actions-title" className="text-base font-black">
-            Результат генерации
+            {t("Результат генерации")}
           </h2>
         </div>
         <button
           type="button"
           onClick={close}
           className="grid size-11 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-elevated hover:text-foreground"
-          aria-label="Закрыть результат"
+          aria-label={t("Закрыть результат")}
         >
           <X size={20} aria-hidden="true" />
         </button>
@@ -100,7 +104,7 @@ export function ResultActions({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={resultUrl}
-            alt="Готовый интерьер"
+            alt={t("Готовый интерьер")}
             className="max-h-[65dvh] max-w-full object-contain"
             decoding="async"
             fetchPriority="high"
@@ -110,13 +114,13 @@ export function ResultActions({
         <LoadingButton
           onClick={() => void downloadResult()}
           pending={downloadPending}
-          pendingText="Подготавливаем…"
+          pendingText={t("Подготавливаем…")}
           variant="primary"
           size="sm"
           className="justify-self-center rounded-lg text-center"
         >
           <Download size={17} aria-hidden="true" />
-          Скачать изображение
+          {t("Скачать изображение")}
         </LoadingButton>
         {downloadError ? (
           <p role="alert" className="text-sm text-red-300">
@@ -129,19 +133,19 @@ export function ResultActions({
           aria-labelledby="result-details-title"
         >
           <h3 id="result-details-title" className="text-sm font-black">
-            Детали генерации
+            {t("Детали генерации")}
           </h3>
           <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-                Формат
+                {t("Формат")}
               </dt>
               <dd className="mt-1 font-medium">{generation.aspectRatio}</dd>
             </div>
             {generation.resultUser?.width && generation.resultUser.height ? (
               <div>
                 <dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-                  Разрешение
+                  {t("Разрешение")}
                 </dt>
                 <dd className="mt-1 font-medium">
                   {generation.resultUser.width} × {generation.resultUser.height}
@@ -150,7 +154,7 @@ export function ResultActions({
             ) : null}
             <div className="sm:col-span-2">
               <dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-                Описание
+                {t("Описание")}
               </dt>
               <dd className="mt-1 whitespace-pre-wrap leading-6">
                 {generation.prompt}
@@ -158,10 +162,10 @@ export function ResultActions({
             </div>
             <div className="sm:col-span-2">
               <dt className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-                Создано
+                {t("Создано")}
               </dt>
               <dd className="mt-1 font-medium">
-                {formatCreationDate(generation.createdAt)}
+                {formatCreationDate(generation.createdAt, locale)}
               </dd>
             </div>
           </dl>

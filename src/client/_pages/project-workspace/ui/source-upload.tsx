@@ -9,6 +9,7 @@ import {
   uploadProjectSource,
 } from "@/features/upload-media";
 import { projectsQueries } from "@/shared/api/projects";
+import { useAppText } from "@/shared/providers";
 
 type UploadState = "idle" | "uploading" | "error";
 
@@ -17,6 +18,7 @@ type SourceUploadProps = {
 };
 
 export function SourceUpload({ projectId }: SourceUploadProps) {
+  const t = useAppText();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
@@ -73,7 +75,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Не удалось загрузить фотографию",
+          : t("Не удалось загрузить фотографию"),
       );
     }
   }
@@ -92,7 +94,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
     if (!nextFile) return;
     if (!isAcceptedSourceFile(nextFile)) {
       setState("error");
-      setMessage("Выберите JPG, PNG или WEBP размером не более 15 МБ.");
+      setMessage(t("Выберите JPG, PNG или WEBP размером не более 15 МБ."));
       return;
     }
 
@@ -118,7 +120,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
             <span className="mx-auto grid size-10 place-items-center rounded-full bg-secondary text-sm font-bold text-muted-foreground">
               01
             </span>
-            <p className="mt-2 text-xs font-semibold">Фото комнаты</p>
+            <p className="mt-2 text-xs font-semibold">{t("Фото комнаты")}</p>
           </div>
           <button
             type="button"
@@ -139,25 +141,25 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
             <b className="mt-5 block text-lg">
               {state === "uploading"
                 ? uploadProgress !== null && uploadProgress >= 1
-                  ? "Проверяем фотографию…"
-                  : `Загружаем фото${
+                  ? t("Проверяем фотографию…")
+                  : `${t("Загружаем фото")}${
                       uploadProgress !== null
                         ? ` — ${Math.round(uploadProgress * 100)}%`
                         : "…"
                     }`
-                : "Загрузите фото комнаты"}
+                : t("Загрузите фото комнаты")}
             </b>
             <span className="mt-2 block text-sm leading-6 text-muted-foreground">
               {state === "uploading"
-                ? "После загрузки сразу откроются холст и настройки"
-                : "Перетащите файл сюда или нажмите, чтобы выбрать"}
+                ? t("После загрузки сразу откроются холст и настройки")
+                : t("Перетащите файл сюда или нажмите, чтобы выбрать")}
             </span>
             {state === "uploading" ? (
               <span className="mt-5 block w-full max-w-56">
                 <span
                   className="block h-1.5 overflow-hidden rounded-full bg-secondary"
                   role="progressbar"
-                  aria-label="Загрузка фотографии"
+                  aria-label={t("Загрузка фотографии")}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={
@@ -178,7 +180,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
             ) : null}
             <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground">
               <UploadCloud className="size-3.5" aria-hidden="true" />
-              JPG, PNG или WEBP · до 15 МБ
+              {t("JPG, PNG или WEBP · до 15 МБ")}
             </span>
           </button>
           {state === "uploading" ? (
@@ -187,11 +189,11 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
               onClick={cancelUpload}
               className="mx-auto mt-2 flex min-h-11 items-center justify-center rounded-lg px-4 text-xs font-bold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
-              Отменить загрузку
+              {t("Отменить загрузку")}
             </button>
           ) : null}
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Фото появится прямо на холсте
+            {t("Фото появится прямо на холсте")}
           </p>
         </div>
       </div>
@@ -201,7 +203,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
         type="file"
         accept="image/jpeg,image/png,image/webp"
         className="sr-only"
-        aria-label="Выбрать фотографию помещения"
+        aria-label={t("Выбрать фотографию помещения")}
         onChange={(event) => {
           chooseFile(event.target.files?.[0]);
           event.currentTarget.value = "";
@@ -221,7 +223,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
                 onClick={() => void startUpload(file)}
                 className={buttonClassName("secondary", "rounded-xl")}
               >
-                Повторить
+                {t("Повторить")}
               </button>
             ) : null}
             <button
@@ -229,7 +231,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
               onClick={() => inputRef.current?.click()}
               className={buttonClassName("primary", "rounded-xl")}
             >
-              Выбрать другое
+              {t("Выбрать другое")}
             </button>
           </div>
         </div>
@@ -238,10 +240,12 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
       <p className="sr-only" aria-live="polite">
         {state === "uploading"
           ? uploadProgress !== null && uploadProgress >= 1
-            ? "Фотография загружена и проверяется."
-            : `Фотография загружается${
+            ? t("Фотография загружена и проверяется.")
+            : `${t("Фотография загружается")}${
                 uploadProgress !== null
-                  ? `: ${Math.floor(uploadProgress * 10) * 10} процентов.`
+                  ? `: ${t("{percent} процентов.", {
+                      percent: Math.floor(uploadProgress * 10) * 10,
+                    })}`
                   : "."
               }`
           : ""}

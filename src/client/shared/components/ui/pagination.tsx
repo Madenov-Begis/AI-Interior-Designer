@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import {
   ChevronLeftIcon,
@@ -7,13 +9,15 @@ import {
 import Link from "next/link";
 
 import { cn } from "@/shared/lib";
+import { useAppText } from "@/shared/providers/app-text";
 import { buttonVariants, type Button } from "./button";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+  const t = useAppText();
   return (
     <nav
       role="navigation"
-      aria-label="Пагинация"
+      aria-label={t("Пагинация")}
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -68,35 +72,37 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = "Назад",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const t = useAppText();
   return (
     <PaginationLink
-      aria-label="Перейти на предыдущую страницу"
+      aria-label={t("Перейти на предыдущую страницу")}
       size="default"
       className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
       <ChevronLeftIcon />
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text ?? t("Назад")}</span>
     </PaginationLink>
   );
 }
 
 function PaginationNext({
   className,
-  text = "Вперёд",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const t = useAppText();
   return (
     <PaginationLink
-      aria-label="Перейти на следующую страницу"
+      aria-label={t("Перейти на следующую страницу")}
       size="default"
       className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
       {...props}
     >
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text ?? t("Вперёд")}</span>
       <ChevronRightIcon />
     </PaginationLink>
   );
@@ -104,9 +110,10 @@ function PaginationNext({
 
 function PaginationEllipsis({
   className,
-  label = "Другие страницы",
+  label,
   ...props
 }: React.ComponentProps<"span"> & { label?: string }) {
+  const t = useAppText();
   return (
     <span
       aria-hidden
@@ -118,7 +125,7 @@ function PaginationEllipsis({
       {...props}
     >
       <MoreHorizontalIcon />
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{label ?? t("Другие страницы")}</span>
     </span>
   );
 }

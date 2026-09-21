@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from "react";
 import { DesignInspector, type DesignInspectorProps } from "./design-inspector";
+import { useAppText } from "@/shared/providers";
 
 export function useWorkspaceInspectorPanel() {
   const [dialogNode, setDialogNode] = useState<HTMLDialogElement | null>(null);
@@ -81,18 +82,19 @@ export function WorkspaceInspectorTrigger({
   open: boolean;
   onOpen(): void;
 }) {
+  const t = useAppText();
   return (
     <button
       ref={triggerRef}
       type="button"
       onClick={onOpen}
       className="absolute top-3 right-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold shadow-xl transition-colors hover:bg-secondary min-[1200px]:hidden"
-      aria-label="Открыть настройки интерьера"
+      aria-label={t("Открыть настройки интерьера")}
       aria-haspopup="dialog"
       aria-expanded={open}
     >
       <Settings2 size={18} aria-hidden="true" />
-      <span className="hidden sm:inline">Новый интерьер</span>
+      <span className="hidden sm:inline">{t("Новый интерьер")}</span>
     </button>
   );
 }
@@ -114,6 +116,7 @@ export function WorkspaceInspectorPanel({
   onClosed(): void;
   inspectorProps: DesignInspectorProps;
 }) {
+  const t = useAppText();
   return (
     <dialog
       ref={dialogRef}
@@ -151,17 +154,17 @@ export function WorkspaceInspectorPanel({
             id="design-inspector-title"
             className="text-xs font-black uppercase tracking-[0.18em] text-accent"
           >
-            Новый интерьер
+            {t("Новый интерьер")}
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Стиль, формат и ваши изменения
+            {t("Стиль, формат и ваши изменения")}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
           className="grid size-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-foreground min-[1200px]:hidden"
-          aria-label="Закрыть настройки интерьера"
+          aria-label={t("Закрыть настройки интерьера")}
         >
           <X size={19} aria-hidden="true" />
         </button>
