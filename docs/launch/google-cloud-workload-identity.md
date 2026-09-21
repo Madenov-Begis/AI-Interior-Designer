@@ -26,12 +26,20 @@ GCP_WORKLOAD_IDENTITY_POOL_ID=vercel-ruvie-production
 GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=vercel
 ```
 
-`GOOGLE_APPLICATION_CREDENTIALS_JSON` из Vercel удаляется только после успешного smoke-test новой схемы. Локальная разработка временно может использовать `GOOGLE_APPLICATION_CREDENTIALS` или `GOOGLE_APPLICATION_CREDENTIALS_JSON`; такие credentials нельзя сохранять в Git.
+`GOOGLE_APPLICATION_CREDENTIALS_JSON` удалён из Vercel Production 21 сентября 2026 года после успешной production-проверки. Локальная разработка при необходимости должна использовать Application Default Credentials или отдельную безопасную federation-схему; постоянный JSON-ключ больше не является штатным способом доступа и не должен сохраняться в Git.
+
+## Статус внедрения
+
+- commit `580aceb` опубликован в `master`;
+- production deployment `K6F27xn1jUUnSevpxBXUBT57jz25` имеет статус `READY`;
+- ручная проверка Vertex-генерации через Workload Identity Federation прошла;
+- постоянный secret `GOOGLE_APPLICATION_CREDENTIALS_JSON` удалён из Vercel Production;
+- старый service-account key проекта `cms-e-commerce-455011` отозван;
+- локальная копия старого JSON-ключа удалена из `.env.local`.
 
 ## Проверка и откат
 
-1. Выполнить production deployment с federation-переменными.
+1. Для каждого изменения issuer, audience, subject или service account выполнить новый production deployment.
 2. Запустить одну контролируемую проверку изображения и одну генерацию.
 3. Убедиться, что в метрике пула появилась успешная token exchange, а в логах нет `iam.serviceAccounts.getAccessToken denied`.
-4. После успешной проверки удалить старый `GOOGLE_APPLICATION_CREDENTIALS_JSON` из Vercel и отозвать старый service-account key в прежнем Google Cloud project.
-5. При ошибке вернуть предыдущий deployment и проверить точное совпадение issuer, audience и subject; не отключать организационную политику запрета service-account keys.
+4. При ошибке вернуть предыдущий deployment и проверить точное совпадение issuer, audience и subject; не создавать новый постоянный JSON-ключ и не отключать организационную политику его запрета.

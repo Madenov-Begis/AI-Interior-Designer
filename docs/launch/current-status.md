@@ -1,5 +1,19 @@
 # Ruvie — текущий статус запуска
 
+## Обновление инфраструктуры 21 сентября 2026
+
+Production-доступ к Vertex AI переведён с постоянного JSON-ключа на Vercel OIDC и Google Cloud Workload Identity Federation. Изоляция ограничена production subject проекта `ai-interior-designer`; Preview и Development не получают доступ к production service account.
+
+- release commit: `580aceb` (`feat: use workload identity for vertex`), опубликован в `master`;
+- `pnpm release:check` прошёл полностью: 283 server-теста, 27 UI-тестов, 23 UI-теста и 7 server-тестов админки, typecheck, lint, обе production-сборки и 21 актуальная Prisma-миграция;
+- production deployment `K6F27xn1jUUnSevpxBXUBT57jz25` выполнен с актуальными переменными и имеет статус `READY`;
+- ручная production-проверка генерации через новую схему аутентификации прошла;
+- `GOOGLE_APPLICATION_CREDENTIALS_JSON` удалён из Vercel Production и локального `.env.local`;
+- старый ключ `71b8b62c…` service account проекта `cms-e-commerce-455011` отозван в Google Cloud;
+- `https://ruvie.cc/app` отвечает HTTP 200; корневой `https://ruvie.cc/` штатно отвечает HTTP 307 на локализованный маршрут `/en`.
+
+Текущее решение остаётся `NO-GO`: миграция Google Cloud завершена, но отдельно остаются MFA и резервный владелец Supabase, независимая юридическая проверка документов, рабочий канал поддержки и подтверждение минимального набора project-level IAM/quota для нового service account. Budget alert не является лимитом расходов и не блокирует продажи или использование купленных кредитов.
+
 ## Обновление приёмки 12 сентября 2026
 
 Все три согласованных пункта заключительной приёмки подтверждены: реальная загрузка → генерация → одно списание 4 кредитов → скачивание WebP; доставка email-уведомлений Sentry от сайта и админки; свежая Google-регистрация с новым профилем, записью согласия и одним начислением 10 кредитов.
@@ -19,7 +33,7 @@
 
 ## Что закрыто
 
-- Все 19 Prisma-миграций применены; схема production-базы актуальна.
+- Все 21 Prisma-миграция применены; схема production-базы актуальна.
 - Supabase SSL Enforcement включен.
 - Google OAuth проходит цепочку Ruvie → Supabase → Google; окончательный вход beta-пользователя входит в E2E.
 - Все семь Storage buckets приватные. Новый staging bucket проверен реальной загрузкой 15 МБ, signed download и удалением тестовых файлов.
@@ -46,19 +60,20 @@
 - Design QA завершён на production при 375, 768 и 1440 px. Исправлены mobile overflow профиля, сжатие toolbar touch targets и keyboard Escape для inspector. Итог: `passed`.
 - Реквизиты Оператора и Исполнителя заполнены по свидетельству ИП: MADENOV BEGIS SPANTAMANO ULI, запись в Едином государственном реестре № 7987228 от 4 сентября 2026 года. Публичные маршруты Политики и Оферты, ссылки, явное согласие и серверная фиксация версии согласия подготовлены в коде; `pnpm legal:check` проходит.
 - Реализован ручной аварийный выключатель новых генераций `GENERATIONS_ENABLED=false`. Он не связан с бюджетом и не ограничивает нормальные продажи или использование приобретенных кредитов.
+- Production Vertex AI использует Workload Identity Federation без постоянного JSON-ключа; старый ключ удалён из Vercel и отозван у прежнего service account.
 
 ## Оставшиеся блокеры
 
-1. Выполнить единственный оставшийся E2E browser-flow: новый Google signup через отдельный новый Google-аккаунт. Production-аудит уже подтверждает ровно один grant на 10 кредитов у всех обычных профилей.
-2. Подключить exception tracking и проверить административную видимость расходов Google Cloud. Budget alert остается необязательным наблюдением и не должен отключать генерации. Базовый uptime, generation-health monitoring и ручной emergency stop уже добавлены.
-3. Провести юридическую проверку заполненных документов, задеплоить страницы и проверить запись согласия в production. Миграция фиксации согласий уже применена.
-4. Подтвердить операционную безопасность: MFA/резервный owner Supabase и минимальные Vertex IAM/quota. Self-lockout protection и формальные RPO/RTO уже подтверждены.
+1. Включить MFA для владельца Supabase organization и добавить второго доверенного owner либо формально принять риск единственной учётной записи.
+2. Подтвердить минимальный project-level набор IAM нового Vertex service account и документировать доступную Dynamic Shared Quota. Workload Identity Federation и удаление постоянного ключа уже завершены.
+3. Провести независимую юридическую проверку опубликованных документов и подтвердить, что `support@ruvie.cc` является рабочим каналом поддержки. Публичные страницы, ссылки и production-запись согласия уже проверены.
+4. Завершить оставшиеся retention/account-deletion проверки и staging-проверку миграций, перечисленные в `closed-beta-checklist.md`.
 
 ## Следующая последовательность
 
-1. Проверить новый Google signup с отдельной учетной записью.
-2. Подключить exception tracking и проверить мониторинг расходов Google Cloud.
-3. Опубликовать юридические страницы и выполнить production smoke test записи согласия.
+1. Закрыть или письменно принять риск MFA и резервного владельца Supabase.
+2. Проверить project-level IAM/quota нового Google Cloud service account; бюджетное уведомление оставить отдельной необязательной мерой наблюдения.
+3. Получить юридическое заключение и подтвердить работу адреса `support@ruvie.cc`.
 
 Новые функции из `docs/future-plans.md` не входят в beta и не должны задерживать этот выпуск.
 
