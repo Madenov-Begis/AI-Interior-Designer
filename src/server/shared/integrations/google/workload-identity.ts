@@ -5,7 +5,7 @@ const REQUIRED_FIELDS = [
   "GCP_SERVICE_ACCOUNT_EMAIL",
   "GCP_WORKLOAD_IDENTITY_POOL_ID",
   "GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID",
-  "VERCEL_OIDC_AUDIENCE",
+  "GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE",
 ] as const;
 
 type RequiredField = (typeof REQUIRED_FIELDS)[number];
@@ -49,5 +49,5 @@ export function createVercelWorkloadIdentityClient(
 export function getVercelOidcTokenOptions(
   config: VercelWorkloadIdentityConfig,
 ) {
-  return { audience: config.VERCEL_OIDC_AUDIENCE };
+  return { audience: config.GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE };
 }

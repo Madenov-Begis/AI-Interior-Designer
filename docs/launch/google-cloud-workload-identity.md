@@ -24,7 +24,7 @@ GCP_PROJECT_NUMBER=1043684318287
 GCP_SERVICE_ACCOUNT_EMAIL=ruvie-vertex@project-2b9ed972-97d2-4024-984.iam.gserviceaccount.com
 GCP_WORKLOAD_IDENTITY_POOL_ID=vercel-ruvie-production
 GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=vercel
-VERCEL_OIDC_AUDIENCE=https://vercel.com/madenovbegis-projects
+GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE=https://vercel.com/madenovbegis-projects
 ```
 
 `GOOGLE_APPLICATION_CREDENTIALS_JSON` удалён из Vercel Production 21 сентября 2026 года после успешной production-проверки. Локальная разработка при необходимости должна использовать Application Default Credentials или отдельную безопасную federation-схему; постоянный JSON-ключ больше не является штатным способом доступа и не должен сохраняться в Git.

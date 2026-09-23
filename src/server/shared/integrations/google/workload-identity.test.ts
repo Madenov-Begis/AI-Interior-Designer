@@ -10,7 +10,7 @@ const completeConfig = {
   GCP_SERVICE_ACCOUNT_EMAIL: "ruvie-vertex@example.iam.gserviceaccount.com",
   GCP_WORKLOAD_IDENTITY_POOL_ID: "vercel-ruvie",
   GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: "vercel",
-  VERCEL_OIDC_AUDIENCE: "https://vercel.com/ruvie-team",
+  GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE: "https://vercel.com/ruvie-team",
 };
 
 test("Workload Identity не включается без federation-переменных", () => {
