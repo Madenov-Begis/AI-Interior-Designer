@@ -6,6 +6,7 @@ import { getVercelOidcToken } from "@vercel/oidc";
 import { parseVertexCredentials } from "./credentials.ts";
 import {
   createVercelWorkloadIdentityClient,
+  getVercelOidcTokenOptions,
   parseVercelWorkloadIdentityConfig,
 } from "./workload-identity.ts";
 
@@ -26,7 +27,7 @@ export async function createVertexGenAi(timeoutSeconds: number) {
     googleAuthOptions = {
       authClient: createVercelWorkloadIdentityClient(
         workloadIdentity,
-        getVercelOidcToken,
+        () => getVercelOidcToken(getVercelOidcTokenOptions(workloadIdentity)),
       ),
       projectId: project,
     };

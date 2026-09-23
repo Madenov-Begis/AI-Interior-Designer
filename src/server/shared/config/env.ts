@@ -36,6 +36,7 @@ const serverEnvSchema = z
     GCP_SERVICE_ACCOUNT_EMAIL: z.email().optional(),
     GCP_WORKLOAD_IDENTITY_POOL_ID: z.string().min(1).optional(),
     GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: z.string().min(1).optional(),
+    VERCEL_OIDC_AUDIENCE: z.url().optional(),
     TRIGGER_SECRET_KEY: z.string().min(1).optional(),
     SENTRY_DSN: z.url().optional(),
     ADMIN_ORIGINS: z.string().min(1).optional(),
@@ -92,6 +93,7 @@ const serverEnvSchema = z
         env.GCP_SERVICE_ACCOUNT_EMAIL,
         env.GCP_WORKLOAD_IDENTITY_POOL_ID,
         env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID,
+        env.VERCEL_OIDC_AUDIENCE,
       ];
       const workloadIdentityFieldCount =
         workloadIdentityFields.filter(Boolean).length;
