@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import { assertSafePaymentConfiguration } from "./payment.ts";
+import { hasCompleteVercelWorkloadIdentityConfig } from "../integrations/google/workload-identity.ts";
 
 const serverEnvSchema = z
   .object({
@@ -97,7 +98,7 @@ const serverEnvSchema = z
       ];
       const workloadIdentityFieldCount =
         workloadIdentityFields.filter(Boolean).length;
-      const hasWorkloadIdentity = workloadIdentityFieldCount === 4;
+      const hasWorkloadIdentity = hasCompleteVercelWorkloadIdentityConfig(env);
 
       if (!env.GOOGLE_CLOUD_PROJECT_ID)
         context.addIssue({

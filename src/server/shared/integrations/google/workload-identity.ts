@@ -12,6 +12,12 @@ type RequiredField = (typeof REQUIRED_FIELDS)[number];
 
 export type VercelWorkloadIdentityConfig = Record<RequiredField, string>;
 
+export function hasCompleteVercelWorkloadIdentityConfig(
+  input: Partial<Record<RequiredField, string | undefined>>,
+) {
+  return REQUIRED_FIELDS.every((field) => Boolean(input[field]?.trim()));
+}
+
 export function parseVercelWorkloadIdentityConfig(
   input: Record<string, string | undefined>,
 ): VercelWorkloadIdentityConfig | null {
@@ -21,7 +27,7 @@ export function parseVercelWorkloadIdentityConfig(
   const configuredFields = REQUIRED_FIELDS.filter((field) => values[field]);
 
   if (configuredFields.length === 0) return null;
-  if (configuredFields.length !== REQUIRED_FIELDS.length) {
+  if (!hasCompleteVercelWorkloadIdentityConfig(values)) {
     throw new Error("VERTEX_WORKLOAD_IDENTITY_INCOMPLETE");
   }
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getVercelOidcTokenOptions,
+  hasCompleteVercelWorkloadIdentityConfig,
   parseVercelWorkloadIdentityConfig,
 } from "./workload-identity.ts";
 
@@ -18,6 +19,7 @@ test("Workload Identity не включается без federation-переме
 });
 
 test("Workload Identity принимает только полный набор federation-переменных", () => {
+  assert.equal(hasCompleteVercelWorkloadIdentityConfig(completeConfig), true);
   assert.deepEqual(
     parseVercelWorkloadIdentityConfig(completeConfig),
     completeConfig,
@@ -32,6 +34,12 @@ test("Workload Identity запрашивает Vercel token с настроен�
 });
 
 test("Workload Identity отклоняет частичную конфигурацию", () => {
+  assert.equal(
+    hasCompleteVercelWorkloadIdentityConfig({
+      GCP_PROJECT_NUMBER: completeConfig.GCP_PROJECT_NUMBER,
+    }),
+    false,
+  );
   assert.throws(
     () =>
       parseVercelWorkloadIdentityConfig({
