@@ -115,6 +115,7 @@ export {
   SheetTrigger,
 } from "../components/ui/sheet.tsx";
 export { Skeleton } from "../components/ui/skeleton.tsx";
+export { WorkspaceLoadingSkeleton } from "../components/ui/workspace-loading-skeleton.tsx";
 export { Slider } from "../components/ui/slider.tsx";
 export { Textarea } from "../components/ui/textarea.tsx";
 export { Toggle } from "../components/ui/toggle.tsx";

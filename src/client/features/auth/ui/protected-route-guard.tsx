@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { useAppSessionQuery } from "../api/client";
 import { AppSessionProvider } from "../model/context";
 import { useAppText } from "@/shared/providers";
+import { WorkspaceLoadingSkeleton } from "@/shared/ui";
 
 export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -49,6 +50,21 @@ export function ProtectedRouteGuard({ children }: { children: ReactNode }) {
     );
   }
   if (!auth.data) {
+    if (
+      pathname === "/app" ||
+      /^\/app\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        pathname,
+      )
+    ) {
+      return (
+        <main id="main-content" className="min-h-dvh" tabIndex={-1}>
+          <WorkspaceLoadingSkeleton
+            fullScreen
+            label={t("Открываем рабочее пространство…")}
+          />
+        </main>
+      );
+    }
     return (
       <main
         id="main-content"

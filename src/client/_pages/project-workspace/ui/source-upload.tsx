@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, LoaderCircle, UploadCloud } from "lucide-react";
-import { buttonClassName } from "@/shared/ui";
+import { Check, ImagePlus, LoaderCircle, Upload, X } from "lucide-react";
+import { Button } from "@/shared/ui";
 import {
   isAcceptedSourceFile,
   uploadProjectSource,
@@ -11,72 +12,110 @@ import {
 import { projectsQueries } from "@/shared/api/projects";
 import { useAppText } from "@/shared/providers";
 
-type UploadState = "idle" | "uploading" | "error";
+type UploadState = "idle" | "uploading" | "complete" | "error";
 
-type SourceUploadProps = {
-  projectId: string;
-};
-
-export function SourceUpload({ projectId }: SourceUploadProps) {
+export function SourceUpload({ projectId }: { projectId: string }) {
   const t = useAppText();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const chooseButtonRef = useRef<HTMLButtonElement>(null);
+  const uploadButtonRef = useRef<HTMLButtonElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
+  const dragDepthRef = useRef(0);
   const requestIdRef = useRef(0);
   const controllerRef = useRef<AbortController>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [state, setState] = useState<UploadState>("idle");
+  const [errorKind, setErrorKind] = useState<"validation" | "upload" | null>(
+    null,
+  );
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     return () => {
       controllerRef.current?.abort();
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     };
   }, []);
 
-  async function startUpload(nextFile: File) {
-    controllerRef.current?.abort();
+  function selectFile(nextFile?: File) {
+    if (!nextFile || state === "uploading" || state === "complete") return;
+    if (!isAcceptedSourceFile(nextFile)) {
+      setState("error");
+      setErrorKind("validation");
+      setMessage(t("Выберите JPG, PNG или WEBP размером не более 15 МБ."));
+      return;
+    }
+
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(nextFile);
+    previewUrlRef.current = url;
+    setPreviewUrl(url);
+    setFile(nextFile);
+    setState("idle");
+    setErrorKind(null);
+    setMessage("");
+    setUploadProgress(null);
+    requestAnimationFrame(() => uploadButtonRef.current?.focus());
+  }
+
+  function clearFile() {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = null;
+    setPreviewUrl(null);
+    setFile(null);
+    setState("idle");
+    setErrorKind(null);
+    setMessage("");
+    setUploadProgress(null);
+    requestAnimationFrame(() => chooseButtonRef.current?.focus());
+  }
+
+  async function startUpload() {
+    if (!file || state === "uploading" || state === "complete") return;
     const controller = new AbortController();
     controllerRef.current = controller;
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-
+    const requestId = ++requestIdRef.current;
     setState("uploading");
+    setErrorKind(null);
     setUploadProgress(0);
     setMessage("");
 
     try {
       await uploadProjectSource({
         projectId,
-        file: nextFile,
+        file,
         signal: controller.signal,
         onProgress: (progress) => {
-          if (requestId === requestIdRef.current) {
-            setUploadProgress(progress);
-          }
+          if (requestId === requestIdRef.current) setUploadProgress(progress);
         },
       });
-
       if (requestId !== requestIdRef.current) return;
       await queryClient.invalidateQueries({
         queryKey: projectsQueries.workspace(projectId).queryKey,
       });
-      setState("idle");
+      if (requestId !== requestIdRef.current) return;
+      setState("complete");
       setUploadProgress(null);
     } catch (error) {
       if (
         requestId !== requestIdRef.current ||
         (error instanceof DOMException && error.name === "AbortError")
-      ) {
+      )
         return;
-      }
       setState("error");
+      setErrorKind("upload");
       setUploadProgress(null);
       setMessage(
         error instanceof Error
           ? error.message
           : t("Не удалось загрузить фотографию"),
       );
+    } finally {
+      if (requestId === requestIdRef.current) controllerRef.current = null;
     }
   }
 
@@ -84,163 +123,230 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
     requestIdRef.current += 1;
     controllerRef.current?.abort();
     controllerRef.current = null;
-    setFile(null);
     setState("idle");
+    setErrorKind(null);
     setUploadProgress(null);
     setMessage("");
   }
 
-  function chooseFile(nextFile?: File) {
-    if (!nextFile) return;
-    if (!isAcceptedSourceFile(nextFile)) {
-      setState("error");
-      setMessage(t("Выберите JPG, PNG или WEBP размером не более 15 МБ."));
-      return;
-    }
-
-    setFile(nextFile);
-    void startUpload(nextFile);
-  }
+  const busy = state === "uploading" || state === "complete";
+  const progressPercent = Math.round((uploadProgress ?? 0) * 100);
 
   return (
     <div
-      className="relative size-full min-h-[280px] overflow-hidden bg-transparent"
+      className="flex size-full min-h-[280px] items-center justify-center overflow-y-auto px-4 py-6"
+      onDragEnter={(event) => {
+        event.preventDefault();
+        dragDepthRef.current += 1;
+        if (!busy) setDragOver(true);
+      }}
       onDragOver={(event) => {
         event.preventDefault();
-        event.dataTransfer.dropEffect = "copy";
+        event.dataTransfer.dropEffect = busy ? "none" : "copy";
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setDragOver(false);
       }}
       onDrop={(event) => {
         event.preventDefault();
-        chooseFile(event.dataTransfer.files[0]);
+        dragDepthRef.current = 0;
+        setDragOver(false);
+        if (!busy) selectFile(event.dataTransfer.files[0]);
       }}
     >
-      <div className="absolute inset-0 grid place-items-center p-6">
-        <div className="w-full max-w-sm">
-          <button
-            type="button"
-            disabled={state === "uploading"}
-            onClick={() => inputRef.current?.click()}
-            className="group flex w-full cursor-pointer flex-col items-center justify-center rounded-[22px] border border-dashed border-border bg-card/90 px-6 py-7 text-center shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition-colors hover:border-primary hover:bg-[#28282a] disabled:cursor-wait disabled:border-primary/45 disabled:hover:bg-card"
-          >
-            <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-disabled:bg-primary/10 group-disabled:text-primary">
-              {state === "uploading" ? (
-                <LoaderCircle
-                  className="size-6 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <ImagePlus className="size-6" aria-hidden="true" />
-              )}
-            </span>
-            <b className="mt-3 block text-base">
-              {state === "uploading"
-                ? uploadProgress !== null && uploadProgress >= 1
-                  ? t("Проверяем фотографию…")
-                  : `${t("Загружаем фото")}${
-                      uploadProgress !== null
-                        ? ` — ${Math.round(uploadProgress * 100)}%`
-                        : "…"
-                    }`
-                : t("Загрузите фото комнаты")}
-            </b>
-            <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-              {state === "uploading"
-                ? t("Фото появится прямо на холсте")
-                : t("Перетащите файл сюда или нажмите, чтобы выбрать")}
-            </span>
-            {state === "uploading" ? (
-              <span className="mt-5 block w-full max-w-56">
-                <span
-                  className="block h-1.5 overflow-hidden rounded-full bg-secondary"
-                  role="progressbar"
-                  aria-label={t("Загрузка фотографии")}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={
-                    uploadProgress !== null
-                      ? Math.round(uploadProgress * 100)
-                      : undefined
-                  }
-                >
-                  <span
-                    className="block h-full rounded-full bg-primary transition-transform duration-200"
-                    style={{
-                      transform: `scaleX(${uploadProgress ?? 0.08})`,
-                      transformOrigin: "left",
-                    }}
-                  />
-                </span>
-              </span>
-            ) : null}
-            <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-              <UploadCloud className="size-3.5" aria-hidden="true" />
-              {t("JPG, PNG или WEBP · до 15 МБ")}
-            </span>
-          </button>
-          {state === "uploading" ? (
-            <button
-              type="button"
-              onClick={cancelUpload}
-              className="mx-auto mt-2 flex min-h-11 items-center justify-center rounded-lg px-4 text-xs font-bold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              {t("Отменить загрузку")}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="sr-only"
-        aria-label={t("Выбрать фотографию помещения")}
-        onChange={(event) => {
-          chooseFile(event.target.files?.[0]);
-          event.currentTarget.value = "";
-        }}
-      />
-
-      {state === "error" ? (
-        <div
-          className="absolute right-4 bottom-4 left-4 flex flex-col gap-3 rounded-2xl border border-red-300/20 bg-black/80 p-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between"
-          role="alert"
-        >
-          <p className="text-sm text-red-200">{message}</p>
-          <div className="flex shrink-0 gap-2">
-            {file ? (
-              <button
-                type="button"
-                onClick={() => void startUpload(file)}
-                className={buttonClassName("secondary", "rounded-xl")}
-              >
-                {t("Повторить")}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className={buttonClassName("primary", "rounded-xl")}
-            >
-              {t("Выбрать другое")}
-            </button>
+      <div className="w-full max-w-[400px] rounded-[18px] border border-border bg-card p-5 shadow-lg shadow-black/10 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <ImagePlus className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold leading-6 tracking-tight">
+              {t("Фото комнаты")}
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
+              {t("Добавьте снимок, чтобы начать работу на холсте")}
+            </p>
           </div>
         </div>
-      ) : null}
 
-      <p className="sr-only" aria-live="polite">
-        {state === "uploading"
-          ? uploadProgress !== null && uploadProgress >= 1
-            ? t("Фотография загружена и проверяется.")
-            : `${t("Фотография загружается")}${
-                uploadProgress !== null
-                  ? `: ${t("{percent} процентов.", {
-                      percent: Math.floor(uploadProgress * 10) * 10,
-                    })}`
-                  : "."
-              }`
-          : ""}
-      </p>
+        {!file || dragOver ? (
+          <div
+            className={`mt-5 flex min-h-44 flex-col items-center justify-center rounded-xl border border-dashed px-4 py-5 text-center transition-colors ${
+              dragOver
+                ? "border-primary bg-primary/10"
+                : "border-border bg-background/50"
+            }`}
+          >
+            <Upload className="size-5 text-primary" aria-hidden="true" />
+            <p className="mt-3 text-sm font-medium">
+              {dragOver
+                ? t("Отпустите фото для загрузки")
+                : t("Перетащите фото сюда")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("или выберите файл на устройстве")}
+            </p>
+            {!dragOver ? (
+              <Button
+                ref={chooseButtonRef}
+                variant="primary"
+                className="mt-4 min-h-11"
+                onClick={() => inputRef.current?.click()}
+              >
+                {t("Выбрать фото")}
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-background/60 p-3">
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-secondary">
+              {previewUrl ? (
+                <Image
+                  src={previewUrl}
+                  alt={t("Выбранное фото комнаты")}
+                  fill
+                  unoptimized
+                  sizes="80px"
+                  className="object-cover"
+                />
+              ) : null}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium" title={file.name}>
+                {file.name}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("{size} МБ", {
+                  size: Math.max(0.1, file.size / 1024 / 1024).toFixed(1),
+                })}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {state === "uploading"
+                  ? uploadProgress !== null && uploadProgress >= 1
+                    ? t("Проверяем фотографию…")
+                    : t("Загружаем фото")
+                  : state === "complete"
+                    ? t("Фото загружено. Открываем холст…")
+                    : t("Фото готово к загрузке")}
+              </p>
+            </div>
+            {!busy ? (
+              <button
+                type="button"
+                onClick={clearFile}
+                aria-label={t("Убрать выбранное фото")}
+                className="grid size-10 shrink-0 cursor-pointer place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          {t("JPG, PNG или WEBP · до 15 МБ")}
+        </p>
+
+        {state === "uploading" ? (
+          <div
+            className="mt-4"
+            role="progressbar"
+            aria-label={t("Загрузка фотографии")}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progressPercent}
+          >
+            <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-200 motion-reduce:transition-none"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="mt-2 text-right text-xs tabular-nums text-muted-foreground">
+              {progressPercent}%
+            </p>
+          </div>
+        ) : null}
+
+        {state === "error" ? (
+          <p
+            className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm leading-5 text-foreground"
+            role="alert"
+          >
+            {message}
+          </p>
+        ) : null}
+
+        {file && !dragOver ? (
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button
+              ref={uploadButtonRef}
+              variant="primary"
+              className="min-h-11 flex-1"
+              disabled={busy}
+              onClick={() => void startUpload()}
+            >
+              {state === "uploading" ? (
+                <LoaderCircle
+                  className="size-4 animate-spin motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+              ) : state === "complete" ? (
+                <Check className="size-4" aria-hidden="true" />
+              ) : (
+                <Upload className="size-4" aria-hidden="true" />
+              )}
+              {state === "uploading"
+                ? t("Загружаем фото")
+                : state === "complete"
+                  ? t("Фото загружено")
+                  : state === "error" && errorKind === "upload"
+                    ? t("Попробовать загрузить ещё раз")
+                    : t("Загрузить фото")}
+            </Button>
+            {state === "uploading" ? (
+              <Button
+                variant="secondary"
+                className="min-h-11"
+                onClick={cancelUpload}
+              >
+                {t("Отменить")}
+              </Button>
+            ) : state !== "complete" ? (
+              <Button
+                variant="secondary"
+                className="min-h-11"
+                onClick={() => inputRef.current?.click()}
+              >
+                {t("Заменить")}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          aria-label={t("Выбрать фотографию помещения")}
+          onChange={(event) => {
+            selectFile(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+        />
+        <p className="sr-only" aria-live="polite">
+          {state === "uploading"
+            ? t("Фотография загружается")
+            : state === "complete"
+              ? t("Фотография загружена и проверяется.")
+              : file && state === "idle"
+                ? t("Фото готово к загрузке")
+                : ""}
+        </p>
+      </div>
     </div>
   );
 }

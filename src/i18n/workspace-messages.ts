@@ -6,9 +6,27 @@ export const workspaceMessages = {
     "Открываем проект и подготавливаем рабочее пространство…":
       "Opening the project and preparing the workspace…",
     "Фото комнаты": "Room photo",
+    "Добавьте снимок, чтобы начать работу на холсте":
+      "Add a photo to start working on the canvas",
+    "Перетащите фото сюда": "Drag your photo here",
+    "или выберите файл на устройстве": "or choose a file from your device",
+    "Выбранное фото комнаты": "Selected room photo",
+    "{size} МБ": "{size} MB",
+    "Убрать выбранное фото": "Remove selected photo",
+    "Фото готово к загрузке": "Photo ready to upload",
+    "Загрузить фото": "Upload photo",
+    "Попробовать загрузить ещё раз": "Try uploading again",
+    "Заменить": "Replace",
+    "Фото загружено": "Photo uploaded",
+    "Фото загружено. Открываем холст…": "Photo uploaded. Opening the canvas…",
     "Проверяем фотографию…": "Checking the photo…",
     "Загружаем фото": "Uploading photo",
     "Загрузите фото комнаты": "Upload a room photo",
+    "Отпустите фото для загрузки": "Drop the photo to upload",
+    "Это фото станет основой вашего нового интерьера":
+      "Your new interior will be based on this photo",
+    "Выбрать фото": "Choose a photo",
+    "или перетащите его сюда": "or drag it here",
     "После загрузки сразу откроются холст и настройки":
       "The canvas and settings will open after upload",
     "Перетащите файл сюда или нажмите, чтобы выбрать":
@@ -282,9 +300,27 @@ export const workspaceMessages = {
     "Открываем проект и подготавливаем рабочее пространство…":
       "Loyiha ochilib, ish maydoni tayyorlanmoqda…",
     "Фото комнаты": "Xona surati",
+    "Добавьте снимок, чтобы начать работу на холсте":
+      "Ish maydonida boshlash uchun surat qo‘shing",
+    "Перетащите фото сюда": "Suratni shu yerga tortib keling",
+    "или выберите файл на устройстве": "yoki qurilmangizdan fayl tanlang",
+    "Выбранное фото комнаты": "Tanlangan xona surati",
+    "{size} МБ": "{size} MB",
+    "Убрать выбранное фото": "Tanlangan suratni olib tashlash",
+    "Фото готово к загрузке": "Surat yuklashga tayyor",
+    "Загрузить фото": "Suratni yuklash",
+    "Попробовать загрузить ещё раз": "Yana yuklab ko‘rish",
+    "Заменить": "Almashtirish",
+    "Фото загружено": "Surat yuklandi",
+    "Фото загружено. Открываем холст…": "Surat yuklandi. Ish maydoni ochilmoqda…",
     "Проверяем фотографию…": "Surat tekshirilmoqda…",
     "Загружаем фото": "Surat yuklanmoqda",
     "Загрузите фото комнаты": "Xona suratini yuklang",
+    "Отпустите фото для загрузки": "Yuklash uchun suratni qo‘yib yuboring",
+    "Это фото станет основой вашего нового интерьера":
+      "Yangi interyeringiz shu surat asosida yaratiladi",
+    "Выбрать фото": "Surat tanlash",
+    "или перетащите его сюда": "yoki uni shu yerga tortib keling",
     "После загрузки сразу откроются холст и настройки":
       "Yuklangandan so‘ng ish maydoni va sozlamalar ochiladi",
     "Перетащите файл сюда или нажмите, чтобы выбрать":

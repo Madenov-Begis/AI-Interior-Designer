@@ -1,10 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LoadingButton } from "@/shared/ui";
+import { LoadingButton, WorkspaceLoadingSkeleton } from "@/shared/ui";
 import { projectsQueries } from "@/shared/api/projects";
 import { useAppText } from "@/shared/providers";
 
@@ -19,6 +18,17 @@ export function ProjectEntryPage() {
     }
   }, [entry.data?.projectId, router]);
 
+  if (!entry.isError) {
+    return (
+      <main id="main-content" className="min-h-dvh" tabIndex={-1}>
+        <WorkspaceLoadingSkeleton
+          fullScreen
+          label={t("Открываем рабочее пространство…")}
+        />
+      </main>
+    );
+  }
+
   return (
     <main
       id="main-content"
@@ -26,33 +36,16 @@ export function ProjectEntryPage() {
       tabIndex={-1}
     >
       <div className="grid max-w-sm justify-items-center gap-4 text-center">
-        {entry.isError ? (
-          <>
-            <p className="text-sm text-destructive" role="alert">
-              {entry.error.message}
-            </p>
-            <LoadingButton
-              pending={entry.isFetching}
-              pendingText={t("Пробуем снова…")}
-              onClick={() => entry.refetch()}
-            >
-              {t("Повторить")}
-            </LoadingButton>
-          </>
-        ) : (
-          <div
-            className="delayed-loading-indicator grid justify-items-center gap-3"
-            role="status"
-          >
-            <LoaderCircle
-              className="size-7 animate-spin text-primary"
-              aria-hidden="true"
-            />
-            <p className="text-sm text-muted-foreground">
-              {t("Открываем рабочее пространство…")}
-            </p>
-          </div>
-        )}
+        <p className="text-sm text-destructive" role="alert">
+          {entry.error.message}
+        </p>
+        <LoadingButton
+          pending={entry.isFetching}
+          pendingText={t("Пробуем снова…")}
+          onClick={() => entry.refetch()}
+        >
+          {t("Повторить")}
+        </LoadingButton>
       </div>
     </main>
   );
