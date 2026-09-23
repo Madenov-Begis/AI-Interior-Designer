@@ -11,6 +11,7 @@ import {
 import { projectIdSchema } from "@/server/features/projects/schemas";
 import { ImageValidationError } from "@/server/features/media/image-validation";
 import { InteriorImageValidationUnavailableError } from "@/server/features/media/interior-image-validator";
+import { getInteriorImageValidationFailureDetails } from "@/server/features/media/interior-image-validation-retry";
 import {
   ProjectNotFoundError,
   ProjectSourceAlreadyExistsError,
@@ -79,13 +80,20 @@ export async function POST(
       return apiError("SOURCE_ALREADY_EXISTS", error.message, requestId, 409);
     if (error instanceof ImageValidationError)
       return apiError(error.code, error.message, requestId, 400);
-    if (error instanceof InteriorImageValidationUnavailableError)
+    if (error instanceof InteriorImageValidationUnavailableError) {
+      console.error("Interior image validation failed", {
+        requestId,
+        modelId: error.modelId,
+        attempts: error.attempts,
+        ...getInteriorImageValidationFailureDetails(error.cause),
+      });
       return apiError(
         "IMAGE_VALIDATION_UNAVAILABLE",
         error.message,
         requestId,
         503,
       );
+    }
     return apiError(
       "UPLOAD_FAILED",
       "Не удалось сохранить фотографию",
