@@ -1,6 +1,6 @@
 # Ruvie xizmatidan foydalanish bo‘yicha ommaviy oferta
 
-**Tahrir:** 1.1
+**Tahrir:** 1.2
 
 **E’lon qilingan sana:** 2026-yil 23-sentabr
 
@@ -10,7 +10,7 @@
 
 ## 1. Ijrochi
 
-Ushbu oferta **MADENOV BEGIS SPANTAMANOV ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor tomonidan joylashtirilgan. Reyestr raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Bank rekvizitlari tanlangan to‘lov usuliga tegishli to‘lov interfeysi va hujjatlarda ko‘rsatiladi. Keyingi o‘rinlarda — “Ijrochi” yoki “Ruvie”.
+Ushbu oferta **MADENOV BEGIS SPANTAMANO ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor tomonidan joylashtirilgan. Reyestr raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Bank rekvizitlari tanlangan to‘lov usuliga tegishli to‘lov interfeysi va hujjatlarda ko‘rsatiladi. Keyingi o‘rinlarda — “Ijrochi” yoki “Ruvie”.
 
 ## 2. Umumiy qoidalar va aksept
 
@@ -84,7 +84,7 @@ Oferta elektron shaklda amal qiladi. Ayrim qoida haqiqiy emas deb topilishi bosh
 
 ## 19. Ijrochining aloqa va rekvizitlari
 
-Ijrochi: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANOV ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
+Ijrochi: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANO ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
 
 ## 20. Normativ asos
 

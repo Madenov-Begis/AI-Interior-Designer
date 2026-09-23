@@ -1,6 +1,6 @@
 # Ruvie xizmatining maxfiylik siyosati
 
-**Tahrir:** 1.1
+**Tahrir:** 1.2
 
 **Kuchga kirgan sana:** 2026-yil 23-sentabr
 
@@ -10,7 +10,7 @@
 
 1.1. Ushbu Siyosat Ruvie veb-xizmati foydalanuvchilarining shaxsiy ma’lumotlarini yig‘ish, ishlatish, saqlash, uzatish va himoya qilish tartibini belgilaydi.
 
-1.2. Shaxsiy ma’lumotlar operatori — **MADENOV BEGIS SPANTAMANOV ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor. Tadbirkorlik subyektlari yagona davlat reyestridagi yozuv raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Keyingi o‘rinlarda — “Operator”, “biz” yoki “Ruvie”.
+1.2. Shaxsiy ma’lumotlar operatori — **MADENOV BEGIS SPANTAMANO ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor. Tadbirkorlik subyektlari yagona davlat reyestridagi yozuv raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Keyingi o‘rinlarda — “Operator”, “biz” yoki “Ruvie”.
 
 1.3. Siyosat saytga tashrif buyuradigan, akkaunt yaratadigan, rasmlar yuklaydigan, AI-generatsiya natijalarini oladigan, kredit sotib oladigan yoki yordam xizmatiga murojaat qiladigan barcha shaxslarga tatbiq etiladi.
 
@@ -90,7 +90,7 @@ Operator xizmat, yetkazib beruvchilar yoki qonunchilik o‘zgarganda Siyosatni y
 
 ## 16. Aloqa
 
-Operator: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANOV ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
+Operator: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANO ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
 
 ## 17. Normativ asos
 

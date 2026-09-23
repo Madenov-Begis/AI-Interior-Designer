@@ -1,6 +1,6 @@
 # Ruvie Privacy Policy
 
-**Revision:** 1.1
+**Revision:** 1.2
 
 **Effective date:** September 23, 2026
 
@@ -12,7 +12,7 @@
 
 1.2. The personal data controller is:
 
-- Full name: **Madenov Begis Spantamanov Uli**;
+- Full name: **Madenov Begis Spantamano Uli**;
 - organizational and legal status: **individual entrepreneur without the formation of a legal entity (yakka tartibdagi tadbirkor)**;
 - number of entry in the Unified State Register of Business Entities: **7987228**, date of registration: ** September 4, 2026**;
 - address of the activity and for correspondence: **Republic of Karakalpakstan, Nukus, 22nd microdistrict, house 8/15, apartment 34**;
@@ -274,7 +274,7 @@ The Service is intended for adult legally capable users. A person who does not h
 
 On issues of confidentiality, processing and deletion of personal data:
 
-- Operator: **individual entrepreneur Madenov Begis Spantamanov Uli**;
+- Operator: **individual entrepreneur Madenov Begis Spantamano Uli**;
 - entry number in the Unified State Register of Business Entities: **7987228**;
 - address: **Republic of Karakalpakstan, Nukus, 22nd microdistrict, house 8/15, apartment 34**;
 - email: **support@ruvie.cc**.

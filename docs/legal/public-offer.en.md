@@ -1,6 +1,6 @@
 # Public offer to provide access to the Ruvie service
 
-**Revision:** 1.1
+**Revision:** 1.2
 
 **Publication date:** September 23, 2026
 
@@ -12,7 +12,7 @@
 
 This public offer (hereinafter referred to as the "Offer") is placed by:
 
-- Full name: **Madenov Begis Spantamanov Uli**;
+- Full name: **Madenov Begis Spantamano Uli**;
 - organizational and legal status: **individual entrepreneur without the formation of a legal entity (yakka tartibdagi tadbirkor)**;
 - number of entry in the Unified State Register of Business Entities: **7987228**, date of registration: ** September 4, 2026**;
 - address of the activity and for correspondence: **Republic of Karakalpakstan, Nukus, 22nd microdistrict, house 8/15, apartment 34**;
@@ -305,7 +305,7 @@ Hereinafter referred to as the “Contractor” or “Ruvie”.
 
 ## 19. Contacts and details of the Contractor
 
-- Contractor: **individual entrepreneur Madenov Begis Spantamanov Uli**;
+- Contractor: **individual entrepreneur Madenov Begis Spantamano Uli**;
 - status: ** unincorporated individual entrepreneur (yakka tartibdagi tadbirkor)**;
 - number of entry in the Unified State Register of Business Entities: **7987228**, date of registration: ** September 4, 2026**;
 - address of the activity and for correspondence: **Republic of Karakalpakstan, Nukus, 22nd microdistrict, house 8/15, apartment 34**;
