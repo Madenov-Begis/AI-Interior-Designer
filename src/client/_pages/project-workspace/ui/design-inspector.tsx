@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, House, ImagePlus, Sparkles } from "lucide-react";
+import { AlertCircle, ImagePlus } from "lucide-react";
 import Link from "next/link";
 import { ReferenceManager } from "./reference-manager";
 import { StylePicker } from "./style-picker";
@@ -79,8 +79,6 @@ export function DesignInspector({
   onGenerate,
 }: DesignInspectorProps) {
   const t = useAppText();
-  const promptIsInvalid =
-    prompt.length > 0 && (prompt.trim().length < 3 || prompt.length > 4000);
   const walletPresentation = generationWalletPresentation(
     credits,
     "root",
@@ -110,84 +108,32 @@ export function DesignInspector({
 
         <section
           aria-labelledby="inspector-prompt-title"
-          className="rounded-xl border border-border bg-secondary/25 p-3"
+          className="border-y border-border py-4"
         >
-          <div className="flex items-start gap-3">
-            <span
-              aria-hidden="true"
-              className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-            >
-              <Sparkles className="size-3.5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <label
-                id="inspector-prompt-title"
-                htmlFor="generation-prompt"
-                className="block text-sm font-semibold text-foreground"
-              >
-                {t("Опишите желаемый результат")}
-              </label>
-              <p
-                id="generation-prompt-help"
-                className="mt-1 text-xs leading-5 text-muted-foreground"
-              >
-                {t("Что изменить, добавить или сохранить.")}
-              </p>
-            </div>
-            <span
-              className={`shrink-0 pt-0.5 text-[11px] tabular-nums ${
-                prompt.length > 4000 ? "text-red-300" : "text-muted-foreground"
-              }`}
-            >
-              {prompt.length} / 4000
-            </span>
-          </div>
+          <label
+            id="inspector-prompt-title"
+            htmlFor="generation-prompt"
+            className="block text-sm font-medium text-foreground"
+          >
+            {t("Опишите желаемый результат")} ({t("Необязательно")})
+          </label>
           <Textarea
             id="generation-prompt"
             value={prompt}
             onChange={(event) => onPromptChange(event.target.value)}
             rows={5}
-            minLength={3}
-            maxLength={4000}
-            aria-invalid={promptIsInvalid}
-            aria-describedby={
-              promptIsInvalid
-                ? "generation-prompt-help generation-prompt-error"
-                : "generation-prompt-help"
-            }
             placeholder={t("Например: замените диван на светлый, добавьте тёплое освещение и сохраните расположение окон")}
-            className="mt-3 min-h-36 resize-none border-border bg-background text-base focus-visible:border-primary focus-visible:ring-primary/25"
+            className="mt-3 min-h-32 resize-none rounded-md border-border bg-background text-sm shadow-none focus-visible:border-muted-foreground focus-visible:ring-0"
           />
-          {promptIsInvalid && (
-            <p
-              id="generation-prompt-error"
-              className="mt-2 text-xs leading-5 text-red-300"
-            >
-              {t("Инструкция должна содержать от 3 до 4000 символов.")}
-            </p>
-          )}
         </section>
 
         <section aria-labelledby="inspector-room-title">
-          <div className="flex items-start gap-3">
-            <span
-              aria-hidden="true"
-              className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-            >
-              <House className="size-3.5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <label
-                id="inspector-room-title"
-                className="block text-sm font-semibold text-foreground"
-              >
-                {t("Комната")}
-              </label>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {t("Уточняет назначение и эргономику интерьера.")}
-              </p>
-            </div>
-          </div>
+          <label
+            id="inspector-room-title"
+            className="block text-xs font-semibold text-foreground"
+          >
+            {t("Комната")}
+          </label>
           <RoomSelect
             value={roomTypeId ?? ""}
             onValueChange={onRoomTypeChange}
@@ -196,7 +142,6 @@ export function DesignInspector({
             <SelectTrigger
               className="mt-3"
               aria-labelledby="inspector-room-title"
-              aria-describedby="inspector-room-help"
             >
               <SelectValue
                 placeholder={
@@ -209,12 +154,9 @@ export function DesignInspector({
                 <SelectItem key={room.id} value={room.id}>
                   {t(room.name)}
                 </SelectItem>
-              ))}
-            </SelectContent>
+            ))}
+          </SelectContent>
           </RoomSelect>
-          <p id="inspector-room-help" className="sr-only">
-            {t("Обязательное поле. Выберите назначение помещения для этой генерации.")}
-          </p>
           {dataError ? (
             <div
               className="mt-2 flex items-center justify-between gap-3 text-xs"

@@ -1,11 +1,16 @@
 import { z } from "zod";
 import { INTERIOR_STYLE_CODES } from "./interior-styles.ts";
 
+const optionalPromptSchema = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.string().trim().optional().default(""),
+);
+
 export const createGenerationSchema = z
   .object({
     projectId: z.uuid(),
     roomTypeId: z.uuid(),
-    prompt: z.string().trim().min(3).max(4000),
+    prompt: optionalPromptSchema,
     aspectRatio: z
       .enum(["RATIO_1_1", "RATIO_16_9", "RATIO_9_16", "RATIO_4_3", "RATIO_3_4"])
       .default("RATIO_16_9"),
@@ -15,7 +20,7 @@ export const createGenerationSchema = z
 
 export const createRefinementSchema = z
   .object({
-    prompt: z.string().trim().min(3).max(4000),
+    prompt: optionalPromptSchema,
     referenceFileIds: z.array(z.uuid()).max(10),
   })
   .strict();

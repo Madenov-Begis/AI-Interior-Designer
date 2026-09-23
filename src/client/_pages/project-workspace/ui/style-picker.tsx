@@ -54,10 +54,7 @@ export function StylePicker({ styles, value, onChange }: StylePickerProps) {
   return (
     <fieldset className="min-w-0 max-w-full overflow-hidden">
       <legend className="text-xs font-semibold text-foreground">{t("Стиль")}</legend>
-      <div className="mt-1 flex min-w-0 items-center justify-between gap-3">
-        <p className="min-w-0 text-xs leading-5 text-muted-foreground">
-          {t("Один выбор — без сложных настроек.")}
-        </p>
+      <div className="mt-2 flex min-w-0 justify-end gap-3">
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"

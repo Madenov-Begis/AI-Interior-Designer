@@ -70,6 +70,12 @@ test("refinement dialog closes through the primitive and keeps prompt autofocus"
   assert.match(source, /promptRef\.current\?\.focus\(\)/);
 });
 
+test("refinement prompt is optional and has no client-side length limit", () => {
+  assert.doesNotMatch(source, /prompt\.trim\(\)\.length < 3/);
+  assert.doesNotMatch(source, /maxLength=\{4000\}/);
+  assert.doesNotMatch(source, /prompt\.length\} \/ 4000/);
+});
+
 test("context actions dismiss on an outside pointer interaction", () => {
   assert.match(overlaySource, /dismissOnOutsidePointerDown/);
   assert.match(overlaySource, /overlayRef\.current\?\.contains/);

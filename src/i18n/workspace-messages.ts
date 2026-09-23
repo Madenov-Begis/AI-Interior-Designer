@@ -27,6 +27,7 @@ export const workspaceMessages = {
     "Фотография загружается": "The photo is uploading",
     "Референсы": "References",
     "Опишите желаемый результат": "Describe the desired result",
+    "Необязательно": "Optional",
     "Что изменить, добавить или сохранить.":
       "What should be changed, added, or preserved.",
     "Например: замените диван на светлый, добавьте тёплое освещение и сохраните расположение окон":
@@ -301,6 +302,7 @@ export const workspaceMessages = {
     "Фотография загружается": "Surat yuklanmoqda",
     "Референсы": "Referenslar",
     "Опишите желаемый результат": "Kerakli natijani tasvirlang",
+    "Необязательно": "Majburiy emas",
     "Что изменить, добавить или сохранить.":
       "Nimani o‘zgartirish, qo‘shish yoki saqlash kerak.",
     "Например: замените диван на светлый, добавьте тёплое освещение и сохраните расположение окон":

@@ -302,11 +302,6 @@ function ReadyDesignWorkspace({
   if (createGeneration.isPending) {
     disabledReasons.push("Генерация уже запускается.");
   }
-  if (prompt.trim().length < 3) {
-    disabledReasons.push("Добавьте описание — минимум 3 символа.");
-  } else if (prompt.length > 4000) {
-    disabledReasons.push("Сократите инструкцию до 4000 символов.");
-  }
   if (roomsQuery.isLoading) {
     disabledReasons.push("Загружаем список комнат.");
   } else if (roomsQuery.isError) {

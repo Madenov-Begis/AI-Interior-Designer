@@ -31,6 +31,31 @@ test("requires a room type for every new root generation", () => {
   );
 });
 
+test("accepts an omitted or unbounded prompt for root and refinement generation", () => {
+  const longPrompt = "а".repeat(10_000);
+  const root = generationSchemas.createGenerationSchema.parse({
+    projectId: crypto.randomUUID(),
+    roomTypeId: crypto.randomUUID(),
+    prompt: null,
+    aspectRatio: "RATIO_16_9",
+  });
+  const refinement = generationSchemas.createRefinementSchema.parse({
+    referenceFileIds: [],
+  });
+
+  assert.equal(root.prompt, "");
+  assert.equal(refinement.prompt, "");
+  assert.equal(
+    generationSchemas.createGenerationSchema.safeParse({
+      projectId: crypto.randomUUID(),
+      roomTypeId: crypto.randomUUID(),
+      prompt: longPrompt,
+      aspectRatio: "RATIO_16_9",
+    }).success,
+    true,
+  );
+});
+
 test("keeps ordered references in a strict refinement input", () => {
   const firstReferenceId = crypto.randomUUID();
   const secondReferenceId = crypto.randomUUID();

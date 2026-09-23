@@ -72,7 +72,6 @@ export function GenerationRefinementComposer({
 
   async function submit() {
     if (
-      prompt.trim().length < 3 ||
       pending ||
       walletUnavailable ||
       walletPresentation.balanceInsufficient
@@ -146,16 +145,9 @@ export function GenerationRefinementComposer({
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             rows={3}
-            maxLength={4000}
             placeholder={t("Например: сделай фасады темнее и добавь светильник из референса")}
             className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm leading-5 outline-none transition-colors focus:border-accent"
           />
-          <p
-            className="-mt-7 mr-3 text-right text-xs text-muted"
-            aria-live="polite"
-          >
-            {prompt.length} / 4000
-          </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {files.map((file, index) => (
               <span
@@ -202,7 +194,6 @@ export function GenerationRefinementComposer({
               onClick={() => void submit()}
               disabled={
                 pending ||
-                prompt.trim().length < 3 ||
                 walletUnavailable ||
                 walletPresentation.balanceInsufficient
               }
