@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { LandingAuthLink } from "./landing-auth-gate";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -57,7 +57,7 @@ export function WorkflowSection({
               );
             })}
           </div>
-          <Link
+          <LandingAuthLink
             href="/app"
             className={buttonClassName(
               "default",
@@ -67,7 +67,7 @@ export function WorkflowSection({
           >
             {dictionary.cta}
             <ArrowRight className="size-4" aria-hidden="true" />
-          </Link>
+          </LandingAuthLink>
         </div>
         <div className="rounded-[26px] border border-border bg-card p-3 shadow-2xl shadow-black/35">
           <div className="page-grid relative aspect-[16/10] overflow-hidden rounded-[18px] border border-border bg-background">
@@ -213,7 +213,7 @@ export function FinalCtaSection({
               {dictionary.description}
             </p>
             <div className="mt-8">
-              <Link
+              <LandingAuthLink
                 href="/app"
                 className={buttonClassName(
                   "default",
@@ -223,7 +223,7 @@ export function FinalCtaSection({
               >
                 {dictionary.cta}
                 <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
+              </LandingAuthLink>
             </div>
           </div>
         </div>

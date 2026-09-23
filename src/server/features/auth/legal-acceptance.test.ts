@@ -3,11 +3,11 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("OAuth requires and persists versioned legal acceptance", async () => {
-  const [loginPage, oauthRoute, callbackRoute, schema, migration] =
+  const [loginPanel, oauthRoute, callbackRoute, schema, migration] =
     await Promise.all([
       readFile(
         new URL(
-          "../../../client/_pages/login/ui/login-page.tsx",
+          "../../../client/features/auth/ui/google-sign-in-panel.tsx",
           import.meta.url,
         ),
         "utf8",
@@ -33,8 +33,8 @@ test("OAuth requires and persists versioned legal acceptance", async () => {
       ),
     ]);
 
-  assert.match(loginPage, /type="checkbox"/);
-  assert.match(loginPage, /legalAcceptance/);
+  assert.match(loginPanel, /type="checkbox"/);
+  assert.match(loginPanel, /legalAcceptance/);
   assert.match(oauthRoute, /isCurrentLegalAcceptance/);
   assert.match(oauthRoute, /httpOnly: true/);
   assert.match(callbackRoute, /consumeLegalAcceptance/);

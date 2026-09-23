@@ -28,6 +28,10 @@ const en: Record<string, string> = {
   ...workspaceMessages.en,
   "Личный кабинет": "Your account",
   "Войдите, чтобы начать интерьер": "Sign in to start designing",
+  "После входа откроется холст для вашей комнаты.":
+    "Your room canvas will open right after sign-in.",
+  "Вы получите {count} бесплатных кредитов":
+    "You'll get {count} free credits",
   "Ваши проекты, изображения и ветки изменений будут доступны на любом устройстве.":
     "Your projects, images and design branches will be available on every device.",
   "Я принимаю": "I accept the",
@@ -157,6 +161,10 @@ const uz: Record<string, string> = {
   ...workspaceMessages.uz,
   "Личный кабинет": "Shaxsiy kabinet",
   "Войдите, чтобы начать интерьер": "Dizayn yaratish uchun kiring",
+  "После входа откроется холст для вашей комнаты.":
+    "Kirgach, xonangiz uchun ish maydoni ochiladi.",
+  "Вы получите {count} бесплатных кредитов":
+    "Sizga {count} ta bepul kredit beriladi",
   "Ваши проекты, изображения и ветки изменений будут доступны на любом устройстве.":
     "Loyihalar, rasmlar va dizayn variantlari barcha qurilmalarda mavjud bo‘ladi.",
   "Я принимаю": "Men",

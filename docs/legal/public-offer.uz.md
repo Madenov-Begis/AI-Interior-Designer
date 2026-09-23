@@ -1,16 +1,16 @@
 # Ruvie xizmatidan foydalanish bo‘yicha ommaviy oferta
 
-**Tahrir:** 1.0
+**Tahrir:** 1.1
 
-**E’lon qilingan sana:** 2026-yil 5-sentabr
+**E’lon qilingan sana:** 2026-yil 23-sentabr
 
-**Kuchga kirgan sana:** 2026-yil 5-sentabr
+**Kuchga kirgan sana:** 2026-yil 23-sentabr
 
 **Sayt:** https://ruvie.cc va uning subdomenlari
 
 ## 1. Ijrochi
 
-Ushbu oferta **MADENOV BEGIS SPANTAMANO ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor tomonidan joylashtirilgan. Reyestr raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Bepul yopiq beta davrida bank rekvizitlari qo‘llanmaydi. Keyingi o‘rinlarda — “Ijrochi” yoki “Ruvie”.
+Ushbu oferta **MADENOV BEGIS SPANTAMANOV ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor tomonidan joylashtirilgan. Reyestr raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Bank rekvizitlari tanlangan to‘lov usuliga tegishli to‘lov interfeysi va hujjatlarda ko‘rsatiladi. Keyingi o‘rinlarda — “Ijrochi” yoki “Ruvie”.
 
 ## 2. Umumiy qoidalar va aksept
 
@@ -30,9 +30,9 @@ Foydalanuvchi Google orqali kiradi, dolzarb ma’lumot beradi, akkaunt xavfsizli
 
 Generatsiya va ayrim amallar uchun kreditlar sarflanadi. Narx amal bajarilishidan oldin interfeysda ko‘rsatiladi. Yangi foydalanuvchiga promo-kredit berilishi mumkin; uning shartlari interfeysda belgilanadi. Kreditlar naqdlashtirilmaydi va boshqa akkauntga o‘tkazilmaydi. Texnik xato yoki navbatdagi vazifa bekor qilinganda rezerv avtomatik qaytariladi.
 
-## 6. Bepul yopiq beta
+## 6. Tijorat ishga tushirilishi va to‘lov
 
-Beta davrida xizmat bepul yoki promo-kreditlar bilan ishlashi, funksiyalar va limitlar ogohlantirishsiz o‘zgarishi mumkin. Beta barqarorlik va uzluksizlik kafolatini bermaydi. To‘lovlar yoqilishidan oldin oferta va maxfiylik siyosati yangilanadi.
+Xizmat tijorat modelini ishga tushirish bosqichida. Ushbu oferta kuchga kirgan sanada interfeysda to‘lovlarni qabul qilish va kredit sotib olish hali faollashtirilmagan. To‘lov funksiyasi E-POS amalda ulanganidan hamda interfeysda to‘lov provayderi, paketlar, narxlar va qaytarish tartibi ko‘rsatilganidan keyingina faollashtiriladi. Ungacha ko‘rsatilgan paketlar katalogi axborot xususiyatiga ega va to‘lov qabul qilish taklifi hisoblanmaydi. Bepul yoki promo-kreditlar berilishi mumkin, ular pul qiymatiga ega emas. To‘lov foydalanuvchi tomonidan provayderning himoyalangan sahifasi yoki shakli orqali amalga oshiriladi; Ijrochi karta rekvizitlarini olmaydi va saqlamaydi. Muvaffaqiyatli to‘lov tasdiqlangach, kreditlar akkauntga yoziladi; ular faqat Ruvie ichida ishlatiladi, foydalanuvchilar o‘rtasida o‘tkazilmaydi va pulga yechib olinmaydi. Qonun yoki o‘zgarish mohiyati talab qilsa, pulli funksiyalar yangi aksept olingachgina ochiladi.
 
 ## 7. Xizmat ko‘rsatish tartibi
 
@@ -84,7 +84,7 @@ Oferta elektron shaklda amal qiladi. Ayrim qoida haqiqiy emas deb topilishi bosh
 
 ## 19. Ijrochining aloqa va rekvizitlari
 
-Ijrochi: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANO ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
+Ijrochi: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANOV ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
 
 ## 20. Normativ asos
 

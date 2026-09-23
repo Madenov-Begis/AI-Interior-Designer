@@ -6,13 +6,18 @@ const workspaceSource = readFileSync(
   new URL("./design-workspace.tsx", import.meta.url),
   "utf8",
 );
+const draftSource = readFileSync(
+  new URL("../model/use-generation-draft.ts", import.meta.url),
+  "utf8",
+);
 const inspectorSource = readFileSync(
   new URL("./design-inspector.tsx", import.meta.url),
   "utf8",
 );
 
 test("workspace opens with an empty generation prompt", () => {
-  assert.match(workspaceSource, /const \[prompt, setPrompt\] = useState\(""\)/);
+  assert.match(draftSource, /const \[prompt, setPrompt\] = useState\(""\)/);
+  assert.match(workspaceSource, /const draft = useGenerationDraft\(\)/);
   assert.doesNotMatch(workspaceSource, /DEFAULT_PROMPT|project\.prompt \?\?/);
 });
 

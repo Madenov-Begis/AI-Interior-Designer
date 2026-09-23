@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { LandingAuthLink } from "./landing-auth-gate";
 import {
   ArrowRight,
   CircleCheck,
@@ -41,7 +41,7 @@ export function Hero({
             {dictionary.description}
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
+            <LandingAuthLink
               href="/app"
               className={buttonClassName(
                 "default",
@@ -52,7 +52,7 @@ export function Hero({
               <ImagePlus className="size-5" aria-hidden="true" />
               {dictionary.primaryCta}
               <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
+            </LandingAuthLink>
             <a
               href="#examples"
               className="inline-flex h-13 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold text-white/70 transition-colors hover:text-white"

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { LandingAuthLink } from "./landing-auth-gate";
 import { LogIn } from "lucide-react";
 import { buttonClassName, RuvieLogo } from "@/shared/ui";
 import { LocaleLink } from "@/i18n/navigation";
@@ -57,7 +57,7 @@ export function SiteHeader({ dictionary }: { dictionary: LandingDictionary }) {
                 </LocaleLink>
               ))}
             </nav>
-            <Link
+            <LandingAuthLink
               href="/login"
               aria-label={dictionary.header.login}
               className={buttonClassName(
@@ -72,7 +72,7 @@ export function SiteHeader({ dictionary }: { dictionary: LandingDictionary }) {
                 {dictionary.header.login}
               </span>
               <LogIn className="size-4" aria-hidden="true" />
-            </Link>
+            </LandingAuthLink>
           </div>
         </div>
       </div>

@@ -15,6 +15,7 @@ import {
 import { serverEnv } from "@/server/shared/config/env";
 import { consumeLegalAcceptance } from "@/server/features/auth/legal-acceptance";
 import { authCookieDomain } from "@/server/shared/auth/cookie-domain";
+import { getOrCreateEntryProject } from "@/server/features/projects/service";
 
 function clearOAuthReturnState(
   response: NextResponse,
@@ -59,10 +60,19 @@ export async function GET(request: NextRequest) {
       const { session } = data;
       if (session.user) {
         try {
-          await upsertProfileFromAuthUser(session.user);
+          const profile = await upsertProfileFromAuthUser(session.user);
           await consumeLegalAcceptance(session.user.id);
           await storeSessionCookies(session);
-          const redirectUrl = new URL(safeNext, appUrl);
+          let destination = safeNext;
+          if (safeNext === "/app" && profile.status === "ACTIVE") {
+            try {
+              const project = await getOrCreateEntryProject(session.user.id);
+              destination = `/app/${project.id}`;
+            } catch {
+              // Авторизация успешна; обычная точка входа повторит создание проекта.
+            }
+          }
+          const redirectUrl = new URL(destination, appUrl);
           if (isLocalDevelopmentOrigin(appUrl)) {
             redirectUrl.hash = new URLSearchParams({
               oauth_access_token: session.access_token,

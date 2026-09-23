@@ -13,6 +13,10 @@ export default defineConfig({
       { find: "@/widgets", replacement: `${client}/widgets` },
       { find: "@/pages", replacement: `${client}/_pages` },
       {
+        find: "@config",
+        replacement: fileURLToPath(new URL("./src/config", import.meta.url)),
+      },
+      {
         find: "@",
         replacement: fileURLToPath(new URL("./src", import.meta.url)),
       },

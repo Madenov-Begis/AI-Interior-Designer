@@ -1,8 +1,8 @@
 # Ruvie xizmatining maxfiylik siyosati
 
-**Tahrir:** 1.0
+**Tahrir:** 1.1
 
-**Kuchga kirgan sana:** 2026-yil 5-sentabr
+**Kuchga kirgan sana:** 2026-yil 23-sentabr
 
 **Sayt:** https://ruvie.cc va uning subdomenlari
 
@@ -10,7 +10,7 @@
 
 1.1. Ushbu Siyosat Ruvie veb-xizmati foydalanuvchilarining shaxsiy ma’lumotlarini yig‘ish, ishlatish, saqlash, uzatish va himoya qilish tartibini belgilaydi.
 
-1.2. Shaxsiy ma’lumotlar operatori — **MADENOV BEGIS SPANTAMANO ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor. Tadbirkorlik subyektlari yagona davlat reyestridagi yozuv raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Keyingi o‘rinlarda — “Operator”, “biz” yoki “Ruvie”.
+1.2. Shaxsiy ma’lumotlar operatori — **MADENOV BEGIS SPANTAMANOV ULI**, yuridik shaxs tashkil etmagan yakka tartibdagi tadbirkor. Tadbirkorlik subyektlari yagona davlat reyestridagi yozuv raqami: **7987228**, ro‘yxatdan o‘tgan sana: **2026-yil 4-sentabr**. Manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**. Email: **support@ruvie.cc**. Keyingi o‘rinlarda — “Operator”, “biz” yoki “Ruvie”.
 
 1.3. Siyosat saytga tashrif buyuradigan, akkaunt yaratadigan, rasmlar yuklaydigan, AI-generatsiya natijalarini oladigan, kredit sotib oladigan yoki yordam xizmatiga murojaat qiladigan barcha shaxslarga tatbiq etiladi.
 
@@ -36,7 +36,7 @@ Foydalanuvchi qonuniy asos va zarur rozilik bo‘lmasa, odamlar, hujjatlar, manz
 
 ### 3.3. Loyihalar, to‘lovlar va texnik ma’lumotlar
 
-Loyiha nomi va holati, yaratilgan sana, generatsiyalar soni, vazifa holati va xatolari, kredit narxi, hisob-kitoblar tarixi va balans qayta ishlanishi mumkin. To‘lov yoqilgach buyurtma identifikatori, paket, narx, kredit miqdori, to‘lov holati va provayder identifikatori saqlanishi mumkin. Hozir Ruvie bank kartasi ma’lumotlarini so‘ramaydi yoki saqlamaydi.
+Loyiha nomi va holati, yaratilgan sana, generatsiyalar soni, vazifa holati va xatolari, kredit narxi, hisob-kitoblar tarixi va balans qayta ishlanishi mumkin. E-POS ulanib, to‘lovlar faollashtirilgach buyurtma identifikatori, paket, narx, kredit miqdori, to‘lov holati va provayder identifikatori saqlanishi mumkin. Ruvie to‘liq bank karta rekvizitlarini so‘ramaydi yoki saqlamaydi: ular kelajakdagi to‘lov provayderining himoyalangan sahifasi yoki shaklida qayta ishlanadi. Birinchi to‘lovdan oldin foydalanuvchiga qo‘llaniladigan provayder va uning ma’lumotlarni qayta ishlash qoidalari ko‘rsatiladi; Siyosat provayder nomi va tegishli qoidalar bilan to‘ldiriladi.
 
 Shuningdek IP-manzil, so‘rov vaqti, sahifa manzili, brauzer va qurilma turi, sessiya identifikatorlari, zarur cookie-fayllar, xavfsizlik jurnallari va diagnostika ma’lumotlari qayta ishlanishi mumkin. Yordam xizmatiga murojaatda ism, email, xabar, ilovalar va yozishmalar tarixi saqlanadi.
 
@@ -58,7 +58,7 @@ Ruvie sessiya, tokenlarni yangilash, xavfsizlik va foydalanuvchi sozlamalari uch
 
 ## 8. Ma’lumot oluvchilar
 
-Ma’lumotlar tegishli vazifa doirasida Google OAuth, Supabase, Google Cloud Vertex AI, Vercel va GitHub Actions xizmatlariga, shuningdek faqat qonuniy asos mavjud bo‘lsa davlat organlariga uzatilishi mumkin. Qayta ishlovchilar faqat zarur ma’lumotni oladi. Ma’lumotlar uchinchi shaxslarga sotilmaydi.
+Ma’lumotlar tegishli vazifa doirasida Google OAuth, Supabase, Google Cloud Vertex AI, Vercel va GitHub Actions xizmatlariga, shuningdek faqat qonuniy asos mavjud bo‘lsa davlat organlariga uzatilishi mumkin. E-POS ulangach kelajakdagi to‘lov provayderi to‘lovni qabul qiladi va antifraud tekshiruvlarini bajaradi; karta ma’lumotlarini provayder mustaqil qayta ishlaydi. Qayta ishlovchilar faqat zarur ma’lumotni oladi. Ma’lumotlar uchinchi shaxslarga sotilmaydi.
 
 ## 9. Transchegaraviy uzatish va saqlash joyi
 
@@ -90,7 +90,7 @@ Operator xizmat, yetkazib beruvchilar yoki qonunchilik o‘zgarganda Siyosatni y
 
 ## 16. Aloqa
 
-Operator: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANO ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
+Operator: **yakka tartibdagi tadbirkor MADENOV BEGIS SPANTAMANOV ULI**; reyestr raqami: **7987228**; manzil: **Qoraqalpog‘iston Respublikasi, Nukus shahri, 22-mikrorayon, 8/15-uy, 34-xonadon**; email: **support@ruvie.cc**.
 
 ## 17. Normativ asos
 

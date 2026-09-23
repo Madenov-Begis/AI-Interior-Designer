@@ -1,10 +1,10 @@
 # Public offer to provide access to the Ruvie service
 
-**Revision:** 1.0
+**Revision:** 1.1
 
-**Publication date:** September 5, 2026
+**Publication date:** September 23, 2026
 
-**Effective date:** September 5, 2026
+**Effective date:** September 23, 2026
 
 **Website:** https://ruvie.cc and its subdomains
 
@@ -12,11 +12,11 @@
 
 This public offer (hereinafter referred to as the "Offer") is placed by:
 
-- Full name: **Madenov Begis Spantamano Uli**;
+- Full name: **Madenov Begis Spantamanov Uli**;
 - organizational and legal status: **individual entrepreneur without the formation of a legal entity (yakka tartibdagi tadbirkor)**;
 - number of entry in the Unified State Register of Business Entities: **7987228**, date of registration: ** September 4, 2026**;
 - address of the activity and for correspondence: **Republic of Karakalpakstan, Nukus, 22nd microdistrict, house 8/15, apartment 34**;
-- bank details: do not apply during the period of free closed beta;
+- bank details: are displayed in the payment interface and documents applicable to the selected payment method;
 - email: **support@ruvie.cc**.
 
 Hereinafter referred to as the “Contractor” or “Ruvie”.
@@ -96,15 +96,17 @@ Hereinafter referred to as the “Contractor” or “Ruvie”.
 
 5.6. Write-off is performed only once for one operation. A repeated network request with the same technical identifier should not result in a repeated write-off.
 
-## 6. Free Closed Beta
+## 6. Commercial launch and payment
 
-6.1. As of the effective date of the Offer, the Service operates as a free closed beta. Payment acceptance and credit purchase are disabled.
+6.1. The Service is at the commercial-launch stage. As of the effective date of this Offer, payment acceptance and credit purchases have not yet been activated in the interface.
 
-6.2. The catalog of future packages can be displayed in the interface only as information and is not an offer to accept payment while the purchase function is clearly unavailable.
+6.2. Payments will be activated only after E-POS is actually connected and the interface displays the available payment provider, packages, prices and refund procedure. Until then, any displayed package catalogue is informational and is not an offer to accept payment.
 
-6.3. Beta credits are accrued free of charge upon registration or manually by the administrator and have no monetary value.
+6.3. Until payments are activated, free or promotional credits may be granted upon registration or manually by an administrator; they have no monetary value.
 
-6.4. Prior to the inclusion of payment, the Contractor will update the Offer, indicate the payment provider, prices, the procedure for monetary refund and the date of entry into force of the new edition. If the law requires a new acceptance, paid features will only be available once they are received.
+6.4. The User pays directly through the payment provider's secure payment page or form. The Contractor does not receive or store full payment-card details. Once a successful payment is confirmed, the corresponding number of credits is added to the User's account. Credits may be used only within Ruvie, cannot be transferred between users and cannot be withdrawn as money.
+
+6.5. Where required by law or by the nature of a change, paid features are available to a User only after a new acceptance is obtained.
 
 ## 7. Service delivery
 
@@ -205,7 +207,7 @@ Hereinafter referred to as the “Contractor” or “Ruvie”.
 - if the result is generated and available to the User, the credits are considered used;
 - subjective inconsistency of the result with expectations is not in itself a technical error, but does not limit the rights of the User established by law.
 
-11.2. During the free closed beta period, cash refunds do not apply, since the Service does not accept payments.
+11.2. Before payment acceptance is activated, monetary refunds do not apply because the Service does not accept payments. Once payments are activated, the monetary refund procedure will be displayed before payment and will apply subject to law and the payment provider's rules.
 
 11.3. Free and bonus credits are not exchanged for money. This is without prejudice to the mandatory rights of the user as provided by law.
 
@@ -303,12 +305,12 @@ Hereinafter referred to as the “Contractor” or “Ruvie”.
 
 ## 19. Contacts and details of the Contractor
 
-- Contractor: **individual entrepreneur Madenov begis Spantamano Uli**;
+- Contractor: **individual entrepreneur Madenov Begis Spantamanov Uli**;
 - status: ** unincorporated individual entrepreneur (yakka tartibdagi tadbirkor)**;
 - number of entry in the Unified State Register of Business Entities: **7987228**, date of registration: ** September 4, 2026**;
 - address of the activity and for correspondence: **Republic of Karakalpakstan, Nukus, 22nd microdistrict, house 8/15, apartment 34**;
 - email: **support@ruvie.cc**;
-- bank details: do not apply during the free closed beta period.
+- bank details: are displayed in the payment interface and documents applicable to the selected payment method.
 
 ## 20. Regulatory framework
 

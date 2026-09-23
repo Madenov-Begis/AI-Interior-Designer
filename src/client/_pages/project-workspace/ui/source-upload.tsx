@@ -104,7 +104,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
 
   return (
     <div
-      className="page-grid relative size-full min-h-[420px] overflow-hidden bg-background"
+      className="relative size-full min-h-[280px] overflow-hidden bg-transparent"
       onDragOver={(event) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
@@ -115,20 +115,14 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
       }}
     >
       <div className="absolute inset-0 grid place-items-center p-6">
-        <div className="w-full max-w-[340px]">
-          <div className="mb-3 text-center">
-            <span className="mx-auto grid size-10 place-items-center rounded-full bg-secondary text-sm font-bold text-muted-foreground">
-              01
-            </span>
-            <p className="mt-2 text-xs font-semibold">{t("Фото комнаты")}</p>
-          </div>
+        <div className="w-full max-w-sm">
           <button
             type="button"
             disabled={state === "uploading"}
             onClick={() => inputRef.current?.click()}
-            className="group flex aspect-[4/5] w-full cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-card p-7 text-center shadow-2xl shadow-black/25 transition-colors hover:border-primary hover:bg-[#28282a] disabled:cursor-wait disabled:border-primary/45 disabled:hover:bg-card"
+            className="group flex w-full cursor-pointer flex-col items-center justify-center rounded-[22px] border border-dashed border-border bg-card/90 px-6 py-7 text-center shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition-colors hover:border-primary hover:bg-[#28282a] disabled:cursor-wait disabled:border-primary/45 disabled:hover:bg-card"
           >
-            <span className="grid size-14 place-items-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-disabled:bg-primary/10 group-disabled:text-primary">
+            <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-disabled:bg-primary/10 group-disabled:text-primary">
               {state === "uploading" ? (
                 <LoaderCircle
                   className="size-6 animate-spin"
@@ -138,7 +132,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
                 <ImagePlus className="size-6" aria-hidden="true" />
               )}
             </span>
-            <b className="mt-5 block text-lg">
+            <b className="mt-3 block text-base">
               {state === "uploading"
                 ? uploadProgress !== null && uploadProgress >= 1
                   ? t("Проверяем фотографию…")
@@ -149,9 +143,9 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
                     }`
                 : t("Загрузите фото комнаты")}
             </b>
-            <span className="mt-2 block text-sm leading-6 text-muted-foreground">
+            <span className="mt-1 block text-sm leading-5 text-muted-foreground">
               {state === "uploading"
-                ? t("После загрузки сразу откроются холст и настройки")
+                ? t("Фото появится прямо на холсте")
                 : t("Перетащите файл сюда или нажмите, чтобы выбрать")}
             </span>
             {state === "uploading" ? (
@@ -178,7 +172,7 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
                 </span>
               </span>
             ) : null}
-            <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+            <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground">
               <UploadCloud className="size-3.5" aria-hidden="true" />
               {t("JPG, PNG или WEBP · до 15 МБ")}
             </span>
@@ -192,9 +186,6 @@ export function SourceUpload({ projectId }: SourceUploadProps) {
               {t("Отменить загрузку")}
             </button>
           ) : null}
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            {t("Фото появится прямо на холсте")}
-          </p>
         </div>
       </div>
 

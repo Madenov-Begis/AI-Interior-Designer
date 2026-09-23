@@ -4,6 +4,7 @@ import { RuvieLogo } from "@/shared/ui";
 import { LEGAL_ROUTES } from "@config/legal";
 import type { Locale } from "@/i18n/routing";
 import type { LandingDictionary } from "../model/dictionary";
+import { LandingAuthLink } from "./landing-auth-gate";
 
 export function SiteFooter({
   dictionary,
@@ -29,9 +30,9 @@ export function SiteFooter({
           <a href="#examples" className="hover:text-foreground">
             {dictionary.examples}
           </a>
-          <Link href="/login" className="hover:text-foreground">
+          <LandingAuthLink href="/login" className="hover:text-foreground">
             {dictionary.login}
-          </Link>
+          </LandingAuthLink>
         </nav>
         <div className="grid content-start gap-3 text-sm text-muted-foreground">
           <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-foreground">

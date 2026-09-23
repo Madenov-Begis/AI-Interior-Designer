@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { mediaQueries } from "@/shared/api/media.query";
-import { roomsQueries } from "@/shared/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasViewport, type CanvasViewportHandle } from "./canvas-viewport";
 import { CanvasOnboarding, CanvasOnboardingTrigger } from "./canvas-onboarding";
@@ -20,12 +19,15 @@ import type { DesignWorkspaceProps } from "../model/workspace-types";
 import {
   nearestGenerationAspectRatio,
   resolveGenerationAspectRatio,
-  type GenerationAspectRatioSelection,
 } from "../model/generation-aspect-ratio";
 import { useWorkspaceGenerationActions } from "../model/workspace-generation-actions";
 import { useWorkspaceGenerationFeed } from "../model/workspace-generation-feed";
 import { CANVAS_ONBOARDING_STEP } from "../model/canvas-onboarding";
 import { useCanvasOnboarding } from "../model/use-canvas-onboarding";
+import {
+  useGenerationDraft,
+  type GenerationDraft,
+} from "../model/use-generation-draft";
 import { nextRefinementOverlayState } from "@/features/generate-design";
 import {
   ApiResponseError,
@@ -41,6 +43,7 @@ import type {
 import { useAppText } from "@/shared/providers";
 
 type ReadyDesignWorkspaceProps = Omit<DesignWorkspaceProps, "project"> & {
+  draft: GenerationDraft;
   project: DesignWorkspaceProps["project"] & {
     source: NonNullable<DesignWorkspaceProps["project"]["source"]>;
   };
@@ -56,8 +59,15 @@ const statusLabelsForAria = {
 } as const;
 
 export function DesignWorkspace(props: DesignWorkspaceProps) {
+  const draft = useGenerationDraft();
   if (!props.project.source) {
-    return <EmptySourceWorkspace projectId={props.project.id} />;
+    return (
+      <EmptySourceWorkspace
+        projectId={props.project.id}
+        initialReferences={props.initialReferences}
+        draft={draft}
+      />
+    );
   }
 
   return (
@@ -65,6 +75,7 @@ export function DesignWorkspace(props: DesignWorkspaceProps) {
       project={{ ...props.project, source: props.project.source }}
       initialReferences={props.initialReferences}
       initialGenerations={props.initialGenerations}
+      draft={draft}
     />
   );
 }
@@ -73,6 +84,7 @@ function ReadyDesignWorkspace({
   project,
   initialReferences,
   initialGenerations,
+  draft,
 }: ReadyDesignWorkspaceProps) {
   const t = useAppText();
   const source = project.source;
@@ -99,9 +111,17 @@ function ReadyDesignWorkspace({
   const [pendingCanvasFocusId, setPendingCanvasFocusId] = useState<
     string | null
   >(null);
-  const [prompt, setPrompt] = useState("");
-  const [aspectRatio, setAspectRatio] =
-    useState<GenerationAspectRatioSelection>("SOURCE");
+  const {
+    prompt,
+    setPrompt,
+    aspectRatio,
+    setAspectRatio,
+    styleCode,
+    setStyleCode,
+    setRoomTypeId,
+    roomsQuery,
+    availableRoomTypeId,
+  } = draft;
   const sourceAspectRatio = nearestGenerationAspectRatio(
     source.sourceWidth,
     source.sourceHeight,
@@ -111,16 +131,7 @@ function ReadyDesignWorkspace({
     source.sourceWidth,
     source.sourceHeight,
   );
-  const [styleCode, setStyleCode] = useState<string>();
-  const [roomTypeId, setRoomTypeId] = useState<string>();
-  const roomsQuery = useQuery(roomsQueries.catalog());
   const refetchRooms = roomsQuery.refetch;
-  const availableRoomTypeId =
-    roomTypeId &&
-    (!roomsQuery.data ||
-      roomsQuery.data.items.some((room) => room.id === roomTypeId))
-      ? roomTypeId
-      : undefined;
   const handleRootGenerationError = useCallback(
     (error: Error) => {
       if (
@@ -131,7 +142,7 @@ function ReadyDesignWorkspace({
         void refetchRooms();
       }
     },
-    [refetchRooms],
+    [refetchRooms, setRoomTypeId],
   );
   const [selectedCanvasItem, setSelectedCanvasItem] =
     useState<string>("source");

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LandingAuthLink } from "./landing-auth-gate";
 import { ArrowRight, CheckCircle2, RefreshCw } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
@@ -118,7 +118,7 @@ export function PricingSection() {
                     {t("neverExpire")}
                   </p>
                 </div>
-                <Link
+                <LandingAuthLink
                   href="/app/credits"
                   className={buttonClassName(
                     pack.popular ? "default" : "secondary",
@@ -130,7 +130,7 @@ export function PricingSection() {
                 >
                   {t("buy")}
                   <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
+                </LandingAuthLink>
               </article>
             ))}
           </div>
@@ -141,7 +141,7 @@ export function PricingSection() {
             <h3 className="font-bold">{t("starterTitle")}</h3>
             <p className="mt-1 text-sm text-white/55">{t("starterCopy")}</p>
           </div>
-          <Link
+          <LandingAuthLink
             href="/app"
             className={buttonClassName(
               "outline",
@@ -151,7 +151,7 @@ export function PricingSection() {
           >
             {t("freeCta")}
             <ArrowRight className="size-4" aria-hidden="true" />
-          </Link>
+          </LandingAuthLink>
         </div>
       </div>
     </section>

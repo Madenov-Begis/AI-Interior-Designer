@@ -11,10 +11,11 @@ import { ProcessSection } from "./process-section";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import type { LandingDictionary } from "../model/dictionary";
+import { LandingAuthGate } from "./landing-auth-gate";
 
 export function LandingPage({ dictionary }: { dictionary: LandingDictionary }) {
   return (
-    <>
+    <LandingAuthGate locale={dictionary.locale}>
       <a className="skip-link" href="#main-content">
         {dictionary.skipLink}
       </a>
@@ -35,6 +36,6 @@ export function LandingPage({ dictionary }: { dictionary: LandingDictionary }) {
         <FinalCtaSection dictionary={dictionary.finalCta} />
         <SiteFooter dictionary={dictionary.footer} locale={dictionary.locale} />
       </main>
-    </>
+    </LandingAuthGate>
   );
 }

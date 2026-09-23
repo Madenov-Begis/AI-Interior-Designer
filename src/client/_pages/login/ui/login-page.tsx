@@ -1,25 +1,13 @@
 "use client";
 
-import { KeyRound, LoaderCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type MouseEvent } from "react";
-import {
-  buttonClassName,
-  Card,
-  CardContent,
-  CardHeader,
-  RuvieLogo,
-} from "@/shared/ui";
+import { Suspense, useEffect } from "react";
+import { Card, CardContent, CardHeader, RuvieLogo } from "@/shared/ui";
 import { useCurrentAuthUser } from "@/features/auth";
 import { safeReturnPath } from "@/features/auth";
-import { apiUrl } from "@/shared/api/url";
+import { GoogleSignInPanel } from "@/features/auth/ui/google-sign-in-panel";
 import { AppLanguageSwitcher, useAppText } from "@/shared/providers";
-import {
-  LEGAL_ROUTES,
-  PRIVACY_POLICY_VERSION,
-  PUBLIC_OFFER_VERSION,
-} from "@config/legal";
 
 export function LoginPage() {
   return (
@@ -52,25 +40,6 @@ function LoginCard({
   checkingSession: boolean;
 }) {
   const t = useAppText();
-  const [legalAccepted, setLegalAccepted] = useState(false);
-  const googleLoginUrl = apiUrl(
-    `/auth/google?next=${encodeURIComponent(next)}`,
-  );
-
-  const startGoogleLogin = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (checkingSession || !legalAccepted) {
-      event.preventDefault();
-      return;
-    }
-    event.preventDefault();
-    const loginUrl = new URL(googleLoginUrl);
-    loginUrl.searchParams.set("returnOrigin", window.location.origin);
-    loginUrl.searchParams.set(
-      "legalAcceptance",
-      `${PRIVACY_POLICY_VERSION}:${PUBLIC_OFFER_VERSION}`,
-    );
-    window.location.assign(loginUrl);
-  };
 
   return (
     <main
@@ -97,57 +66,7 @@ function LoginCard({
           </p>
         </CardHeader>
         <CardContent className="px-6 pb-6 sm:px-8 sm:pb-8">
-          <label className="mb-4 flex cursor-pointer items-start gap-3 text-sm leading-5 text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={legalAccepted}
-              onChange={(event) => setLegalAccepted(event.target.checked)}
-              className="mt-0.5 size-4 shrink-0 accent-primary"
-            />
-            <span>
-              {t("Я принимаю")}{" "}
-              <Link
-                className="text-foreground underline hover:text-primary"
-                href={LEGAL_ROUTES.offer}
-              >
-                {t("Публичную оферту")}
-              </Link>{" "}
-              {t("и даю согласие на обработку данных согласно")}{" "}
-              <Link
-                className="text-foreground underline hover:text-primary"
-                href={LEGAL_ROUTES.privacy}
-              >
-                {t("Политике конфиденциальности")}
-              </Link>
-              .
-            </span>
-          </label>
-          <Link
-            href={googleLoginUrl}
-            onClick={startGoogleLogin}
-            aria-disabled={checkingSession || !legalAccepted}
-            aria-busy={checkingSession || undefined}
-            tabIndex={checkingSession || !legalAccepted ? -1 : undefined}
-            className={buttonClassName(
-              "outline",
-              "w-full justify-center aria-disabled:pointer-events-none aria-disabled:opacity-50",
-              "lg",
-            )}
-          >
-            {checkingSession ? (
-              <LoaderCircle
-                className="size-5 animate-spin"
-                aria-hidden="true"
-              />
-            ) : (
-              <KeyRound className="size-5" aria-hidden="true" />
-            )}
-            {checkingSession ? t("Проверяем вход…") : t("Продолжить с Google")}
-          </Link>
-          <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" />
-            {t("Google используется только для безопасного входа.")}
-          </p>
+          <GoogleSignInPanel next={next} checkingSession={checkingSession} />
           <Link
             href="/"
             className="mt-6 block text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
