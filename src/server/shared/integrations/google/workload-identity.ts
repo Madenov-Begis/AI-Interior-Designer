@@ -12,6 +12,17 @@ type RequiredField = (typeof REQUIRED_FIELDS)[number];
 
 export type VercelWorkloadIdentityConfig = Record<RequiredField, string>;
 
+export function getGoogleWorkloadIdentityTokenAudience(
+  config: Pick<
+    VercelWorkloadIdentityConfig,
+    | "GCP_PROJECT_NUMBER"
+    | "GCP_WORKLOAD_IDENTITY_POOL_ID"
+    | "GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID"
+  >,
+) {
+  return `https://iam.googleapis.com/projects/${config.GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${config.GCP_WORKLOAD_IDENTITY_POOL_ID}/providers/${config.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID}`;
+}
+
 export function hasCompleteVercelWorkloadIdentityConfig(
   input: Partial<Record<RequiredField, string | undefined>>,
 ) {
@@ -31,7 +42,15 @@ export function parseVercelWorkloadIdentityConfig(
     throw new Error("VERTEX_WORKLOAD_IDENTITY_INCOMPLETE");
   }
 
-  return values as VercelWorkloadIdentityConfig;
+  const config = values as VercelWorkloadIdentityConfig;
+  if (
+    config.GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE !==
+    getGoogleWorkloadIdentityTokenAudience(config)
+  ) {
+    throw new Error("VERTEX_WORKLOAD_IDENTITY_AUDIENCE_MISMATCH");
+  }
+
+  return config;
 }
 
 export function createVercelWorkloadIdentityClient(
@@ -55,5 +74,5 @@ export function createVercelWorkloadIdentityClient(
 export function getVercelOidcTokenOptions(
   config: VercelWorkloadIdentityConfig,
 ) {
-  return { audience: config.GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE };
+  return { audience: getGoogleWorkloadIdentityTokenAudience(config) };
 }

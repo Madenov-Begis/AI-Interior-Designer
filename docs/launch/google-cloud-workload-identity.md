@@ -5,7 +5,8 @@ Production-приложение получает краткоживущий Goog
 ## Граница доверия
 
 - issuer: `https://oidc.vercel.com/madenovbegis-projects`;
-- допустимая audience: `https://vercel.com/madenovbegis-projects`;
+- в Google provider задана стандартная audience (список `allowedAudiences` пуст);
+- запрашиваемая Vercel audience: `https://iam.googleapis.com/projects/1043684318287/locations/global/workloadIdentityPools/vercel-ruvie-production/providers/vercel`;
 - pool: `vercel-ruvie-production`;
 - provider: `vercel`;
 - service account: `ruvie-vertex@project-2b9ed972-97d2-4024-984.iam.gserviceaccount.com`;
@@ -24,16 +25,16 @@ GCP_PROJECT_NUMBER=1043684318287
 GCP_SERVICE_ACCOUNT_EMAIL=ruvie-vertex@project-2b9ed972-97d2-4024-984.iam.gserviceaccount.com
 GCP_WORKLOAD_IDENTITY_POOL_ID=vercel-ruvie-production
 GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID=vercel
-GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE=https://vercel.com/madenovbegis-projects
+GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE=https://iam.googleapis.com/projects/1043684318287/locations/global/workloadIdentityPools/vercel-ruvie-production/providers/vercel
 ```
 
 `GOOGLE_APPLICATION_CREDENTIALS_JSON` удалён из Vercel Production 21 сентября 2026 года после успешной production-проверки. Локальная разработка при необходимости должна использовать Application Default Credentials или отдельную безопасную federation-схему; постоянный JSON-ключ больше не является штатным способом доступа и не должен сохраняться в Git.
 
 ## Статус внедрения
 
-- commit `580aceb` опубликован в `master`;
-- production deployment `K6F27xn1jUUnSevpxBXUBT57jz25` имеет статус `READY`;
-- ручная проверка Vertex-генерации через Workload Identity Federation прошла;
+- Google provider использует стандартную canonical audience (список `allowedAudiences` пуст);
+- Vercel Production запрашивает canonical Google audience провайдера;
+- после каждого изменения federation требуется ручная проверка загрузки и генерации;
 - постоянный secret `GOOGLE_APPLICATION_CREDENTIALS_JSON` удалён из Vercel Production;
 - старый service-account key проекта `cms-e-commerce-455011` отозван;
 - локальная копия старого JSON-ключа удалена из `.env.local`.
