@@ -10,7 +10,7 @@ import {
   discardUploadedObjects,
 } from "@/server/features/media/cleanup";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import type { VisualPromptCanvasState } from "@/server/features/visual-prompt/types";
 import { VisualPromptValidationError } from "@/server/features/visual-prompt/schema";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
@@ -79,8 +79,8 @@ export async function saveVisualPrompt(
     );
 
   const overlay = await readOverlay(overlayFile, state);
-  const storage = getSupabaseAdmin();
-  const sourceDownload = await storage.storage
+  const storage = getStorage();
+  const sourceDownload = await storage
     .from(project.sourceImage.bucket)
     .download(project.sourceImage.path);
   if (sourceDownload.error || !sourceDownload.data)
@@ -109,7 +109,7 @@ export async function saveVisualPrompt(
   const fileId = randomUUID();
   const path = `users/${userId}/projects/${projectId}/visual-prompt/${fileId}.png`;
   const bucket = STORAGE_BUCKETS.visualPrompts;
-  const upload = await storage.storage.from(bucket).upload(path, scaledOverlay, {
+  const upload = await storage.from(bucket).upload(path, scaledOverlay, {
     contentType: "image/png",
     cacheControl: "3600",
     upsert: false,
@@ -192,8 +192,8 @@ export async function saveGenerationRefinementVisualPrompt(
   }
 
   const overlay = await readOverlay(overlayFile, state);
-  const storage = getSupabaseAdmin();
-  const sourceDownload = await storage.storage
+  const storage = getStorage();
+  const sourceDownload = await storage
     .from(parent.resultOriginal.bucket)
     .download(parent.resultOriginal.path);
   if (sourceDownload.error || !sourceDownload.data) {
@@ -222,7 +222,7 @@ export async function saveGenerationRefinementVisualPrompt(
   const fileId = randomUUID();
   const path = `users/${userId}/generations/${parent.id}/refinement-visual-prompts/${fileId}.png`;
   const bucket = STORAGE_BUCKETS.visualPrompts;
-  const upload = await storage.storage.from(bucket).upload(path, scaledOverlay, {
+  const upload = await storage.from(bucket).upload(path, scaledOverlay, {
     contentType: "image/png",
     cacheControl: "3600",
     upsert: false,

@@ -1,0 +1,152 @@
+name: ruvie
+
+x-runtime: &runtime
+  restart: unless-stopped
+  init: true
+  logging:
+    driver: local
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-app: &app
+  <<: *runtime
+  env_file:
+    - path: /etc/ruvie/runtime.env
+      format: raw
+  environment:
+    NODE_ENV: production
+    STORAGE_ROOT: /data/media
+    DATABASE_SSL_MODE: disable
+    GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/google_credentials
+  volumes:
+    - type: bind
+      source: /srv/ruvie/media
+      target: /data/media
+      bind:
+        create_host_path: false
+  secrets:
+    - google_credentials
+  depends_on:
+    postgres:
+      condition: service_healthy
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  stop_grace_period: 20m
+
+services:
+  postgres:
+    <<: *runtime
+    image: postgres:17.9-bookworm
+    environment:
+      POSTGRES_USER: ruvie_migrator
+      POSTGRES_DB: ruvie
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_migrator_password
+    secrets:
+      - postgres_migrator_password
+      - postgres_app_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/10-app-role.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ruvie_migrator -d ruvie"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    stop_grace_period: 1m
+
+  web:
+    <<: *app
+    image: ruvie-web:${RELEASE_TAG:?Нужен RELEASE_TAG}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://${APP_DOMAIN:?Нужен APP_DOMAIN}
+        NEXT_PUBLIC_AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:?Нужен AUTH_COOKIE_DOMAIN}
+        STORAGE_PUBLIC_ORIGIN: https://${APP_DOMAIN}
+    volumes:
+      - type: bind
+        source: /srv/ruvie/media
+        target: /data/media
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  worker:
+    <<: *app
+    image: ruvie-worker:${RELEASE_TAG:?Нужен RELEASE_TAG}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: worker
+
+  migrate:
+    profiles: [ops]
+    image: ruvie-worker:${RELEASE_TAG:?Нужен RELEASE_TAG}
+    init: true
+    restart: "no"
+    user: root
+    environment:
+      NODE_ENV: production
+    secrets:
+      - postgres_migrator_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: ["/bin/sh", "/app/migrate.sh"]
+
+  caddy:
+    <<: *runtime
+    image: ruvie-caddy:${RELEASE_TAG:?Нужен RELEASE_TAG}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: gateway
+      args:
+        VITE_API_BASE_URL: https://${APP_DOMAIN}
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:?Нужен ADMIN_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Нужен ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  postgres_migrator_password:
+    file: /etc/ruvie/postgres-migrator-password
+  postgres_app_password:
+    file: /etc/ruvie/postgres-app-password
+  google_credentials:
+    file: /etc/ruvie/google-credentials.json

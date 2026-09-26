@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import { validateReferenceImage } from "@/server/features/media/image-validation";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
 
 export class RefinementParentNotFoundError extends Error {}
@@ -37,7 +37,7 @@ export async function uploadRefinementReferences(
   });
   if (!parent) throw new RefinementParentNotFoundError();
 
-  const storage = getSupabaseAdmin().storage.from(
+  const storage = getStorage().from(
     STORAGE_BUCKETS.referenceImages,
   );
   const uploaded: Array<{ id: string; path: string }> = [];

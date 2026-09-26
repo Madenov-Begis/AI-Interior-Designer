@@ -13,7 +13,7 @@ import { normalizeRefinementOutput } from "@/server/features/generations/refinem
 import { failGenerationWithDatabase } from "@/server/features/generations/operations";
 import { getImageGenerationProvider } from "@/server/features/generations/provider";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
 import { constrainOutputDimensions } from "@/server/features/generations/output-limits";
 import { settleFailedGeneration } from "./failure-cleanup";
@@ -22,8 +22,8 @@ import { getGenerationWorkerInstanceId } from "./worker-instance";
 type StoredFile = { bucket: string; path: string; mimeType: string };
 
 async function downloadStoredFile(file: StoredFile) {
-  const download = await getSupabaseAdmin()
-    .storage.from(file.bucket)
+  const download = await getStorage()
+    .from(file.bucket)
     .download(file.path);
   if (download.error || !download.data)
     throw new Error("SOURCE_DOWNLOAD_FAILED");
@@ -112,8 +112,8 @@ export async function processGeneration(generationId: string) {
     const originalId = randomUUID();
     const originalPath = `users/${generation.userId}/generations/${generation.id}/original/${originalId}.webp`;
 
-    const originalUpload = await getSupabaseAdmin()
-      .storage.from(STORAGE_BUCKETS.generationOriginals)
+    const originalUpload = await getStorage()
+      .from(STORAGE_BUCKETS.generationOriginals)
       .upload(originalPath, finalizedOutput.image, {
         contentType: finalizedOutput.mimeType,
         cacheControl: "31536000",

@@ -66,6 +66,25 @@ TEST_DATABASE_URL=postgresql://…/ruvie_refactor_test pnpm test:integration
 
 Интеграционные тесты нужны для конкурентных транзакций, credit reservation/refund и ограничений, которые нельзя достоверно проверить mock-объектом.
 
+### Локальный Docker-контур
+
+`pnpm docker:up` собирает и запускает сайт, админку, worker и пустую PostgreSQL.
+Миграции применяются при запуске. `pnpm docker:test` дополнительно выполняет
+интеграционные тесты; `pnpm docker:down` останавливает контейнеры. Локальный
+Compose берёт из `.env.local` только OAuth Client ID и Secret; остальные
+локальные настройки заданы в Compose. Перед запуском убедитесь, что выбран
+локальный Docker context.
+
+`pnpm build:preview` проверяет standalone, admin и worker с фиктивными
+credentials и локальными URL.
+
+В `pnpm test` включены HMAC capabilities, файловые гонки/симлинки/прерванная
+загрузка, worker concurrency/drain, JWT/refresh и Google state/PKCE/nonce.
+`pnpm test:ui` также проверяет HTTP refresh, отказ чужому origin
+и сохранение cookies при недоступности БД. `tests/integration/native-auth.test.ts`
+проверяет конкурентный signup/refresh и отсутствие повторного grant на
+изолированной PostgreSQL.
+
 ### Browser-проверка
 
 Нужна для:
@@ -129,7 +148,7 @@ TEST_DATABASE_URL=postgresql://…/ruvie_refactor_test pnpm test:integration
 pnpm release:check
 ```
 
-Команда включает legal check, Prisma validation, основные и UI-тесты, typecheck, lint, production build, admin tests/build, статус database migrations и `git diff --check`.
+Команда включает legal check, Prisma validation, основные и UI-тесты, typecheck, lint, production build, admin tests/build и `git diff --check`.
 
 Она может требовать доступной базы. Если внешний prerequisite отсутствует, сообщи конкретно, какой шаг не выполнен; не называй весь релиз проверенным.
 

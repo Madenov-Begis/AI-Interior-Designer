@@ -108,6 +108,8 @@ model Profile {
   deletedAt                   DateTime?
 
   projects         Project[]
+  authIdentities   AuthIdentity[]
+  authSessions     AuthSession[]
   mediaFiles       MediaFile[]
   generations      Generation[]
   usageEvents      UsageEvent[]
@@ -414,6 +416,35 @@ model PaymentEvent {
 }
 
 // Private infrastructure tables, accessed only by the server through Prisma.
+model AuthIdentity {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  provider  String
+  subject   String
+  createdAt DateTime @default(now())
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@unique([userId, provider])
+}
+
+model AuthSession {
+  id                   String    @id @db.Uuid
+  userId               String    @db.Uuid
+  refreshHash          String
+  refreshVersion       Int       @default(0)
+  previousRefreshHash  String?
+  previousValidUntil   DateTime?
+  expiresAt            DateTime
+  revokedAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model RateLimitBucket {
   key     String   @id
   count   Int

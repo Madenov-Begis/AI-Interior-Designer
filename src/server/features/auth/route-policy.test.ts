@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   authErrorUrl,
-  decodeOAuthReturnState,
-  encodeOAuthReturnState,
   isLocalDevelopmentOrigin,
-  oauthCallbackUrl,
   safeReturnOrigin,
 } from "./route-policy.ts";
 
@@ -44,33 +41,6 @@ test("recognizes only HTTP localhost origins for the OAuth handoff", () => {
   assert.equal(isLocalDevelopmentOrigin("http://127.0.0.1:3000"), true);
   assert.equal(isLocalDevelopmentOrigin("https://localhost:3000"), false);
   assert.equal(isLocalDevelopmentOrigin("https://www.ruvie.cc"), false);
-});
-
-test("uses an exact production OAuth callback from the Supabase allowlist", () => {
-  assert.equal(
-    oauthCallbackUrl("https://api.ruvie.cc").toString(),
-    "https://api.ruvie.cc/auth/callback",
-  );
-});
-
-test("uses an exact local OAuth callback from the Supabase allowlist", () => {
-  assert.equal(
-    oauthCallbackUrl("http://localhost:3000").toString(),
-    "http://localhost:3000/auth/callback",
-  );
-});
-
-test("round-trips the OAuth destination outside the callback URL", () => {
-  const encoded = encodeOAuthReturnState(
-    "/app/projects",
-    "http://localhost:3000",
-  );
-
-  assert.deepEqual(decodeOAuthReturnState(encoded), {
-    next: "/app/projects",
-    returnOrigin: "http://localhost:3000",
-  });
-  assert.equal(decodeOAuthReturnState("not-valid-state"), null);
 });
 
 test("keeps OAuth start errors on the validated frontend origin", () => {

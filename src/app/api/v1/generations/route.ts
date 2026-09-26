@@ -13,7 +13,7 @@ import {
   requireCurrentUser,
   UnauthorizedError,
 } from "@/server/features/auth/current-user";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 
 export async function GET(request: NextRequest) {
   const requestId = getRequestId(request.headers);
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
     const items = await attachHistoryResultUrls(
       generations.items,
       async (bucket, paths) => {
-        const result = await getSupabaseAdmin()
-          .storage.from(bucket)
+        const result = await getStorage()
+          .from(bucket)
           .createSignedUrls(paths, 600);
         if (result.error) return [];
         return result.data.flatMap((file) =>

@@ -2,41 +2,6 @@ export type ExpiredGenerationReservation = {
   generationId: string | null;
 };
 
-export type RecoverableWorkerGeneration = {
-  status: string;
-  jobId: string | null;
-};
-
-export async function recoverInterruptedDevelopmentGenerationWithDependencies(
-  input: {
-    nodeEnv: string | undefined;
-    userId: string;
-    generationId: string;
-    currentWorkerId: string;
-  },
-  dependencies: {
-    findGeneration(
-      userId: string,
-      generationId: string,
-    ): Promise<RecoverableWorkerGeneration | null>;
-    failGeneration(generationId: string): Promise<boolean>;
-  },
-) {
-  if (input.nodeEnv !== "development") return false;
-  const generation = await dependencies.findGeneration(
-    input.userId,
-    input.generationId,
-  );
-  if (
-    generation?.status !== "PROCESSING" ||
-    !generation.jobId ||
-    generation.jobId.startsWith(`${input.currentWorkerId}:`)
-  ) {
-    return false;
-  }
-  return dependencies.failGeneration(input.generationId);
-}
-
 export async function recoverExpiredReservationBatch(
   expired: ExpiredGenerationReservation[],
   failGeneration: (generationId: string) => Promise<boolean>,

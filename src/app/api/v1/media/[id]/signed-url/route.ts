@@ -7,7 +7,7 @@ import {
   UnauthorizedError,
 } from "@/server/features/auth/current-user";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import {
   enforceRateLimit,
   RateLimitError,
@@ -29,8 +29,8 @@ export async function GET(
     if (!file)
       return apiError("FILE_NOT_FOUND", "Файл не найден", requestId, 404);
 
-    const { data, error } = await getSupabaseAdmin()
-      .storage.from(file.bucket)
+    const { data, error } = await getStorage()
+      .from(file.bucket)
       .createSignedUrl(file.path, 600);
     if (error)
       return apiError(

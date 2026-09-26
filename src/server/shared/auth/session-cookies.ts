@@ -1,8 +1,7 @@
 import "server-only";
 
-import type { Session } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { authCookieDomain } from "./cookie-domain";
+import { authCookieDomain, authCookieSecure } from "./cookie-domain";
 
 export const ACCESS_TOKEN_COOKIE = "ruvie_access_token";
 export const REFRESH_TOKEN_COOKIE = "ruvie_refresh_token";
@@ -10,26 +9,22 @@ export const REFRESH_TOKEN_COOKIE = "ruvie_refresh_token";
 const commonOptions = {
   httpOnly: false,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: authCookieSecure(process.env.NODE_ENV, process.env.APP_URL),
   path: "/",
   domain: authCookieDomain(
     process.env.NODE_ENV,
     process.env.AUTH_COOKIE_DOMAIN,
+    process.env.APP_URL,
   ),
 };
 
-function isLegacySupabaseAuthCookie(name: string) {
-  return name.startsWith("sb-") && name.includes("-auth-token");
-}
-
-export async function storeSessionCookies(session: Session) {
+export async function storeSessionCookies(session: {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  refresh_expires_in?: number;
+}) {
   const cookieStore = await cookies();
-
-  for (const { name } of cookieStore.getAll()) {
-    if (isLegacySupabaseAuthCookie(name)) {
-      cookieStore.set(name, "", { ...commonOptions, maxAge: 0 });
-    }
-  }
 
   cookieStore.set(ACCESS_TOKEN_COOKIE, session.access_token, {
     ...commonOptions,
@@ -38,19 +33,13 @@ export async function storeSessionCookies(session: Session) {
   cookieStore.set(REFRESH_TOKEN_COOKIE, session.refresh_token, {
     ...commonOptions,
     httpOnly: true,
-    maxAge: 400 * 24 * 60 * 60,
+    maxAge: session.refresh_expires_in ?? 400 * 24 * 60 * 60,
   });
 }
 
 export async function clearSessionCookies() {
   const cookieStore = await cookies();
-  const names = new Set([ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE]);
-
-  for (const { name } of cookieStore.getAll()) {
-    if (isLegacySupabaseAuthCookie(name)) names.add(name);
-  }
-
-  for (const name of names) {
+  for (const name of [ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE]) {
     cookieStore.set(name, "", { ...commonOptions, maxAge: 0 });
   }
 }

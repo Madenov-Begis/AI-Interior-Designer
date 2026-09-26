@@ -14,7 +14,7 @@ import {
   createProjectSchema,
   listProjectsSchema,
 } from "@/server/features/projects/schemas";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 
 function routeError(error: unknown, requestId: string) {
   if (error instanceof UnauthorizedError)
@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
           project.generations[0]?.resultOriginal ?? project.sourcePreview;
         let previewUrl: string | null = null;
         if (media) {
-          const signed = await getSupabaseAdmin()
-            .storage.from(media.bucket)
+          const signed = await getStorage()
+            .from(media.bucket)
             .createSignedUrl(media.path, 600);
           previewUrl = signed.data?.signedUrl ?? null;
         }

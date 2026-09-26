@@ -1,4 +1,3 @@
-import { isRetryableAuthFailure } from "@/server/features/auth/refresh-policy";
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { allowedCookieOrigin } from "@/server/shared/security/cookie-origin";
@@ -9,7 +8,12 @@ import {
 } from "@/server/shared/auth/session-cookies";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
-import { createSupabaseTokenClient } from "@/server/shared/integrations/supabase/token-client";
+import { getDb } from "@/server/shared/db/prisma";
+import { nativeSessionConfig } from "@/server/features/auth/native-config";
+import {
+  refreshNativeSession,
+  InvalidSessionError,
+} from "@/server/features/auth/native-session-operations";
 
 export async function POST(request: NextRequest) {
   const requestId = getRequestId(request.headers);
@@ -31,32 +35,28 @@ export async function POST(request: NextRequest) {
         401,
       );
 
-    const { data, error } =
-      await createSupabaseTokenClient().auth.refreshSession({
-        refresh_token: refreshToken,
-      });
-    if (error || !data.session) {
-      if (error && isRetryableAuthFailure(error))
-        return apiError(
-          "AUTH_UNAVAILABLE",
-          "Не удалось обновить сессию. Попробуйте позже",
-          requestId,
-          503,
-        );
+    try {
+      const session = await refreshNativeSession(
+        getDb(),
+        refreshToken,
+        nativeSessionConfig(),
+      );
+      await storeSessionCookies(session);
+      return apiSuccess(
+        { accessToken: session.access_token, expiresIn: session.expires_in },
+        requestId,
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    } catch (error) {
+      if (!(error instanceof InvalidSessionError)) throw error;
       await clearSessionCookies();
-      return apiError("REFRESH_FAILED", "Сессия истекла", requestId, 401);
+      return apiError(
+        "INVALID_REFRESH_TOKEN",
+        "Сессия истекла",
+        requestId,
+        401,
+      );
     }
-
-    await storeSessionCookies(data.session);
-    const response = apiSuccess(
-      {
-        accessToken: data.session.access_token,
-        expiresIn: data.session.expires_in,
-      },
-      requestId,
-    );
-    response.headers.set("Cache-Control", "no-store");
-    return response;
   } catch {
     return apiError(
       "AUTH_UNAVAILABLE",

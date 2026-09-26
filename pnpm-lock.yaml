@@ -22,18 +22,9 @@ importers:
       "@sentry/nextjs":
         specifier: ^10.73.0
         version: 10.73.0(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(next@16.2.10(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(supports-color@8.1.1)(webpack@5.110.3(@swc/core@1.16.2)(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.25)(sharp@0.35.3(@types/node@20.19.43)))
-      "@supabase/ssr":
-        specifier: ^0.12.3
-        version: 0.12.3(@supabase/supabase-js@2.110.7)
-      "@supabase/supabase-js":
-        specifier: ^2.110.7
-        version: 2.110.7
       "@tanstack/react-query":
         specifier: 5.101.3
         version: 5.101.3(react@19.2.7)
-      "@vercel/oidc":
-        specifier: ^3.8.8
-        version: 3.8.8
       axios:
         specifier: ^1.19.0
         version: 1.19.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -52,6 +43,9 @@ importers:
       google-auth-library:
         specifier: 10.9.0
         version: 10.9.0(supports-color@8.1.1)
+      jose:
+        specifier: 6.2.8
+        version: 6.2.8
       js-cookie:
         specifier: ^3.0.8
         version: 3.0.8
@@ -119,6 +113,9 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      esbuild:
+        specifier: 0.28.1
+        version: 0.28.1
       eslint:
         specifier: ^9
         version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
@@ -255,26 +252,6 @@ importers:
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)(jsdom@26.1.0(canvas@3.2.3)(supports-color@8.1.1))(lightningcss@1.32.0)(sugarss@5.0.1(postcss@8.5.20))(supports-color@8.1.1)(terser@5.51.2)
 
 packages:
-
-  "@vercel/cli-config@0.2.7":
-    resolution:
-      {
-        integrity: sha512-KeSN2HBp8puZrj7kVjSEneDi9yBqW4nAD9AnhGhdYjGNpHl7IkXZVb3HnNe0WWc5+20RlUtmAGWNPQ8qP5QBhQ==,
-      }
-
-  "@vercel/cli-exec@1.0.1":
-    resolution:
-      {
-        integrity: sha512-g9XerViJ/paZujufXYcu5XYI2vU2rtB4sgdpjUHde5RnOkdmpu0ngH46LCFGHoPXO/C+qDPSczIHIRN+8Q2YKQ==,
-      }
-    engines: { node: ">= 18" }
-
-  "@vercel/oidc@3.8.8":
-    resolution:
-      {
-        integrity: sha512-aeq4/sgVh80zO6j2H+7FRfsG6NOXBrvzV1EEO8IdXPEJgwHIPakP+BFq3QmprsEQ18bIimds07kvaYhm2lehtg==,
-      }
-    engines: { node: ">= 20" }
   "@adobe/css-tools@4.5.0":
     resolution:
       {
@@ -3705,62 +3682,6 @@ packages:
       {
         integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==,
       }
-
-  "@supabase/auth-js@2.110.7":
-    resolution:
-      {
-        integrity: sha512-M5Bpl4hCv6kHcOO/xM06Dyfg1mYLHljMkp1plhzG9IRZPc3czvyMsSN1XpL5+GKisOKM3lSN59zhpcm6sMVXfA==,
-      }
-    engines: { node: ">=22.0.0" }
-
-  "@supabase/functions-js@2.110.7":
-    resolution:
-      {
-        integrity: sha512-megYmexlYEoR/0qlsr4Snh9wtzAodO7MAri3NMevZrXzNvQRKlvmTcSBoKGLQEPDakgDZMqbMdf9DwoZz6qfoA==,
-      }
-    engines: { node: ">=22.0.0" }
-
-  "@supabase/phoenix@0.4.5":
-    resolution:
-      {
-        integrity: sha512-aAn9H9ovVyeApKy11OWOrrOGq8DV68yWeH4ud2lN9fzn4aO8Zb5GLL9m1pUg9nLqIcT+ZDfAcsZe0E/nqdv2lw==,
-      }
-
-  "@supabase/postgrest-js@2.110.7":
-    resolution:
-      {
-        integrity: sha512-ban6YV0djhVaqVYezlOARKLIuOBSvLLhyQVZjA2nxPrtswhxHCl1+gI4giFgI9ATQAaMNbUZb4JXiuL5lEA/5g==,
-      }
-    engines: { node: ">=22.0.0" }
-
-  "@supabase/realtime-js@2.110.7":
-    resolution:
-      {
-        integrity: sha512-AMtZjyFA2gsmjuxopPNS/sRznLQHG0Ht5x+ytTPTOh3vAcOTUlVRLx7gW4/CONNnbb3PKOkE+HmM35HOSbmomQ==,
-      }
-    engines: { node: ">=22.0.0" }
-
-  "@supabase/ssr@0.12.3":
-    resolution:
-      {
-        integrity: sha512-qWXJ/dI7CiYDKyTgIPqJ4Qkh8y5edh2LdF/nkN48z47mmEVzAO2OE+YErYeQ/UemVfonn/F4kFz+lhLqoVMdpw==,
-      }
-    peerDependencies:
-      "@supabase/supabase-js": ^2.110.5
-
-  "@supabase/storage-js@2.110.7":
-    resolution:
-      {
-        integrity: sha512-2tcDE8cjEDy1uKxKavBpKQod1JdMV1jDXQag48TCa+kycmJOltc0yVabC0BUlhOwAl6WykXU2aOsH3ELMtZrmQ==,
-      }
-    engines: { node: ">=22.0.0" }
-
-  "@supabase/supabase-js@2.110.7":
-    resolution:
-      {
-        integrity: sha512-AnfO3A230Shy6RMO7cya3Wl1OcXnABJrzH8vP+fY7/RFjhzcchB7DjKkkTIAntlwekD+GkSFzEvt2tC+D4Fp8w==,
-      }
-    engines: { node: ">=22.0.0" }
 
   "@swc/core-darwin-arm64@1.16.2":
     resolution:
@@ -8297,19 +8218,19 @@ packages:
       }
     engines: { node: ">= 0.8.0" }
 
-  os-paths@4.4.0:
-    resolution:
-      {
-        integrity: sha512-wrAwOeXp1RRMFfQY8Sy7VaGVmPocaLwSFOYCGKSyo8qmJ+/yaafCl5BCA1IQZWqFSRBrKDYFeR9d/VyQzfH/jg==,
-      }
-    engines: { node: ">= 6.0" }
-
   ora@8.2.0:
     resolution:
       {
         integrity: sha512-weP+BZ8MVNnlCm8c0Qdc1WSWq4Qn7I+9CJGm7Qali6g44e/PUzbjNqJX5NJ9ljlNMosfJvg1fKEGILklK9cwnw==,
       }
     engines: { node: ">=18" }
+
+  os-paths@4.4.0:
+    resolution:
+      {
+        integrity: sha512-wrAwOeXp1RRMFfQY8Sy7VaGVmPocaLwSFOYCGKSyo8qmJ+/yaafCl5BCA1IQZWqFSRBrKDYFeR9d/VyQzfH/jg==,
+      }
+    engines: { node: ">= 6.0" }
 
   own-keys@1.0.1:
     resolution:
@@ -10519,21 +10440,6 @@ packages:
       }
 
 snapshots:
-
-  "@vercel/cli-config@0.2.7":
-    dependencies:
-      xdg-app-paths: 5.5.1
-      zod: 4.1.11
-
-  "@vercel/cli-exec@1.0.1":
-    dependencies:
-      execa: 5.1.1
-
-  "@vercel/oidc@3.8.8":
-    dependencies:
-      "@vercel/cli-config": 0.2.7
-      "@vercel/cli-exec": 1.0.1
-      jose: 5.10.0
   "@adobe/css-tools@4.5.0": {}
 
   "@alloc/quick-lru@5.2.0": {}
@@ -12770,43 +12676,6 @@ snapshots:
   "@sindresorhus/merge-streams@4.0.0": {}
 
   "@standard-schema/spec@1.1.0": {}
-
-  "@supabase/auth-js@2.110.7":
-    dependencies:
-      tslib: 2.8.1
-
-  "@supabase/functions-js@2.110.7":
-    dependencies:
-      tslib: 2.8.1
-
-  "@supabase/phoenix@0.4.5": {}
-
-  "@supabase/postgrest-js@2.110.7":
-    dependencies:
-      tslib: 2.8.1
-
-  "@supabase/realtime-js@2.110.7":
-    dependencies:
-      "@supabase/phoenix": 0.4.5
-      tslib: 2.8.1
-
-  "@supabase/ssr@0.12.3(@supabase/supabase-js@2.110.7)":
-    dependencies:
-      "@supabase/supabase-js": 2.110.7
-      cookie: 1.1.1
-
-  "@supabase/storage-js@2.110.7":
-    dependencies:
-      iceberg-js: 0.8.1
-      tslib: 2.8.1
-
-  "@supabase/supabase-js@2.110.7":
-    dependencies:
-      "@supabase/auth-js": 2.110.7
-      "@supabase/functions-js": 2.110.7
-      "@supabase/postgrest-js": 2.110.7
-      "@supabase/realtime-js": 2.110.7
-      "@supabase/storage-js": 2.110.7
 
   "@swc/core-darwin-arm64@1.16.2":
     optional: true
@@ -15623,8 +15492,6 @@ snapshots:
       type-check: 0.4.0
       word-wrap: 1.2.5
 
-  os-paths@4.4.0: {}
-
   ora@8.2.0:
     dependencies:
       chalk: 5.6.2
@@ -15636,6 +15503,8 @@ snapshots:
       stdin-discarder: 0.2.2
       string-width: 7.2.0
       strip-ansi: 7.2.0
+
+  os-paths@4.4.0: {}
 
   own-keys@1.0.1:
     dependencies:

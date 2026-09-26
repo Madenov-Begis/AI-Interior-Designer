@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { allowedCookieOrigin } from "@/server/shared/security/cookie-origin";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
-import { createSupabaseTokenClient } from "@/server/shared/integrations/supabase/token-client";
-import { isRetryableAuthFailure } from "@/server/features/auth/refresh-policy";
 import type { NextRequest } from "next/server";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
+import { getDb } from "@/server/shared/db/prisma";
+import { nativeSessionConfig } from "@/server/features/auth/native-config";
+import { revokeNativeSession } from "@/server/features/auth/native-session-operations";
 import {
   clearSessionCookies,
   REFRESH_TOKEN_COOKIE,
@@ -21,33 +21,20 @@ export async function POST(request: NextRequest) {
         requestId,
         403,
       );
-    let accessToken = request.headers
+    const accessToken = request.headers
       .get("authorization")
       ?.match(/^Bearer (.+)$/i)?.[1];
     const refreshToken = (await cookies()).get(REFRESH_TOKEN_COOKIE)?.value;
-    if (refreshToken) {
-      const { data, error } =
-        await createSupabaseTokenClient().auth.refreshSession({
-          refresh_token: refreshToken,
-        });
-      if (error && isRetryableAuthFailure(error)) throw error;
-      accessToken = data.session?.access_token ?? accessToken;
-    }
-    if (accessToken) {
-      const { error } = await getSupabaseAdmin().auth.admin.signOut(
-        accessToken,
-        "local",
-      );
-      if (
-        error &&
-        error.status !== 401 &&
-        error.status !== 403 &&
-        error.status !== 404
-      )
-        throw error;
-    }
+    await revokeNativeSession(
+      getDb(),
+      refreshToken,
+      accessToken,
+      nativeSessionConfig(),
+    );
     await clearSessionCookies();
-    return apiSuccess({ signedOut: true }, requestId);
+    return apiSuccess({ signedOut: true }, requestId, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return apiError(
       "LOGOUT_FAILED",

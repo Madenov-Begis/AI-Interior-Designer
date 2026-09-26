@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { generationDownloadFilename } from "@/server/features/generations/generation-download";
 import { generationIdSchema } from "@/server/features/generations/schema";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
 import {
@@ -49,8 +49,8 @@ export async function GET(
           requestId,
           409,
         );
-      const downloaded = await getSupabaseAdmin()
-        .storage.from(generation.resultOriginal.bucket)
+      const downloaded = await getStorage()
+        .from(generation.resultOriginal.bucket)
         .download(generation.resultOriginal.path);
       if (downloaded.error || !downloaded.data)
         return apiError(
@@ -68,8 +68,8 @@ export async function GET(
         },
       });
     }
-    const signed = await getSupabaseAdmin()
-      .storage.from(generation.resultOriginal.bucket)
+    const signed = await getStorage()
+      .from(generation.resultOriginal.bucket)
       .createSignedUrl(generation.resultOriginal.path, 60, {
         download: filename,
       });

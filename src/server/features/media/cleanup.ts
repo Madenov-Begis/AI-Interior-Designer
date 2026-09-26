@@ -2,7 +2,7 @@ import "server-only";
 
 import { drainStorageDeletions } from "./deletion-outbox";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 
 const unreferencedMedia = {
   projectSourceFor: { none: {} },
@@ -46,8 +46,8 @@ export async function deleteMediaFileIfUnreferenced(
       await drainStorageDeletions(
         db,
         async (bucket, path) => {
-          const result = await getSupabaseAdmin()
-            .storage.from(bucket)
+          const result = await getStorage()
+            .from(bucket)
             .remove([path]);
           if (result.error) throw result.error;
         },

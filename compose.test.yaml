@@ -1,0 +1,28 @@
+name: ruvie-timeweb-test
+
+# Только локальная тестовая БД. Это не production Compose.
+services:
+  postgres:
+    image: postgres:17.9-bookworm
+    environment:
+      POSTGRES_DB: ruvie_refactor_test
+      POSTGRES_USER: ruvie_test
+      POSTGRES_PASSWORD: local-test-only
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ruvie_test -d ruvie_refactor_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_test_data:

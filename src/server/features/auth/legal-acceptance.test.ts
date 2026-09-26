@@ -17,7 +17,7 @@ test("OAuth requires and persists versioned legal acceptance", async () => {
         "utf8",
       ),
       readFile(
-        new URL("../../../app/auth/callback/route.ts", import.meta.url),
+        new URL("./native-callback.ts", import.meta.url),
         "utf8",
       ),
       readFile(
@@ -26,7 +26,7 @@ test("OAuth requires and persists versioned legal acceptance", async () => {
       ),
       readFile(
         new URL(
-          "../../../../prisma/migrations/20260903090000_add_legal_acceptances/migration.sql",
+          "../../../../prisma/migrations/20260924000000_baseline/migration.sql",
           import.meta.url,
         ),
         "utf8",
@@ -39,8 +39,8 @@ test("OAuth requires and persists versioned legal acceptance", async () => {
   assert.match(oauthRoute, /httpOnly: true/);
   assert.match(callbackRoute, /consumeLegalAcceptance/);
   assert.match(schema, /model LegalAcceptance/);
-  assert.match(migration, /ENABLE ROW LEVEL SECURITY/);
-  assert.match(migration, /REVOKE ALL.+anon, authenticated/i);
+  assert.match(migration, /CREATE TABLE "LegalAcceptance"/);
+  assert.match(migration, /"LegalAcceptance_userId_fkey"/);
 });
 
 test("legal pages and footer expose both localized documents", async () => {

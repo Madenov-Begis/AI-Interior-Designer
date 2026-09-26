@@ -1,0 +1,91 @@
+# Только локальная проверка совместного запуска собранных Docker-образов.
+x-preview-env: &preview-env
+  NODE_ENV: production
+  APP_URL: http://localhost:3000
+  APP_ORIGINS: http://localhost:3000
+  ADMIN_ORIGINS: http://localhost:8080
+  DATABASE_URL: postgresql://ruvie_test:local-test-only@postgres:5432/ruvie_refactor_test
+  DIRECT_URL: postgresql://ruvie_test:local-test-only@postgres:5432/ruvie_refactor_test
+  DATABASE_SSL_MODE: disable
+  AUTH_SESSION_SECRET: local-preview-auth-secret-only-000000000000
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-local-preview.invalid}
+  GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-local-preview-only}
+  GOOGLE_OAUTH_CALLBACK_URL: http://localhost:3000/auth/callback
+  STORAGE_ROOT: /data/media
+  STORAGE_PUBLIC_ORIGIN: http://localhost:3000
+  STORAGE_SIGNING_SECRET: local-preview-storage-secret-only-0000000
+  GENERATIONS_ENABLED: "false"
+  AI_PROVIDER: fake
+  PAYMENT_PROVIDER: disabled
+  ADMIN_ACCESS_CODE: local-preview-only
+  ADMIN_TOKEN_SECRET: local-preview-admin-secret-only-00000000000
+
+services:
+  migrate-local:
+    image: ruvie-local-worker:test
+    command: ["pnpm", "exec", "prisma", "migrate", "deploy", "--config", "prisma.local-docker.config.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  media-init:
+    image: ruvie-local-worker:test
+    user: root
+    command: ["sh", "-c", "chown 1000:1000 /data/media"]
+    volumes:
+      - media_preview_data:/data/media
+    restart: "no"
+
+  web:
+    image: ruvie-local-web:test
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+        STORAGE_PUBLIC_ORIGIN: http://localhost:3000
+    environment: *preview-env
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - media_preview_data:/data/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate-local:
+        condition: service_completed_successfully
+      media-init:
+        condition: service_completed_successfully
+
+  worker:
+    image: ruvie-local-worker:test
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: worker
+    environment: *preview-env
+    volumes:
+      - media_preview_data:/data/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate-local:
+        condition: service_completed_successfully
+      media-init:
+        condition: service_completed_successfully
+
+  admin:
+    image: ruvie-local-admin:test
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: admin-preview
+      args:
+        VITE_API_BASE_URL: http://localhost:3000
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  media_preview_data:

@@ -1,4 +1,4 @@
-import { after, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
 import {
   GenerationClientPayloadError,
@@ -16,7 +16,6 @@ import {
   namespaceRetryIdempotencyKey,
   parseRetryIdempotencyKey,
 } from "@/server/features/generations/retry-policy";
-import { processGeneration } from "@/server/features/generations/worker";
 import { apiError, apiSuccess } from "@/server/shared/api/responses";
 import { getRequestId } from "@/server/shared/api/request-id";
 import { localeFromHeaders } from "@/server/shared/i18n/api-locale";
@@ -107,9 +106,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
             idempotencyKey,
             ...plan.input,
           });
-    if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
-      after(() => processGeneration(reserved.generation.id));
-    }
     const payload = await getGenerationClientPayload(
       user.id,
       reserved.generation.id,

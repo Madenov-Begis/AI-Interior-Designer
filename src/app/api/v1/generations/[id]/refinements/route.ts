@@ -1,5 +1,5 @@
 import { readUploadFormData } from "@/server/features/media/staged-upload";
-import { after, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
 import {
   GenerationClientPayloadError,
@@ -14,7 +14,6 @@ import {
   idempotencyKeySchema,
   refinementVisualPromptPairSchema,
 } from "@/server/features/generations/schema";
-import { processGeneration } from "@/server/features/generations/worker";
 import {
   RefinementParentNotFoundError,
   RefinementReferenceLimitError,
@@ -164,9 +163,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     unattachedVisualPromptId = null;
     unattachedReferenceIds = [];
-    if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
-      after(() => processGeneration(reserved.generation.id));
-    }
     const payload = await getGenerationClientPayload(
       user.id,
       reserved.generation.id,

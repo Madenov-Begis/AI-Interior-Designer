@@ -4,7 +4,7 @@ import {
   getOwnedGeneration,
   readGenerationLabels,
 } from "@/server/features/generations/service";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import type { Locale } from "@/i18n/routing";
 import { localizeGenerationMessage } from "@/server/shared/i18n/api-locale";
 
@@ -33,8 +33,8 @@ export async function getGenerationClientPayload(
   const labels = await readGenerationLabels(userId, [generation.projectId]);
   let resultUrl: string | null = null;
   if (generation.resultUser) {
-    const signed = await getSupabaseAdmin()
-      .storage.from(generation.resultUser.bucket)
+    const signed = await getStorage()
+      .from(generation.resultUser.bucket)
       .createSignedUrl(generation.resultUser.path, 600);
     if (signed.error || !signed.data.signedUrl) {
       throw new GenerationClientPayloadError(

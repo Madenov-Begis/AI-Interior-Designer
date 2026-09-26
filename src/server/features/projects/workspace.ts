@@ -6,15 +6,15 @@ import { listOwnedGenerations } from "@/server/features/generations/service";
 import { findOwnedProject } from "@/server/features/projects/service";
 import type { VisualPromptCanvasState } from "@/server/features/visual-prompt/types";
 import type { CurrentUser } from "@/server/features/auth/claims";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import type { Locale } from "@/i18n/routing";
 import { localizeGenerationMessage } from "@/server/shared/i18n/api-locale";
 
 export class ProjectWorkspaceNotFoundError extends Error {}
 
 async function signFile(bucket: string, path: string) {
-  const result = await getSupabaseAdmin()
-    .storage.from(bucket)
+  const result = await getStorage()
+    .from(bucket)
     .createSignedUrl(path, 600);
   if (result.error || !result.data.signedUrl) {
     throw new Error("SIGNED_URL_FAILED");
@@ -49,8 +49,8 @@ export async function getProjectWorkspace(
   const generationsWithUrls = await attachHistoryResultUrls(
     generationPage.items,
     async (bucket, paths) => {
-      const result = await getSupabaseAdmin()
-        .storage.from(bucket)
+      const result = await getStorage()
+        .from(bucket)
         .createSignedUrls(paths, 600);
       if (result.error) return [];
       return result.data.flatMap((file) =>

@@ -69,11 +69,10 @@ test("protected routes use a client guard and axios sends the session token", as
   ]);
 
   assert.match(authClient, /\/auth\/me/);
-  assert.doesNotMatch(authClient, /supabase|onAuthStateChange|getClaims/);
   assert.match(appLayout, /ProtectedRouteGuard/);
   assert.doesNotMatch(
     homePage,
-    /useCurrentAuthUser|auth\.getClaims|createSupabaseServerClient/,
+    /useCurrentAuthUser|auth\.getClaims/,
   );
   assert.match(homePage, /redirect\("\/en"\)/);
   assert.match(localizedHomePage, /LandingPage/);
@@ -87,12 +86,7 @@ test("protected routes use a client guard and axios sends the session token", as
   assert.match(tokenCookies, /from "js-cookie"/);
   assert.match(tokenCookies, /Cookies\.get/);
   assert.match(tokenCookies, /Cookies\.set/);
-  assert.match(tokenCookies, /clearLegacySupabaseCookies/);
-  assert.match(refreshRoute, /auth\.refreshSession/);
-  assert.doesNotMatch(
-    apiClient,
-    /createBrowserClient|createSupabaseBrowserClient/,
-  );
+  assert.match(refreshRoute, /refreshNativeSession/);
   assert.doesNotMatch(proxy, /getClaims|updateSupabaseSession|isProtectedPath/);
   assert.doesNotMatch(loginPage, /\/auth\/me/);
   assert.doesNotMatch(dashboardLayout, /\/auth\/me/);

@@ -23,12 +23,9 @@ export async function enforceRateLimit(
   windowMs = 60_000,
   userId?: string,
 ) {
-  // Vercel overwrites this header. Outside that trusted ingress, do not trust
-  // client-supplied forwarding headers; authenticated requests use user identity.
-  const forwarded =
-    process.env.VERCEL === "1"
-      ? request.headers.get("x-forwarded-for")?.trim()
-      : undefined;
+  // Production web доступен только через Caddy; для анонимных запросов берём
+  // первый адрес, который прокси передал в X-Forwarded-For.
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const subject = userId
     ? `user:${userId}`
     : `ip:${forwarded && isIP(forwarded) ? forwarded : "unknown"}`;

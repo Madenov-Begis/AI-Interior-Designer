@@ -141,8 +141,6 @@ touch targets и horizontal overflow. Покажи результат в бра�
 - `$vercel:nextjs` — сложные вопросы App Router и Next.js.
 - `$vercel:react-best-practices` — проверка изменённых React-компонентов.
 - `$shadcn` — добавление или изменение shadcn-компонентов.
-- `$supabase:supabase` — любая задача с Supabase.
-- `$supabase:supabase-postgres-best-practices` — schema/query/index/performance.
 - `$vercel:verification` — полный пользовательский сценарий.
 
 Skill не расширяет права на production, deploy, внешние сообщения или destructive actions.
@@ -151,8 +149,6 @@ Skill не расширяет права на production, deploy, внешние
 
 Подключай внешний инструмент только при реальной потребности:
 
-- Vercel — deployments, logs и environment;
-- Supabase — проект, Auth, Storage и database operations;
 - Figma — актуальный дизайн-контекст;
 - GitHub — PR, CI и review;
 - Google Drive — внешняя спецификация;

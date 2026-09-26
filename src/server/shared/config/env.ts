@@ -2,7 +2,10 @@ import "server-only";
 
 import { z } from "zod";
 import { assertSafePaymentConfiguration } from "./payment.ts";
-import { hasCompleteVercelWorkloadIdentityConfig } from "../integrations/google/workload-identity.ts";
+import {
+  isLocalHttpOrigin,
+  isLocalOAuthCallback,
+} from "@/server/shared/auth/cookie-domain";
 
 const serverEnvSchema = z
   .object({
@@ -18,9 +21,12 @@ const serverEnvSchema = z
     MAX_UPLOAD_SIZE_MB: z.coerce.number().int().min(1).max(100).default(15),
     MAX_OUTPUT_WIDTH: z.coerce.number().int().min(256).max(8192).default(4096),
     MAX_OUTPUT_HEIGHT: z.coerce.number().int().min(256).max(8192).default(4096),
-    NEXT_PUBLIC_SUPABASE_URL: z.url(),
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
+    AUTH_SESSION_SECRET: z.string().min(32).optional(),
+    GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
+    GOOGLE_OAUTH_CALLBACK_URL: z.url().optional(),
     DATABASE_URL: z.string().min(1),
+    DATABASE_SSL_MODE: z.enum(["verify-full", "disable"]).default("verify-full"),
     DIRECT_URL: z.string().min(1),
     AI_PROVIDER: z.enum(["fake", "vertex"]).default("fake"),
     GENERATIONS_ENABLED: z
@@ -28,17 +34,18 @@ const serverEnvSchema = z
       .default("true")
       .transform((value) => value === "true"),
     PAYMENT_PROVIDER: z.enum(["disabled", "mock"]).default("disabled"),
-    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+    WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(1),
+    WORKER_HEARTBEAT_FILE: z
+      .string()
+      .min(1)
+      .default("/tmp/ruvie-worker-heartbeat.json"),
+    STORAGE_ROOT: z.string().min(1).optional(),
+    STORAGE_PUBLIC_ORIGIN: z.url().optional(),
+    STORAGE_SIGNING_SECRET: z.string().min(32).optional(),
     GOOGLE_CLOUD_PROJECT_ID: z.string().min(1).optional(),
     GOOGLE_CLOUD_LOCATION: z.string().min(1).optional(),
     GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1).optional(),
     GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
-    GCP_PROJECT_NUMBER: z.string().regex(/^\d+$/).optional(),
-    GCP_SERVICE_ACCOUNT_EMAIL: z.email().optional(),
-    GCP_WORKLOAD_IDENTITY_POOL_ID: z.string().min(1).optional(),
-    GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID: z.string().min(1).optional(),
-    GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE: z.url().optional(),
-    TRIGGER_SECRET_KEY: z.string().min(1).optional(),
     SENTRY_DSN: z.url().optional(),
     ADMIN_ORIGINS: z.string().min(1).optional(),
     ADMIN_ACCESS_CODE: z.string().trim().min(5).max(128).optional(),
@@ -46,6 +53,47 @@ const serverEnvSchema = z
     AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
   })
   .superRefine((env, context) => {
+    const localPreview = isLocalHttpOrigin(env.APP_URL);
+    const localCallback = isLocalOAuthCallback(
+      env.APP_URL,
+      env.GOOGLE_OAUTH_CALLBACK_URL,
+    );
+    for (const field of [
+        "AUTH_SESSION_SECRET",
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "GOOGLE_OAUTH_CLIENT_SECRET",
+        "GOOGLE_OAUTH_CALLBACK_URL",
+    ] as const) {
+      if (!env[field])
+        context.addIssue({
+          code: "custom",
+          path: [field],
+          message: "Обязателен для Google OAuth",
+        });
+    }
+    if (
+      env.NODE_ENV === "production" &&
+      env.GOOGLE_OAUTH_CALLBACK_URL &&
+      !env.GOOGLE_OAUTH_CALLBACK_URL.startsWith("https://") &&
+      !localCallback
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["GOOGLE_OAUTH_CALLBACK_URL"],
+        message: "Для production нужен HTTPS callback; HTTP допустим только для локального /auth/callback",
+      });
+    for (const field of [
+        "STORAGE_ROOT",
+        "STORAGE_PUBLIC_ORIGIN",
+        "STORAGE_SIGNING_SECRET",
+    ] as const) {
+      if (!env[field])
+        context.addIssue({
+          code: "custom",
+          path: [field],
+          message: "Обязателен для приватного файлового хранилища",
+        });
+    }
     if (env.NODE_ENV === "production" && !env.ADMIN_ORIGINS) {
       context.addIssue({
         code: "custom",
@@ -60,18 +108,11 @@ const serverEnvSchema = z
         message: "Обязателен exact allowlist origin для production-клиента",
       });
     }
-    if (env.NODE_ENV === "production" && !env.AUTH_COOKIE_DOMAIN) {
+    if (env.NODE_ENV === "production" && !localPreview && !env.AUTH_COOKIE_DOMAIN) {
       context.addIssue({
         code: "custom",
         path: ["AUTH_COOKIE_DOMAIN"],
         message: "Обязателен общий production-domain для auth cookies",
-      });
-    }
-    if (env.NODE_ENV === "production" && !env.SUPABASE_SERVICE_ROLE_KEY) {
-      context.addIssue({
-        code: "custom",
-        path: ["SUPABASE_SERVICE_ROLE_KEY"],
-        message: "Обязателен для server-side Auth и Storage операций",
       });
     }
     if (env.NODE_ENV === "production" && !env.ADMIN_ACCESS_CODE) {
@@ -89,17 +130,6 @@ const serverEnvSchema = z
       });
     }
     if (env.AI_PROVIDER === "vertex") {
-      const workloadIdentityFields = [
-        env.GCP_PROJECT_NUMBER,
-        env.GCP_SERVICE_ACCOUNT_EMAIL,
-        env.GCP_WORKLOAD_IDENTITY_POOL_ID,
-        env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID,
-        env.GCP_WORKLOAD_IDENTITY_TOKEN_AUDIENCE,
-      ];
-      const workloadIdentityFieldCount =
-        workloadIdentityFields.filter(Boolean).length;
-      const hasWorkloadIdentity = hasCompleteVercelWorkloadIdentityConfig(env);
-
       if (!env.GOOGLE_CLOUD_PROJECT_ID)
         context.addIssue({
           code: "custom",
@@ -113,7 +143,6 @@ const serverEnvSchema = z
           message: "Обязателен для Vertex AI",
         });
       if (
-        !hasWorkloadIdentity &&
         !env.GOOGLE_APPLICATION_CREDENTIALS_JSON &&
         !env.GOOGLE_APPLICATION_CREDENTIALS
       )
@@ -121,14 +150,7 @@ const serverEnvSchema = z
           code: "custom",
           path: ["GOOGLE_APPLICATION_CREDENTIALS_JSON"],
           message:
-            "Для Vertex AI необходим полный набор Workload Identity Federation или локальные Google credentials",
-        });
-      if (workloadIdentityFieldCount > 0 && !hasWorkloadIdentity)
-        context.addIssue({
-          code: "custom",
-          path: ["GCP_PROJECT_NUMBER"],
-          message:
-            "Набор переменных Workload Identity Federation заполнен не полностью",
+            "Для Vertex AI нужны Google credentials",
         });
     }
     try {

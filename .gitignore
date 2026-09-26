@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/.pnpm-store/
 node_modules/
 /.pnp
 .pnp.*
@@ -37,6 +38,11 @@ yarn-error.log*
 
 # local Google Cloud credentials
 /service-account.json
+
+# Локальные приватные файлы и результаты репетиции миграции.
+/.data/
+/.backup/
+/backup-artifacts/
 
 # vercel
 .vercel

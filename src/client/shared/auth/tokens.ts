@@ -25,16 +25,7 @@ function cookieOptions(): Cookies.CookieAttributes {
   };
 }
 
-function clearLegacySupabaseCookies() {
-  for (const name of Object.keys(Cookies.get())) {
-    if (name.startsWith("sb-") && name.includes("-auth-token")) {
-      Cookies.remove(name, { path: "/" });
-    }
-  }
-}
-
 export function getAccessToken() {
-  clearLegacySupabaseCookies();
   return Cookies.get(ACCESS_TOKEN_COOKIE) ?? null;
 }
 
@@ -55,7 +46,6 @@ export function clearAuthTokens() {
   const options = cookieOptions();
   Cookies.remove(ACCESS_TOKEN_COOKIE, options);
   Cookies.remove(REFRESH_TOKEN_COOKIE, options);
-  clearLegacySupabaseCookies();
 }
 
 export function consumeOAuthHandoff() {

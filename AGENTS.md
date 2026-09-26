@@ -38,7 +38,8 @@ Ruvie — fullstack-приложение на Next.js для AI-визуализ
 - `src/server` — backend, бизнес-операции и инфраструктура.
 - `admin/src` — отдельный frontend админ-панели.
 - Prisma — единственный слой доступа к бизнес-таблицам PostgreSQL.
-- Supabase SDK используется для Auth, проверки токенов и приватного Storage.
+- В этой ветке Google OAuth, сессии Prisma, файловое хранилище и отдельный PostgreSQL worker являются единственным режимом приложения. Production до публикации ветки остаётся на прежней версии.
+- Feature-сервисы обращаются к Storage через `src/server/shared/storage`. Нативные Google identities/сессии используют Prisma; новая Timeweb-база начинается пустой, профиль создаётся при первом входе через Google. Привязка аккаунтов только по email запрещена. Состояние переноса — `docs/launch/timeweb-migration-plan.md`.
 - Клиентские приложения обращаются к backend только через HTTP API.
 - Не импортируй server/admin runtime в клиентский код и React/client runtime в серверные сервисы.
 - Сохраняй owner-scoped доступ к пользовательским данным.

@@ -38,22 +38,53 @@ admin/src/
 ## Работа с данными
 
 - Prisma — единственный слой доступа к PostgreSQL: модели, запросы, транзакции и миграции находятся в `prisma/` и серверных сервисах.
-- Supabase SDK используется только для Google OAuth, серверной сессии и приватного Storage.
-- Сервер приложения не обращается к бизнес-таблицам через Supabase Data API (`from`, `rpc`). Для `authenticated` разрешено только owner-scoped чтение собственных `CreditWallet`, `CreditTransaction` и `PaymentOrder`, защищённое RLS; любые записи и таблица `PaymentEvent` остаются доступны только серверному Prisma-слою. У роли `anon` доступа к этим таблицам нет.
-- Корневая папка `supabase/` не используется. Приватные Storage buckets создаются один раз в панели Supabase: `source-images`, `visual-prompts`, `reference-images`, `generation-originals`, `generation-results`, `branding`.
+- Google OAuth и сессии приложения используют PostgreSQL через Prisma.
+- Приватные изображения хранятся в файловом каталоге; доступ к ним выдаётся через проверяемые сервером короткоживущие ссылки.
+- Генерации выполняет отдельный worker, который забирает задания из PostgreSQL.
 
 ## Локальный запуск
 
+Подготовка переноса на VPS ведётся по [плану Timeweb](docs/launch/timeweb-migration-plan.md).
+Для локальной проверки Docker нужны запущенный Docker Desktop, Node.js с Corepack
+и `.env.local` (если файла нет, скопируйте `.env.example`):
+
 ```bash
-corepack enable
-pnpm install
+pnpm docker:up    # собрать и запустить сайт, админку, worker и PostgreSQL
+pnpm docker:test  # проверить локальную БД и интеграционные сценарии
+pnpm docker:down  # остановить локальные контейнеры
+```
+
+Если Terminal пишет `pnpm: command not found`, запускайте те же команды через
+`corepack pnpm` (например, `corepack pnpm docker:up`). Однократно добавить
+команду `pnpm` в пользовательский PATH можно через
+`corepack enable --install-directory "$HOME/.local/bin"`.
+
+Сайт откроется на `http://localhost:3000`, админка — на
+`http://localhost:8080`. Без настроенных OAuth-ключей Docker проверяет только
+запуск контейнеров, а вход через Google недоступен. Для настоящего входа
+создайте или выберите в Google Cloud OAuth-клиент типа **Web application**,
+добавьте в его **Authorized redirect URIs**
+`http://localhost:3000/auth/callback` и укажите его `GOOGLE_OAUTH_CLIENT_ID`
+и `GOOGLE_OAUTH_CLIENT_SECRET` в локальном `.env.local`. Не помещайте секрет
+в Git. После изменения файла повторите `pnpm docker:up`. Генерации в этом
+контуре пока отключены.
+
+```bash
+corepack pnpm install
 cp .env.example .env.local
+pnpm docker:db:up
+pnpm db:migrate:deploy
 pnpm dev
 ```
 
-Приложение откроется на `http://localhost:3000`. По умолчанию используется `AI_PROVIDER=fake`, поэтому реальные credentials Vertex AI для запуска интерфейса не нужны.
+Приложение откроется на `http://localhost:3000`. Для входа замените фиктивные
+Google OAuth credentials в `.env.local` на свои. По умолчанию используется
+`AI_PROVIDER=fake`, поэтому реальные credentials Vertex AI для запуска интерфейса не нужны.
 
-Клиентский frontend отправляет API-запросы на `https://api.ruvie.cc/api/v1`, отдельная админка — на `https://api.ruvie.cc/api/v1/admin`. Значение можно переопределить через `NEXT_PUBLIC_API_BASE_URL` и `VITE_API_BASE_URL`. Backend разрешает browser-origin клиента только из exact allowlist `APP_ORIGINS`, а origin админки — из `ADMIN_ORIGINS`.
+Адрес API задают `NEXT_PUBLIC_API_BASE_URL` и `VITE_API_BASE_URL`; в локальном
+Docker оба приложения обращаются к `http://localhost:3000`. Backend разрешает
+browser-origin клиента только из exact allowlist `APP_ORIGINS`, а origin админки —
+из `ADMIN_ORIGINS`.
 
 Основные пользовательские маршруты:
 
@@ -119,7 +150,10 @@ pnpm db:studio
 
 В production миграции применяются командой `pnpm db:migrate:deploy`.
 
-Для transaction pooler используется `DATABASE_URL`, а миграции выполняются через session pooler из `DIRECT_URL`. Ошибка `password authentication failed` означает, что пароль базы нужно заменить в обеих строках; Supabase API-ключи не являются паролем Postgres.
+Локальный Docker запускает пустую PostgreSQL и применяет три миграции из
+`prisma/migrations` автоматически. Конфигурация `prisma.config.ts` жёстко
+указывает на локальную тестовую базу; для VPS используется отдельный
+`prisma.timeweb.config.ts`.
 
 ## Проверки
 
@@ -137,8 +171,8 @@ pnpm admin:build
 ```
 
 Полная проверка включает unit/service тесты, строгую типизацию, ESLint, Prisma
-validation и production build. Проверка миграций требует доступного PostgreSQL:
-сначала выполните `pnpm db:migrate:deploy`, затем `pnpm db:status`.
+validation и production build. Интеграционные проверки локальной базы запускает
+`pnpm docker:test`.
 
 Перед beta-релизом запустите единую проверку:
 
@@ -146,9 +180,8 @@ validation и production build. Проверка миграций требует
 pnpm release:check
 ```
 
-Текущий статус и обязательные внешние шаги находятся в
-[`docs/launch/current-status.md`](docs/launch/current-status.md), полный checklist —
-в [`docs/launch/closed-beta-checklist.md`](docs/launch/closed-beta-checklist.md).
+Текущий статус переноса находится в
+[`docs/launch/timeweb-migration-plan.md`](docs/launch/timeweb-migration-plan.md).
 
 Навигация по документации находится в [`docs/README.md`](docs/README.md).
 Полная карта страниц, пользовательских сценариев и бизнес-правил хранится в
@@ -180,20 +213,15 @@ localStorage до 800-мс debounce серверного сохранения. �
 
 `pnpm test:ui` проверяет lifecycle редактора и повтор запроса после потери ответа
 с React Testing Library и подменёнными сетевым/Fabric адаптерами. Проверка включена
-в `pnpm release:check`. Фоновое восстановление кредитов описано в
-`docs/launch/monitoring-runbook.md`.
+в `pnpm release:check`. Фоновое восстановление резервирований выполняет worker.
 
 ## Рефакторинг и выпуск
 
-Актуальный порядок проверок и публикации описан в
-[`docs/testing.md`](docs/testing.md) и
-[`docs/launch/current-status.md`](docs/launch/current-status.md).
-Новая миграция `20260906090000_reliability_infrastructure` должна быть применена
-перед публикацией кода. Она добавляет приватные служебные таблицы ограничений
-запросов, временных загрузок и повторного удаления файлов.
+Актуальный порядок проверок описан в [`docs/testing.md`](docs/testing.md).
+Новая пустая база создаётся из трёх миграций в `prisma/migrations`.
 
-Файлы и большие состояния холста загружаются напрямую в приватный bucket
-`staging-uploads`; он создаётся сервером при первой загрузке. API получает
+Файлы и большие состояния холста загружаются в приватную временную область
+файлового хранилища. API получает
 идентификаторы и проверяет владельца, назначение, срок, размер и содержимое.
 Лимит файла остаётся 15 МБ. Временные файлы удаляются после истечения подписанного
 разрешения загрузки; повторное удаление выполняет `pnpm maintain:storage --apply`.

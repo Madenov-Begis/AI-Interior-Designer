@@ -12,24 +12,15 @@ import {
   cancelOwnedGenerationWithDatabase,
 } from "../../src/server/features/generations/operations.ts";
 import { PrismaClient } from "../../src/generated/prisma/client.ts";
+import { requireIsolatedTestDatabase } from "../../src/server/shared/db/test-database.ts";
 import {
   adjustCreditBalance,
   CreditBalanceError,
 } from "../../src/server/features/credits/service-operations.ts";
 
-const connectionString = process.env.TEST_DATABASE_URL;
-if (!connectionString)
-  throw new Error(
-    "TEST_DATABASE_URL is required; use an isolated local PostgreSQL database",
-  );
-const url = new URL(connectionString);
-if (
-  !["localhost", "127.0.0.1"].includes(url.hostname) ||
-  url.pathname !== "/ruvie_refactor_test"
-)
-  throw new Error(
-    "Integration tests require local ruvie_refactor_test database",
-  );
+const connectionString = requireIsolatedTestDatabase(
+  process.env.TEST_DATABASE_URL,
+);
 const db = new PrismaClient({
   adapter: new PrismaPg({ connectionString, ssl: false, max: 20 }),
 });
@@ -282,6 +273,45 @@ test("concurrent package changes leave exactly one active popular package", asyn
     assert.equal(
       await db.creditPackage.count({ where: { active: true, popular: true } }),
       1,
+    );
+  } finally {
+    await db.creditPackage.deleteMany({
+      where: { code: { startsWith: prefix } },
+    });
+  }
+});
+
+test("SQL-ограничения пакетов сохраняют положительную цену и единственный популярный пакет", async () => {
+  const prefix = `constraints_${randomUUID()}`;
+  const data = {
+    code: prefix,
+    name: "Проверка ограничений",
+    credits: 10,
+    priceUzs: 100,
+  };
+  try {
+    for (const invalid of [
+      { credits: 0 },
+      { priceUzs: 0 },
+      { active: false, popular: true },
+    ]) {
+      await assert.rejects(
+        db.creditPackage.create({ data: { ...data, ...invalid } }),
+      );
+    }
+    await assert.rejects(
+      db.$transaction(async (tx) => {
+        // Изменения откатываются вместе с ожидаемым нарушением unique index.
+        await tx.creditPackage.updateMany({ data: { popular: false } });
+        await tx.creditPackage.create({ data: { ...data, popular: true } });
+        await tx.creditPackage.create({
+          data: { ...data, code: `${prefix}_second`, popular: true },
+        });
+      }),
+    );
+    assert.equal(
+      await db.creditPackage.count({ where: { code: { startsWith: prefix } } }),
+      0,
     );
   } finally {
     await db.creditPackage.deleteMany({

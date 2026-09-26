@@ -8,7 +8,7 @@ import {
   projectNameFromSourceFile,
 } from "@/server/features/projects/naming";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import { validateSourceImage } from "@/server/features/media/image-validation";
 import { validateInteriorSourceImage } from "@/server/features/media/interior-image-validator";
 
@@ -36,7 +36,7 @@ export async function uploadProjectSource(
   const previewId = randomUUID();
   const sourcePath = `users/${userId}/projects/${projectId}/source/${sourceId}.${image.extension}`;
   const previewPath = `users/${userId}/projects/${projectId}/source/preview/${previewId}.webp`;
-  const storage = getSupabaseAdmin().storage.from(STORAGE_BUCKETS.sourceImages);
+  const storage = getStorage().from(STORAGE_BUCKETS.sourceImages);
   const uploaded: string[] = [];
 
   try {

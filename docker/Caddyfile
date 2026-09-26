@@ -1,0 +1,31 @@
+{
+    email {$ACME_EMAIL}
+    admin off
+}
+
+{$APP_DOMAIN} {
+    encode zstd gzip
+    # Access log намеренно не включён: OAuth code и подписанные media URL секретны.
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        Referrer-Policy "no-referrer"
+    }
+    request_body {
+        max_size 105MB
+    }
+    reverse_proxy web:3000
+}
+
+{$ADMIN_DOMAIN} {
+    root * /srv/admin
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+        Cache-Control no-store
+    }
+    try_files {path} /index.html
+    file_server
+}

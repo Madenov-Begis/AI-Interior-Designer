@@ -8,7 +8,7 @@
 - Backend admin API остаётся в основном Next.js-приложении.
 - Не переносись на Next.js и не импортируй runtime основного frontend.
 - Все административные данные получай через `adminApi` и типы `admin/src/shared/api`.
-- Не помещай `ADMIN_ACCESS_CODE`, signing secret, Supabase keys или другие server secrets во frontend.
+- Не помещай `ADMIN_ACCESS_CODE`, signing secret, Google credentials или другие server secrets во frontend.
 
 ## UX и безопасность
 

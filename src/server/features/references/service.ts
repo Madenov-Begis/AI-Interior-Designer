@@ -9,7 +9,7 @@ import {
   discardUploadedObjects,
 } from "@/server/features/media/cleanup";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
 
 export class ReferenceProjectNotFoundError extends Error {}
@@ -46,8 +46,8 @@ export async function attachReferencePreviewUrls<
     references.map(async (reference) => {
       const file = filesById.get(reference.fileId);
       if (!file) throw new ReferenceNotFoundError("Референс не найден");
-      const signed = await getSupabaseAdmin()
-        .storage.from(file.bucket)
+      const signed = await getStorage()
+        .from(file.bucket)
         .createSignedUrl(file.path, 600);
       if (signed.error || !signed.data.signedUrl) throw signed.error;
       return { ...reference, previewUrl: signed.data.signedUrl };
@@ -90,7 +90,7 @@ export async function addReferenceFiles(
       `Можно добавить не более ${limits.maxReferenceUrls} референсов по URL`,
     );
 
-  const storage = getSupabaseAdmin().storage.from(
+  const storage = getStorage().from(
     STORAGE_BUCKETS.referenceImages,
   );
   const uploaded: Array<{

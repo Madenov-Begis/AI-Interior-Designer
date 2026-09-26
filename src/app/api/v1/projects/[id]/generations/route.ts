@@ -1,5 +1,5 @@
 import { readUploadFormData } from "@/server/features/media/staged-upload";
-import { after, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
 import {
@@ -14,7 +14,6 @@ import {
   createGenerationSchema,
   idempotencyKeySchema,
 } from "@/server/features/generations/schema";
-import { processGeneration } from "@/server/features/generations/worker";
 import { projectIdSchema } from "@/server/features/projects/schemas";
 import {
   parseVisualPromptCanvasState,
@@ -142,9 +141,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       await discardUnattachedVisualPrompt(user.id, unattachedVisualPromptId);
     }
     unattachedVisualPromptId = null;
-    if (!reserved.isExisting && reserved.generation.status === "QUEUED") {
-      after(() => processGeneration(reserved.generation.id));
-    }
     return generationResponse(
       user.id,
       reserved.generation.id,

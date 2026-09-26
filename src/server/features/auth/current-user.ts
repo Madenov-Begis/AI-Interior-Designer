@@ -1,14 +1,14 @@
 import "server-only";
 
 import { getDb } from "@/server/shared/db/prisma";
-import { createSupabaseTokenClient } from "@/server/shared/integrations/supabase/token-client";
 import type { NextRequest } from "next/server";
 import { headers } from "next/headers";
-import { upsertProfileFromAuthUserWithDatabase } from "@/server/features/auth/profile-upsert";
+import { nativeSessionConfig } from "./native-config";
 import {
-  currentUserFromClaims,
-  type CurrentUser,
-} from "@/server/features/auth/claims";
+  nativeUserFromAccessToken,
+  InvalidSessionError,
+} from "./native-session-operations";
+import type { CurrentUser } from "@/server/features/auth/claims";
 
 export class UnauthorizedError extends Error {
   constructor(message = "Требуется авторизация") {
@@ -22,11 +22,16 @@ function bearerToken(authorization: string | null) {
 }
 
 async function currentUserFromAccessToken(token: string) {
-  const { data, error } =
-    await createSupabaseTokenClient().auth.getClaims(token);
-  const user = currentUserFromClaims(data?.claims);
-  if (error || !user) throw new UnauthorizedError();
-  return user;
+  try {
+    return await nativeUserFromAccessToken(
+      getDb(),
+      token,
+      nativeSessionConfig(),
+    );
+  } catch (error) {
+    if (error instanceof InvalidSessionError) throw new UnauthorizedError();
+    throw error;
+  }
 }
 
 async function requireActiveProfile(user: CurrentUser) {
@@ -47,11 +52,7 @@ export async function requireCurrentUser(): Promise<CurrentUser> {
   return requireActiveProfile(await currentUserFromAccessToken(token));
 }
 
-/**
- * Validates a Supabase access token supplied by a separate trusted frontend.
- * This intentionally verifies the token remotely instead of trusting decoded
- * browser data or user metadata.
- */
+/** Проверяет Bearer и подтверждает доступ активного профиля. */
 export async function requireCurrentUserFromBearer(
   request: NextRequest | Headers,
 ): Promise<CurrentUser> {
@@ -62,8 +63,4 @@ export async function requireCurrentUserFromBearer(
   const token = bearerToken(authorization);
   if (!token) throw new UnauthorizedError();
   return requireActiveProfile(await currentUserFromAccessToken(token));
-}
-
-export async function upsertProfileFromAuthUser(user: CurrentUser) {
-  return upsertProfileFromAuthUserWithDatabase(getDb(), user);
 }

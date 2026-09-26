@@ -1,23 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   authErrorUrl,
-  encodeOAuthReturnState,
-  OAUTH_RETURN_STATE_COOKIE,
-  oauthCallbackUrl,
   safeReturnOrigin,
   safeReturnPath,
 } from "@/server/features/auth/route-policy";
-import { createSupabaseServerClient } from "@/server/shared/integrations/supabase/server";
 import { serverEnv } from "@/server/shared/config/env";
 import {
   isCurrentLegalAcceptance,
   LEGAL_ACCEPTANCE_COOKIE,
   LEGAL_ACCEPTANCE_COOKIE_VALUE,
 } from "@/server/features/auth/legal-acceptance";
-import { authCookieDomain } from "@/server/shared/auth/cookie-domain";
+import {
+  authCookieDomain,
+  authCookieSecure,
+} from "@/server/shared/auth/cookie-domain";
+import {
+  startGoogleOAuth,
+  GOOGLE_OAUTH_COOKIE,
+} from "@/server/features/auth/google-oauth";
+import { googleOAuthConfig } from "@/server/features/auth/native-config";
 
 export async function GET(request: NextRequest) {
-  const supabase = await createSupabaseServerClient();
   const env = serverEnv();
   const appUrl = env.APP_URL;
   const returnOrigin = safeReturnOrigin(
@@ -26,7 +29,6 @@ export async function GET(request: NextRequest) {
     appUrl,
   );
   const safeNext = safeReturnPath(request.nextUrl.searchParams.get("next"));
-  const callbackUrl = oauthCallbackUrl(request.nextUrl.origin);
   if (
     !isCurrentLegalAcceptance(
       request.nextUrl.searchParams.get("legalAcceptance"),
@@ -34,38 +36,36 @@ export async function GET(request: NextRequest) {
   ) {
     return NextResponse.redirect(authErrorUrl(returnOrigin, "legal_consent"));
   }
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: callbackUrl.toString(),
-      queryParams: { access_type: "offline", prompt: "consent" },
-    },
-  });
-
-  if (error || !data.url) {
+  let started: Awaited<ReturnType<typeof startGoogleOAuth>>;
+  try {
+    started = await startGoogleOAuth(googleOAuthConfig(), {
+      next: safeNext,
+      returnOrigin,
+      legalAcceptance: LEGAL_ACCEPTANCE_COOKIE_VALUE,
+    });
+  } catch {
     return NextResponse.redirect(authErrorUrl(returnOrigin, "oauth_start"));
   }
 
-  const response = NextResponse.redirect(data.url);
+  const response = NextResponse.redirect(started.url);
+  response.cookies.set(GOOGLE_OAUTH_COOKIE, started.cookie, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: authCookieSecure(env.NODE_ENV, env.APP_URL),
+    path: "/auth/callback",
+    maxAge: 600,
+  });
   response.cookies.set(LEGAL_ACCEPTANCE_COOKIE, LEGAL_ACCEPTANCE_COOKIE_VALUE, {
     httpOnly: true,
     sameSite: "lax",
-    secure: env.NODE_ENV === "production",
+    secure: authCookieSecure(env.NODE_ENV, env.APP_URL),
     path: "/",
-    domain: authCookieDomain(env.NODE_ENV, env.AUTH_COOKIE_DOMAIN),
+    domain: authCookieDomain(
+      env.NODE_ENV,
+      env.AUTH_COOKIE_DOMAIN,
+      env.APP_URL,
+    ),
     maxAge: 15 * 60,
   });
-  response.cookies.set(
-    OAUTH_RETURN_STATE_COOKIE,
-    encodeOAuthReturnState(safeNext, returnOrigin),
-    {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: env.NODE_ENV === "production",
-      path: "/",
-      domain: authCookieDomain(env.NODE_ENV, env.AUTH_COOKIE_DOMAIN),
-      maxAge: 15 * 60,
-    },
-  );
   return response;
 }

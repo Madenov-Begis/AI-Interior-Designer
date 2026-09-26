@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { databaseConnectionOptions } from "../src/server/shared/db/connection-options.ts";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.ts";
 import { failGenerationWithDatabase } from "../src/server/features/generations/operations.ts";
@@ -7,22 +7,21 @@ import { recoverExpiredReservationBatch } from "../src/server/features/generatio
 const args = process.argv.slice(2);
 if (args.includes("--help")) {
   console.log(
-    "recover:generations [--apply] — dry run by default; requires SUPABASE_DATABASE_URL",
+    "recover:generations [--apply] — по умолчанию dry run; нужен DATABASE_URL",
   );
   process.exit(0);
 }
 if (args.some((arg) => arg !== "--apply"))
   throw new Error("Unknown recovery option");
-const connectionString = process.env.SUPABASE_DATABASE_URL;
-if (!connectionString) throw new Error("SUPABASE_DATABASE_URL is required");
-const ca = await readFile(
-  new URL("../prisma/certs/supabase-root-2021.crt", import.meta.url),
-  "utf8",
-);
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString)
+  throw new Error("Нужен DATABASE_URL");
 const db = new PrismaClient({
   adapter: new PrismaPg({
-    connectionString,
-    ssl: { ca, rejectUnauthorized: true },
+    ...databaseConnectionOptions({
+      DATABASE_URL: connectionString,
+      DATABASE_SSL_MODE: process.env.DATABASE_SSL_MODE,
+    }),
     connectionTimeoutMillis: 10_000,
     statement_timeout: 15_000,
     max: 2,

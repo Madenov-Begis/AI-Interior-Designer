@@ -4,6 +4,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  ...(process.env.NEXT_OUTPUT === "standalone"
+    ? { output: "standalone" as const }
+    : {}),
   poweredByHeader: false,
   outputFileTracingIncludes: {
     "/*": [
@@ -18,14 +21,12 @@ const nextConfig: NextConfig = {
     const connectOrigins = new Set(["'self'"]);
     for (const value of [
       process.env.NEXT_PUBLIC_API_BASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SENTRY_DSN,
+      process.env.STORAGE_PUBLIC_ORIGIN,
     ]) {
       if (value) {
         const url = new URL(value);
         connectOrigins.add(url.origin);
-        if (url.hostname.endsWith(".supabase.co"))
-          connectOrigins.add(`wss://${url.host}`);
       }
     }
     if (isDevelopment) {

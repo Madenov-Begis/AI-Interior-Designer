@@ -1,8 +1,8 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const auth = vi.hoisted(() => ({
-  refresh: vi.fn(),
+  nativeRefresh: vi.fn(),
   store: vi.fn(),
   clear: vi.fn(),
   token: "http-only-refresh" as string | undefined,
@@ -17,25 +17,53 @@ vi.mock("@/server/shared/auth/session-cookies", () => ({
   clearSessionCookies: auth.clear,
   storeSessionCookies: auth.store,
 }));
-vi.mock("@/server/shared/integrations/supabase/token-client", () => ({
-  createSupabaseTokenClient: () => ({ auth: { refreshSession: auth.refresh } }),
-}));
 vi.mock("@sentry/nextjs", () => ({ captureMessage: vi.fn() }));
+vi.mock("@/server/shared/db/prisma", () => ({
+  getDb: () => ({ testOnly: true }),
+}));
+vi.mock("@/server/features/auth/native-config", () => ({
+  nativeSessionConfig: () => ({ testOnly: true }),
+}));
+vi.mock("@/server/features/auth/native-session-operations", () => ({
+  refreshNativeSession: auth.nativeRefresh,
+  InvalidSessionError: class InvalidSessionError extends Error {},
+}));
+import { InvalidSessionError } from "@/server/features/auth/native-session-operations";
 import { POST } from "./route";
 
+afterEach(() => vi.unstubAllEnvs());
 beforeEach(() => {
   vi.clearAllMocks();
   auth.token = "http-only-refresh";
-  auth.refresh.mockResolvedValue({
-    data: {
-      session: {
-        access_token: "access",
-        refresh_token: "rotated-secret",
-        expires_in: 3600,
-      },
-    },
-    error: null,
+});
+
+test("прямой Google refresh использует HttpOnly cookie и сохраняет прежний HTTP-контракт", async () => {
+  auth.nativeRefresh.mockResolvedValue({
+    access_token: "native-access",
+    refresh_token: "native-secret",
+    expires_in: 900,
   });
+  const response = await POST(request());
+  expect(response.status).toBe(200);
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  expect(auth.nativeRefresh.mock.calls[0][1]).toBe("http-only-refresh");
+  expect(await response.json()).toMatchObject({
+    data: { accessToken: "native-access", expiresIn: 900 },
+  });
+});
+
+test("прямой refresh отличает отзыв сессии от недоступности БД", async () => {
+  auth.nativeRefresh.mockRejectedValue(new Error("test database unavailable"));
+  expect((await POST(request())).status).toBe(503);
+  expect(auth.clear).not.toHaveBeenCalled();
+  auth.nativeRefresh.mockRejectedValue(new InvalidSessionError());
+  expect((await POST(request())).status).toBe(401);
+  expect(auth.clear).toHaveBeenCalledOnce();
+});
+
+test("чужой origin не запускает прямое обновление сессии", async () => {
+  expect((await POST(request("https://attacker.invalid"))).status).toBe(403);
+  expect(auth.nativeRefresh).not.toHaveBeenCalled();
 });
 function request(origin = "https://api.example.com") {
   return new NextRequest("https://api.example.com/api/v1/auth/refresh", {
@@ -45,36 +73,9 @@ function request(origin = "https://api.example.com") {
   });
 }
 
-test("refresh uses only its cookie, rotates server-side, and never returns the refresh token", async () => {
-  const response = await POST(request());
-  expect(response.status).toBe(200);
-  expect(auth.refresh).toHaveBeenCalledWith({
-    refresh_token: "http-only-refresh",
-  });
-  expect(auth.store).toHaveBeenCalled();
-  expect(await response.json()).toMatchObject({
-    data: { accessToken: "access", expiresIn: 3600 },
-  });
-  const second = await POST(request());
-  expect(await second.text()).not.toContain("rotated-secret");
-  expect(auth.clear).not.toHaveBeenCalled();
-});
-
-test("an upstream outage preserves cookies and returns a retryable error", async () => {
-  auth.refresh.mockResolvedValue({ data: {}, error: { status: 503 } });
-  expect((await POST(request())).status).toBe(503);
-  expect(auth.clear).not.toHaveBeenCalled();
-});
-
-test("an invalid refresh token expires the session", async () => {
-  auth.refresh.mockResolvedValue({ data: {}, error: { status: 400 } });
-  expect((await POST(request())).status).toBe(401);
-  expect(auth.clear).toHaveBeenCalledOnce();
-});
-
 test("foreign origins and missing cookies cannot trigger token rotation", async () => {
   expect((await POST(request("https://attacker.invalid"))).status).toBe(403);
   auth.token = undefined;
   expect((await POST(request())).status).toBe(401);
-  expect(auth.refresh).not.toHaveBeenCalled();
+  expect(auth.nativeRefresh).not.toHaveBeenCalled();
 });

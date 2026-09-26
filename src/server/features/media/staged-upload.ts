@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { NextRequest } from "next/server";
 import { getDb } from "@/server/shared/db/prisma";
-import { getSupabaseAdmin } from "@/server/shared/integrations/supabase/admin";
+import { getStorage } from "@/server/shared/storage";
 import { STORAGE_BUCKETS } from "@/server/shared/config/storage";
 import { getSystemLimits } from "@/server/shared/config/system-limits";
 
@@ -52,25 +52,12 @@ export async function initializeUpload(
     }))
   )
     throw new Error("UPLOAD_TARGET_NOT_FOUND");
-  const storage = getSupabaseAdmin().storage;
-  const existingBucket = await storage.getBucket(bucket);
-  if (!existingBucket.data) {
-    const created = await storage.createBucket(bucket, {
-      public: false,
-      fileSizeLimit: getSystemLimits().maxUploadSizeBytes,
-      allowedMimeTypes: [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "application/json",
-      ],
-    });
-    if (created.error) {
-      const concurrent = await storage.getBucket(bucket);
-      if (!concurrent.data || concurrent.data.public)
-        throw new Error("UPLOAD_INIT_FAILED");
-    }
-  } else if (existingBucket.data.public) throw new Error("UPLOAD_INIT_FAILED");
+  const storage = getStorage();
+  await storage.ensurePrivateBucket(
+    bucket,
+    getSystemLimits().maxUploadSizeBytes,
+    ["image/jpeg", "image/png", "image/webp", "application/json"],
+  );
   const id = randomUUID();
   const path = `users/${userId}/staging/${id}`;
   const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
@@ -88,9 +75,14 @@ export async function initializeUpload(
       },
     });
   });
-  const signed = await getSupabaseAdmin()
-    .storage.from(bucket)
-    .createSignedUploadUrl(path, { upsert: false });
+  const signed = await getStorage()
+    .from(bucket)
+    .createSignedUploadUrl(path, {
+      upsert: false,
+      sizeBytes: input.sizeBytes,
+      mimeType: input.mimeType,
+      expiresAt,
+    });
   if (signed.error || !signed.data?.signedUrl)
     throw new Error("UPLOAD_INIT_FAILED");
   return { id, url: signed.data.signedUrl, expiresAt: expiresAt.toISOString() };
@@ -130,9 +122,7 @@ export async function readUploadFormData(request: NextRequest, userId: string) {
     });
     if (!record || !record.path.startsWith(`users/${userId}/staging/`))
       throw new Error("UPLOAD_NOT_FOUND");
-    const result = await getSupabaseAdmin()
-      .storage.from(bucket)
-      .download(record.path);
+    const result = await getStorage().from(bucket).download(record.path);
     if (result.error || !result.data) throw new Error("UPLOAD_NOT_READY");
     if (
       result.data.size !== record.sizeBytes ||

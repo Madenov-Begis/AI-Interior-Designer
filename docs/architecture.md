@@ -14,9 +14,9 @@
   → Prisma
   → PostgreSQL
 
-                         ↘ Supabase Auth
-                         ↘ Supabase Storage
-                         ↘ Google Vertex AI / fake provider
+                         ↘ Google OAuth / сессии Prisma
+                         ↘ приватный файловый каталог
+                         ↘ worker → Google Vertex AI / fake provider
 
 Браузер администратора
   → Vite admin frontend (`admin/src`)
@@ -79,7 +79,7 @@ Route Handler
 
 ## 6. Данные
 
-Prisma является единственным слоем чтения и записи бизнес-таблиц. Supabase Data API не используется для серверной бизнес-логики.
+Prisma является единственным слоем чтения и записи таблиц PostgreSQL.
 
 Основные группы данных:
 
@@ -105,7 +105,7 @@ Prisma является единственным слоем чтения и за
 
 Пользовательская сессия:
 
-- Google OAuth через Supabase;
+- прямой Google OAuth с state, PKCE и nonce;
 - access token передаётся как Bearer;
 - refresh token хранится в HttpOnly cookie;
 - backend проверяет JWT, профиль и статус;
@@ -181,6 +181,14 @@ admin/src → src/client runtime
 ESLint уже проверяет ключевые границы. Новое исключение из архитектурного правила требует отдельного обоснования, а не локального отключения lint.
 
 ## 12. Критерии архитектурной готовности
+
+Локальный контур и оставшиеся шаги описаны в
+[плане Timeweb](launch/timeweb-migration-plan.md). На VPS работают Caddy, сайт,
+админка, worker и PostgreSQL. В новой пустой базе Google identity создаёт профиль
+при первом входе; совпадения email недостаточно для привязки к чужому профилю.
+Storage adapter лежит в `src/server/shared/storage`; Caddy не раздаёт каталог
+media напрямую. Worker переиспользует операции захвата, списания и возврата;
+HTTP-запрос только ставит задачу в очередь.
 
 Изменение считается архитектурно готовым, когда:
 
