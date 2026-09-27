@@ -80,9 +80,6 @@ export function useWorkspaceGenerationActions({
 
   const reserveCurrentGeneration = useCallback(
     async (idempotencyKey?: string) => {
-      if (prompt.trim().length < 3) {
-        throw new Error("Опишите изменения не менее чем в трёх символах");
-      }
       if (!visualPromptRef.current) {
         throw new Error("Редактор разметки ещё не готов");
       }

@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { apiData } from "@/shared/api";
 import { GenerationContextOverlay } from "./generation-context-overlay";
 import { GenerationRefinementComposer } from "./generation-refinement-composer";
 import type { WorkspaceGenerationInstance } from "./workspace-generation-nodes";
@@ -6,6 +8,14 @@ import {
   ApiResponseError,
   type GenerationWallet,
 } from "@/features/generate-design";
+
+async function readSignedResultUrl(fileId: string) {
+  const payload = await apiData<{ url: string }>({
+    url: `/media/${fileId}/signed-url`,
+    method: "GET",
+  });
+  return payload.url;
+}
 
 type WorkspaceGenerationActions = ReturnType<
   typeof useWorkspaceGenerationActions
@@ -38,6 +48,18 @@ export function WorkspaceGenerationOverlay({
   onDismiss,
 }: WorkspaceGenerationOverlayProps) {
   const generation = selected?.generation;
+  const resultQuery = useQuery({
+    queryKey: ["media", "signed-url", generation?.resultUserId],
+    queryFn: () => readSignedResultUrl(generation!.resultUserId!),
+    enabled: Boolean(
+      generation?.status === "SUCCEEDED" && generation?.resultUserId,
+    ),
+    staleTime: 50 * 60_000,
+    gcTime: 60 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   if (
     !generation ||
     generation.status !== "SUCCEEDED" ||
@@ -63,6 +85,8 @@ export function WorkspaceGenerationOverlay({
         <GenerationRefinementComposer
           generationId={generation.id}
           userScope={projectId}
+          variantNumber={selected?.variantNumber}
+          resultUrl={resultQuery.data ?? generation.resultUrl ?? undefined}
           balance={wallet?.balance}
           generationCost={wallet?.generationCost}
           pending={createRefinement.isPending && mutationIsCurrent}

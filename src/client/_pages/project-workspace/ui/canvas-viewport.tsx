@@ -66,6 +66,7 @@ type Source = {
 
 export type CanvasGenerationNode = {
   id: string;
+  parentGenerationId?: string | null;
   ariaLabel?: string;
   node: ReactNode;
   interactive?: boolean;
@@ -139,6 +140,11 @@ export const CanvasViewport = forwardRef<
     () =>
       calculateCanvasLayout({
         generationHeights: generations.map(() => sourceCardHeight),
+        generations: generations.map((generation) => ({
+          id: generation.id,
+          parentGenerationId: generation.parentGenerationId,
+          height: sourceCardHeight,
+        })),
         sourceCardHeight,
         viewportWidth: viewportSize.width,
       }),

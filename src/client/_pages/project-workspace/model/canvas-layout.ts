@@ -134,51 +134,71 @@ export function generationPosition(index: number): CanvasPoint {
   };
 }
 
+export type CanvasLayoutItem = {
+  id?: string;
+  parentGenerationId?: string | null;
+  height?: number;
+};
+
+export type CalculateCanvasLayoutOptions = {
+  generations?: CanvasLayoutItem[];
+  generationHeights?: Array<number | undefined>;
+  sourceCardHeight: number;
+  viewportWidth?: number;
+};
+
 export function calculateCanvasLayout({
+  generations,
   generationHeights,
   sourceCardHeight,
-  viewportWidth,
-}: {
-  generationHeights: Array<number | undefined>;
-  sourceCardHeight: number;
-  viewportWidth: number;
-}) {
-  const generationCount = generationHeights.length;
-  const wrappedColumnCount =
-    generationCount > 4
-      ? clamp(
-          Math.floor(
-            Math.max(0, viewportWidth - SOURCE_X * 2) / (CARD_WIDTH + CARD_GAP),
-          ),
-          1,
-          4,
-        )
-      : Math.max(1, generationCount);
-  const tallestGeneration = Math.max(
-    RESULT_CARD_HEIGHT,
-    ...generationHeights.map((height) => height ?? RESULT_CARD_HEIGHT),
-  );
-  const rowHeight = Math.max(sourceCardHeight, tallestGeneration) + CARD_GAP;
-  const generationPositions = generationHeights.map((_, index) => {
-    if (generationCount <= 4) return generationPosition(index);
-    return {
-      x:
-        SOURCE_X +
-        CARD_WIDTH +
-        CARD_GAP +
-        (index % wrappedColumnCount) * (CARD_WIDTH + CARD_GAP),
-      y: SOURCE_Y + Math.floor(index / wrappedColumnCount) * rowHeight,
-    };
-  });
+}: CalculateCanvasLayoutOptions) {
+  const items: CanvasLayoutItem[] =
+    generations ??
+    generationHeights?.map((height) => ({ height })) ??
+    [];
+
+  const positionsById = new Map<string, CanvasPoint>();
+  const maxYByX = new Map<number, number>();
+
+  let nextRootIndex = 0;
+  const generationPositions: CanvasPoint[] = [];
+
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    const itemHeight = item.height ?? RESULT_CARD_HEIGHT;
+    const parentId = item.parentGenerationId;
+    const parentPos = parentId ? positionsById.get(parentId) : undefined;
+
+    let x: number;
+    let y: number;
+
+    if (parentPos) {
+      // Доработка: размещается в колонке родителя вертикально вниз
+      x = parentPos.x;
+      const currentMaxY = maxYByX.get(x) ?? (parentPos.y + itemHeight);
+      y = currentMaxY + CARD_GAP;
+      maxYByX.set(x, y + itemHeight);
+    } else {
+      // Новая корневая генерация: идёт горизонтально вправо
+      x = SOURCE_X + (nextRootIndex + 1) * (CARD_WIDTH + CARD_GAP);
+      y = SOURCE_Y;
+      nextRootIndex++;
+      maxYByX.set(x, y + itemHeight);
+    }
+
+    const point: CanvasPoint = { x, y };
+    generationPositions.push(point);
+    if (item.id) {
+      positionsById.set(item.id, point);
+    }
+  }
 
   let maxX = SOURCE_X + CARD_WIDTH;
   let maxY = SOURCE_Y + sourceCardHeight;
   generationPositions.forEach((position, index) => {
+    const itemHeight = items[index]?.height ?? RESULT_CARD_HEIGHT;
     maxX = Math.max(maxX, position.x + CARD_WIDTH);
-    maxY = Math.max(
-      maxY,
-      position.y + (generationHeights[index] ?? RESULT_CARD_HEIGHT),
-    );
+    maxY = Math.max(maxY, position.y + itemHeight);
   });
 
   return {

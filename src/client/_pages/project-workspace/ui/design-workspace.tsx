@@ -316,6 +316,7 @@ function ReadyDesignWorkspace({
   }
   const canvasGenerations = canvasGenerationInstances.map((item) => ({
     id: item.nodeId,
+    parentGenerationId: item.generation.parentGenerationId,
     ariaLabel: t("Вариант {number}, статус {status}", {
       number: item.variantNumber,
       status: t(statusLabelsForAria[item.generation.status]),

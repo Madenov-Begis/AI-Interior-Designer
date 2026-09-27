@@ -61,38 +61,52 @@ test("uses the entire frame when media dimensions are unavailable", () => {
   });
 });
 
-test("keeps up to four generations in one horizontal row", () => {
+test("places root generations in a continuous horizontal row to the right", () => {
   const layout = calculateCanvasLayout({
-    generationHeights: [610, 610, 610],
+    generations: [
+      { id: "1" },
+      { id: "2" },
+      { id: "3" },
+      { id: "4" },
+      { id: "5" },
+    ],
     sourceCardHeight: 640,
-    viewportWidth: 1200,
   });
 
   assert.deepEqual(layout.generationPositions, [
     generationPosition(0),
     generationPosition(1),
     generationPosition(2),
+    generationPosition(3),
+    generationPosition(4),
   ]);
 });
 
-test("wraps a larger generation set using the available viewport width", () => {
+test("places refinements vertically below their parent generation", () => {
   const layout = calculateCanvasLayout({
-    generationHeights: [610, 610, 610, 610, 610],
-    sourceCardHeight: 500,
-    viewportWidth: 2000,
+    generations: [
+      { id: "r1" },
+      { id: "r2" },
+      { id: "r3" },
+      { id: "r2_ref1", parentGenerationId: "r2" },
+      { id: "r2_ref2", parentGenerationId: "r2" },
+      { id: "r1_ref1", parentGenerationId: "r1" },
+    ],
+    sourceCardHeight: 610,
   });
 
   assert.deepEqual(layout.generationPositions, [
     { x: 912, y: 80 },
     { x: 1744, y: 80 },
-    { x: 912, y: 762 },
+    { x: 2576, y: 80 },
     { x: 1744, y: 762 },
-    { x: 912, y: 1444 },
+    { x: 1744, y: 1444 },
+    { x: 912, y: 762 },
   ]);
   assert.deepEqual(layout.worldBounds, {
     minX: 0,
     minY: 0,
-    maxX: 2584,
+    maxX: 3416,
     maxY: 2134,
   });
 });

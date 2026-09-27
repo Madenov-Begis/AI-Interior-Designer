@@ -42,6 +42,7 @@ function editor(): VisualPromptEditorHandle {
 function mount(
   onRootGenerationSuccess = vi.fn(),
   onRootGenerationError = vi.fn(),
+  prompt = "Make the room brighter",
 ) {
   const client = new QueryClient({
     defaultOptions: { mutations: { retry: false } },
@@ -50,7 +51,7 @@ function mount(
     () =>
       useWorkspaceGenerationActions({
         projectId: "project",
-        prompt: "Make the room brighter",
+        prompt,
         aspectRatio: "RATIO_1_1",
         styleCode: undefined,
         roomTypeId: "00000000-0000-4000-8000-000000000010",
@@ -140,4 +141,20 @@ test("retains the form and reports an authoritative root request error", async (
 
   expect(onRootGenerationSuccess).not.toHaveBeenCalled();
   expect(onRootGenerationError).toHaveBeenCalledWith(error);
+});
+
+test("allows submitting generation with empty prompt", async () => {
+  const onRootGenerationSuccess = vi.fn();
+  requests.create.mockResolvedValue({
+    generation: { id: "reserved-generation", status: "QUEUED" },
+  });
+  const mounted = mount(onRootGenerationSuccess, vi.fn(), "");
+
+  await act(async () => {
+    await mounted.result.current.createGeneration.mutateAsync();
+  });
+
+  const body = requests.create.mock.calls[0][1] as FormData;
+  expect(body.get("prompt")).toBe("");
+  expect(onRootGenerationSuccess).toHaveBeenCalledOnce();
 });

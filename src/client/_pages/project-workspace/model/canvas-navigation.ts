@@ -6,7 +6,7 @@ export type CanvasTransform = {
 
 export const MIN_CANVAS_SCALE = 0.05;
 export const MAX_CANVAS_SCALE = 2.5;
-export const CANVAS_ZOOM_STEP = 1.25;
+export const CANVAS_ZOOM_STEP = 1.4;
 
 export function clampCanvasScale(scale: number) {
   return Math.min(MAX_CANVAS_SCALE, Math.max(MIN_CANVAS_SCALE, scale));
@@ -37,7 +37,7 @@ export function canvasWheelAction(input: {
   if (input.zoomModifier) {
     return {
       type: "zoom" as const,
-      factor: Math.exp(-input.deltaY * 0.0015),
+      factor: Math.exp(-input.deltaY * 0.01),
     };
   }
 

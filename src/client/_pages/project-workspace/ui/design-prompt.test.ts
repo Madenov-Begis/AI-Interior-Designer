@@ -18,6 +18,10 @@ const stylePickerSource = readFileSync(
   new URL("./style-picker.tsx", import.meta.url),
   "utf8",
 );
+const actionsSource = readFileSync(
+  new URL("../model/workspace-generation-actions.ts", import.meta.url),
+  "utf8",
+);
 
 test("workspace opens with an empty generation prompt", () => {
   assert.match(draftSource, /const \[prompt, setPrompt\] = useState\(""\)/);
@@ -41,6 +45,8 @@ test("generation prompt and workspace selectors use labels without descriptions"
   assert.doesNotMatch(stylePickerSource, /Один выбор — без сложных настроек/);
   assert.doesNotMatch(workspaceSource, /Добавьте описание — минимум 3 символа/);
   assert.doesNotMatch(workspaceSource, /Сократите инструкцию до 4000 символов/);
+  assert.doesNotMatch(actionsSource, /prompt\.trim\(\)\.length < 3/);
+  assert.doesNotMatch(actionsSource, /Опишите изменения не менее чем в трёх символах/);
 });
 
 test("generation action panel keeps the primary action compact", () => {
