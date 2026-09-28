@@ -44,9 +44,6 @@ yarn-error.log*
 /.backup/
 /backup-artifacts/
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -57,7 +54,6 @@ next-env.d.ts
 .codex-audits/
 .trigger/
 /src/generated/prisma/
-/supabase/.temp/
 
 # Локальные сторонние skills остаются вне Git. Проектные skills Ruvie,
 # перечисленные ниже, хранятся в репозитории и доступны всей команде.

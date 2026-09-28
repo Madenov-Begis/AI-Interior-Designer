@@ -1,7 +1,0 @@
-:8080 {
-    root * /srv/admin
-    encode zstd gzip
-    try_files {path} /index.html
-    file_server
-    header X-Content-Type-Options nosniff
-}

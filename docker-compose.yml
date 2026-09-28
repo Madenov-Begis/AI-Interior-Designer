@@ -1,0 +1,116 @@
+name: ruvie
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ruvie}
+      POSTGRES_USER: ${POSTGRES_USER:-ruvie}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ruvie_secret_password}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ruvie} -d ${POSTGRES_DB:-ruvie}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      target: worker
+    command: ["sh", "-c", "pnpm exec prisma migrate deploy && node --experimental-strip-types scripts/seed-catalogs.ts"]
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.production
+        required: false
+    environment:
+      DIRECT_URL: ${DIRECT_URL:-postgresql://${POSTGRES_USER:-ruvie}:${POSTGRES_PASSWORD:-ruvie_secret_password}@postgres:5432/${POSTGRES_DB:-ruvie}}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-ruvie}:${POSTGRES_PASSWORD:-ruvie_secret_password}@postgres:5432/${POSTGRES_DB:-ruvie}}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000}
+        STORAGE_PUBLIC_ORIGIN: ${STORAGE_PUBLIC_ORIGIN:-http://localhost:3000}
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      APP_ORIGINS: ${APP_ORIGINS:-http://localhost:3000}
+      ADMIN_ORIGINS: ${ADMIN_ORIGINS:-http://localhost:8080}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-ruvie}:${POSTGRES_PASSWORD:-ruvie_secret_password}@postgres:5432/${POSTGRES_DB:-ruvie}}
+      DIRECT_URL: ${DIRECT_URL:-postgresql://${POSTGRES_USER:-ruvie}:${POSTGRES_PASSWORD:-ruvie_secret_password}@postgres:5432/${POSTGRES_DB:-ruvie}}
+      DATABASE_SSL_MODE: ${DATABASE_SSL_MODE:-disable}
+      STORAGE_ROOT: /data/media
+      STORAGE_PUBLIC_ORIGIN: ${STORAGE_PUBLIC_ORIGIN:-http://localhost:3000}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/service-account.json}
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - media_data:/data/media
+      - ./service-account.json:/app/service-account.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+      - path: .env.production
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-ruvie}:${POSTGRES_PASSWORD:-ruvie_secret_password}@postgres:5432/${POSTGRES_DB:-ruvie}}
+      DIRECT_URL: ${DIRECT_URL:-postgresql://${POSTGRES_USER:-ruvie}:${POSTGRES_PASSWORD:-ruvie_secret_password}@postgres:5432/${POSTGRES_DB:-ruvie}}
+      DATABASE_SSL_MODE: ${DATABASE_SSL_MODE:-disable}
+      STORAGE_ROOT: /data/media
+      STORAGE_PUBLIC_ORIGIN: ${STORAGE_PUBLIC_ORIGIN:-http://localhost:3000}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/service-account.json}
+    volumes:
+      - media_data:/data/media
+      - ./service-account.json:/app/service-account.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  admin:
+    build:
+      context: .
+      target: admin
+      args:
+        VITE_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000}
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-8080}:80"
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  media_data:

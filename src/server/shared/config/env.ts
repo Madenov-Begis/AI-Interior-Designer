@@ -7,6 +7,16 @@ import {
   isLocalOAuthCallback,
 } from "@/server/shared/auth/cookie-domain";
 
+const optionalString = z.preprocess(
+  (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+  z.string().min(1).optional(),
+);
+
+const optionalUrl = z.preprocess(
+  (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+  z.url().optional(),
+);
+
 const serverEnvSchema = z
   .object({
     NODE_ENV: z
@@ -42,15 +52,15 @@ const serverEnvSchema = z
     STORAGE_ROOT: z.string().min(1).optional(),
     STORAGE_PUBLIC_ORIGIN: z.url().optional(),
     STORAGE_SIGNING_SECRET: z.string().min(32).optional(),
-    GOOGLE_CLOUD_PROJECT_ID: z.string().min(1).optional(),
-    GOOGLE_CLOUD_LOCATION: z.string().min(1).optional(),
-    GOOGLE_APPLICATION_CREDENTIALS: z.string().min(1).optional(),
-    GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(1).optional(),
-    SENTRY_DSN: z.url().optional(),
+    GOOGLE_CLOUD_PROJECT_ID: optionalString,
+    GOOGLE_CLOUD_LOCATION: optionalString,
+    GOOGLE_APPLICATION_CREDENTIALS: optionalString,
+    GOOGLE_APPLICATION_CREDENTIALS_JSON: optionalString,
+    SENTRY_DSN: optionalUrl,
     ADMIN_ORIGINS: z.string().min(1).optional(),
     ADMIN_ACCESS_CODE: z.string().trim().min(5).max(128).optional(),
     ADMIN_TOKEN_SECRET: z.string().min(32).optional(),
-    AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
+    AUTH_COOKIE_DOMAIN: optionalString,
   })
   .superRefine((env, context) => {
     const localPreview = isLocalHttpOrigin(env.APP_URL);

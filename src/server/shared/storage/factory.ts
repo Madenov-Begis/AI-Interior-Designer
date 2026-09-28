@@ -1,4 +1,5 @@
 import path from "node:path";
+import { isLocalHttpOrigin } from "../auth/cookie-domain.ts";
 import { FilesystemStorage } from "./filesystem.ts";
 import { StorageFailure, type StorageService } from "./types.ts";
 
@@ -21,7 +22,8 @@ export function createStorage(
     throw new StorageFailure("STORAGE_ROOT_NOT_PRIVATE", 503);
   if (
     env.NODE_ENV === "production" &&
-    !env.STORAGE_PUBLIC_ORIGIN.startsWith("https://")
+    !env.STORAGE_PUBLIC_ORIGIN.startsWith("https://") &&
+    !isLocalHttpOrigin(env.STORAGE_PUBLIC_ORIGIN)
   )
     throw new StorageFailure("STORAGE_HTTPS_REQUIRED", 503);
   return new FilesystemStorage({

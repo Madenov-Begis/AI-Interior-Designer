@@ -160,6 +160,12 @@ test("конфигурация отвергает публичные катал�
       STORAGE_PUBLIC_ORIGIN: "http://storage.example.invalid",
     }),
   );
+  assert.ok(
+    createStorage({
+      ...env,
+      STORAGE_PUBLIC_ORIGIN: "http://localhost:3000",
+    }) instanceof FilesystemStorage,
+  );
   assert.throws(() =>
     createStorage({ ...env, STORAGE_SIGNING_SECRET: "short" }),
   );

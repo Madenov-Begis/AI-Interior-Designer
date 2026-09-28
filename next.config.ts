@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     const isDevelopment = process.env.NODE_ENV === "development";
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+    const isHttps = appUrl.startsWith("https://");
+    const isLocal = !appUrl || appUrl.includes("localhost") || appUrl.includes("127.0.0.1");
     const connectOrigins = new Set(["'self'"]);
     for (const value of [
       process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -29,7 +32,7 @@ const nextConfig: NextConfig = {
         connectOrigins.add(url.origin);
       }
     }
-    if (isDevelopment) {
+    if (isDevelopment || isLocal) {
       connectOrigins.add("ws://localhost:*");
       connectOrigins.add("http://localhost:*");
     }
@@ -45,7 +48,7 @@ const nextConfig: NextConfig = {
       `connect-src ${[...connectOrigins].join(" ")}`,
       "object-src 'none'",
       "worker-src 'self' blob:",
-      ...(!isDevelopment ? ["upgrade-insecure-requests"] : []),
+      ...(isHttps ? ["upgrade-insecure-requests"] : []),
     ].join("; ");
     return [
       {

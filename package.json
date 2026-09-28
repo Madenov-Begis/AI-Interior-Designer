@@ -7,6 +7,9 @@
   "engines": {
     "node": "24.x"
   },
+  "imports": {
+    "@/*": "./src/*"
+  },
   "scripts": {
     "dev": "next dev",
     "admin:dev": "pnpm --dir admin dev",
@@ -16,6 +19,7 @@
     "admin:typecheck": "pnpm --dir admin typecheck",
     "admin:build": "pnpm --dir admin build",
     "admin:seed": "node --experimental-strip-types scripts/seed-admin.ts",
+    "db:seed": "node --experimental-strip-types scripts/seed-catalogs.ts",
     "build": "prisma generate && next build",
     "recover:generations": "node --experimental-strip-types scripts/recover-generation-reservations.ts",
     "release:check": "pnpm legal:check && pnpm prisma:validate && pnpm test && pnpm test:ui && pnpm typecheck && pnpm lint && pnpm build && pnpm admin:test && pnpm admin:server:test && pnpm admin:typecheck && pnpm admin:build && git diff HEAD --check",
@@ -35,15 +39,13 @@
     "db:studio": "prisma studio",
     "maintain:storage": "node --experimental-strip-types scripts/maintain-storage.ts",
     "test:integration": "node --test --experimental-strip-types tests/integration/*.test.ts",
-    "docker:db:up": "docker compose -f compose.test.yaml up -d --wait",
-    "docker:build": "docker compose -f compose.test.yaml -f compose.preview.yaml build web worker admin",
-    "docker:up": "docker compose --env-file .env.local -f compose.test.yaml -f compose.preview.yaml up --build -d --wait",
-    "docker:down": "docker compose -f compose.test.yaml -f compose.preview.yaml down --remove-orphans",
-    "docker:test": "npm run docker:up && node scripts/test-timeweb-database.mjs",
-    "build:preview": "node scripts/build-timeweb-preview.mjs",
-    "worker:build": "esbuild scripts/generation-worker.ts --bundle --platform=node --target=node24 --format=esm --packages=external --alias:server-only=./scripts/server-only-worker.ts --outfile=build/worker/generation.mjs",
-    "worker:start": "node build/worker/generation.mjs",
-    "worker:ops:build": "esbuild scripts/maintain-storage.ts scripts/recover-generation-reservations.ts --bundle --platform=node --target=node24 --format=esm --packages=external --alias:server-only=./scripts/server-only-worker.ts --outdir=build/worker"
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:db:up": "docker compose up -d postgres",
+    "worker:start": "node --experimental-strip-types scripts/generation-worker.ts",
+    "env:secrets": "node scripts/generate-secrets.mjs"
   },
   "dependencies": {
     "jose": "6.2.8",

@@ -17,7 +17,8 @@ export async function GET() {
       { status: "ok" },
       { headers: { "Cache-Control": "no-store" } },
     );
-  } catch {
+  } catch (err) {
+    console.error("Health ready check failed:", err);
     return Response.json(
       { status: "unavailable" },
       { status: 503, headers: { "Cache-Control": "no-store" } },

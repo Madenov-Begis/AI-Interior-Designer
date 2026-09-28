@@ -1,4 +1,4 @@
-export const TIMEWEB_TEST_DATABASE_URL =
+export const LOCAL_TEST_DATABASE_URL =
   "postgresql://ruvie_test:local-test-only@127.0.0.1:55432/ruvie_refactor_test";
 
 /** Не позволяет тестам подключиться к production через URL или query override. */

@@ -42,16 +42,16 @@ admin/src/
 - Приватные изображения хранятся в файловом каталоге; доступ к ним выдаётся через проверяемые сервером короткоживущие ссылки.
 - Генерации выполняет отдельный worker, который забирает задания из PostgreSQL.
 
-## Локальный запуск
+## Локальный запуск и Docker
 
-Подготовка переноса на VPS ведётся по [плану Timeweb](docs/launch/timeweb-migration-plan.md).
-Для локальной проверки Docker нужны запущенный Docker Desktop, Node.js с Corepack
-и `.env.local` (если файла нет, скопируйте `.env.example`):
+Инструкция по универсальному запуску на сервере и локально находится в [руководстве по развёртыванию](docs/deployment.md).
+Для запуска в Docker нужны Docker и `.env` (скопируйте из `.env.example`):
 
 ```bash
-pnpm docker:up    # собрать и запустить сайт, админку, worker и PostgreSQL
-pnpm docker:test  # проверить локальную БД и интеграционные сценарии
-pnpm docker:down  # остановить локальные контейнеры
+cp .env.example .env
+pnpm env:secrets .env # генерация криптостойких секретов
+pnpm docker:up        # собрать и запустить сайт, админку, worker и PostgreSQL
+pnpm docker:down      # остановить контейнеры
 ```
 
 Если Terminal пишет `pnpm: command not found`, запускайте те же команды через
@@ -151,9 +151,8 @@ pnpm db:studio
 В production миграции применяются командой `pnpm db:migrate:deploy`.
 
 Локальный Docker запускает пустую PostgreSQL и применяет три миграции из
-`prisma/migrations` автоматически. Конфигурация `prisma.config.ts` жёстко
-указывает на локальную тестовую базу; для VPS используется отдельный
-`prisma.timeweb.config.ts`.
+`prisma/migrations` автоматически. Конфигурация `prisma.config.ts` считывает
+`DIRECT_URL` или `DATABASE_URL` (с локальным fallback для разработки).
 
 ## Проверки
 
@@ -171,8 +170,7 @@ pnpm admin:build
 ```
 
 Полная проверка включает unit/service тесты, строгую типизацию, ESLint, Prisma
-validation и production build. Интеграционные проверки локальной базы запускает
-`pnpm docker:test`.
+validation и production build.
 
 Перед beta-релизом запустите единую проверку:
 
@@ -180,8 +178,8 @@ validation и production build. Интеграционные проверки л
 pnpm release:check
 ```
 
-Текущий статус переноса находится в
-[`docs/launch/timeweb-migration-plan.md`](docs/launch/timeweb-migration-plan.md).
+Руководство по развёртыванию находится в
+[`docs/deployment.md`](docs/deployment.md).
 
 Навигация по документации находится в [`docs/README.md`](docs/README.md).
 Полная карта страниц, пользовательских сценариев и бизнес-правил хранится в

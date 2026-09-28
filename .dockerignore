@@ -8,8 +8,6 @@
 !postcss.config.mjs
 !eslint.config.mjs
 !prisma.config.ts
-!prisma.timeweb.config.ts
-!prisma.local-docker.config.ts
 !src/
 !src/**
 !public/
@@ -29,11 +27,9 @@
 !admin/src/**
 !admin/public/
 !admin/public/**
-!docker/
-!docker/**
 !scripts/
 !scripts/generation-worker.ts
-!scripts/server-only-worker.ts
+!scripts/server-only-empty.js
 !scripts/maintain-storage.ts
 !scripts/recover-generation-reservations.ts
 !vitest.config.ts
