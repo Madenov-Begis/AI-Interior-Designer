@@ -1,3 +1,4 @@
+import { uploadGate, CapacityError } from "@/server/features/media/upload-capacity";
 import { readUploadFormData } from "@/server/features/media/staged-upload";
 import { type NextRequest } from "next/server";
 import { ZodError } from "zod";
@@ -25,6 +26,7 @@ export const maxDuration = 300;
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
+  let releaseUpload: (() => void) | undefined;
   try {
     const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -40,6 +42,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const user = await requireCurrentUser();
     const { id } = await context.params;
     const projectId = projectIdSchema.parse(id);
+    releaseUpload = await uploadGate.acquire();
     const formData = await readUploadFormData(request, user.id);
     const overlay = formData.get("overlay");
     if (!(overlay instanceof File))
@@ -53,6 +56,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const file = await saveVisualPrompt(user.id, projectId, overlay, state);
     return apiSuccess({ id: file.id, visualPromptUsed: true }, requestId);
   } catch (error) {
+    if (error instanceof CapacityError) {
+      const response = await apiError("UPLOAD_BUSY", error.message, requestId, 503);
+      response.headers.set("Retry-After", "3");
+      return response;
+    }
     if (error instanceof UnauthorizedError)
       return apiError("UNAUTHORIZED", error.message, requestId, 401);
     if (
@@ -68,6 +76,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       requestId,
       500,
     );
+  } finally {
+    releaseUpload?.();
   }
 }
 

@@ -15,10 +15,11 @@ export async function runGenerationQueue(
   if (
     !Number.isInteger(options.concurrency) ||
     options.concurrency < 1 ||
-    options.concurrency > 20 ||
+    options.concurrency > 100 ||
     options.pollIntervalMs < 10
   )
     throw new Error("INVALID_WORKER_CONFIGURATION");
+  let wake: (() => void) | undefined;
   const active = new Map<string, Promise<void>>();
   try {
     while (!options.signal.aborted) {
@@ -35,6 +36,7 @@ export async function runGenerationQueue(
               .catch(() => dependencies.reportError("WORKER_TASK_FAILED"))
               .finally(() => {
                 active.delete(id);
+                wake?.();
               });
             active.set(id, task);
           }
@@ -43,11 +45,16 @@ export async function runGenerationQueue(
       } catch {
         dependencies.reportError("WORKER_POLL_FAILED");
       }
-      await delay(options.pollIntervalMs, undefined, {
-        signal: options.signal,
-      }).catch((error) => {
-        if (error.name !== "AbortError") throw error;
-      });
+      const sleepController = new AbortController();
+      const ready = new Promise<void>((resolve) => { wake = resolve; });
+      await Promise.race([ready, delay(options.pollIntervalMs, undefined, {
+        signal: AbortSignal.any([options.signal, sleepController.signal]),
+      }).catch((error) => { if (error.name !== "AbortError") throw error; })]);
+      wake = undefined;
+      sleepController.abort();
+      // Отказ в глобальном разрешении не должен превращать цикл в busy-poll.
+      await delay(Math.min(100, options.pollIntervalMs), undefined, { signal: options.signal }).catch(() => {});
+
     }
   } finally {
     // SIGTERM останавливает приём задач, но не обрывает платный запрос к AI.

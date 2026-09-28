@@ -29,6 +29,10 @@
 !admin/public/**
 !scripts/
 !scripts/generation-worker.ts
+!scripts/worker-health.mjs
+!scripts/seed-catalogs.ts
+!scripts/load/
+!scripts/load/**
 !scripts/server-only-empty.js
 !scripts/maintain-storage.ts
 !scripts/recover-generation-reservations.ts

@@ -1,3 +1,4 @@
+import { uploadGate, CapacityError } from "@/server/features/media/upload-capacity";
 import { readUploadFormData } from "@/server/features/media/staged-upload";
 import { type NextRequest } from "next/server";
 import { GenerationEmergencyStopError } from "@/server/features/generations/emergency-stop";
@@ -30,6 +31,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   const requestId = getRequestId(request.headers);
+  let releaseUpload: (() => void) | undefined;
   try {
     const limits = getSystemLimits();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -45,6 +47,7 @@ export async function POST(
     await enforceRateLimit(request, "source-upload", 20, 60_000, user.id);
     const { id } = await context.params;
     const projectId = projectIdSchema.parse(id);
+    releaseUpload = await uploadGate.acquire();
     const value = (await readUploadFormData(request, user.id)).get("file");
     if (!(value instanceof File))
       return apiError(
@@ -60,6 +63,11 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
+    if (error instanceof CapacityError) {
+      const response = await apiError("UPLOAD_BUSY", error.message, requestId, 503);
+      response.headers.set("Retry-After", "3");
+      return response;
+    }
     if (error instanceof GenerationEmergencyStopError)
       return apiError(error.code, error.message, requestId, 503);
     if (error instanceof RateLimitError) {
@@ -100,5 +108,7 @@ export async function POST(
       requestId,
       500,
     );
+  } finally {
+    releaseUpload?.();
   }
 }

@@ -539,6 +539,8 @@ export async function failGenerationWithDatabase(
     generationId: string;
     code: string;
     message: string;
+    claimToken?: string;
+    lostBefore?: Date;
   },
 ) {
   const database = db;
@@ -546,6 +548,8 @@ export async function failGenerationWithDatabase(
     const failed = await tx.generation.updateMany({
       where: {
         id: input.generationId,
+        ...(input.claimToken ? { jobId: input.claimToken } : {}),
+        ...(input.lostBefore ? { execution: { stage: "SENDING", leaseUntil: { lte: input.lostBefore } } } : {}),
         status: { in: ["QUEUED", "PROCESSING"] },
       },
       data: {

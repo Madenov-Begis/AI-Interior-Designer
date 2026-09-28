@@ -1,4 +1,5 @@
 export const STORAGE_BUCKETS = {
+  generationTemporary: "generation-temporary",
   stagingUploads: "staging-uploads",
   sourceImages: "source-images",
   visualPrompts: "visual-prompts",

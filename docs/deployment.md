@@ -11,7 +11,7 @@
 1. **`postgres`** — база данных PostgreSQL 17 (Alpine). Данные сохраняются в Docker volume `postgres_data`.
 2. **`migrate`** — одноразовый контейнер, применяющий миграции Prisma (`prisma migrate deploy`) перед стартом сервисов.
 3. **`web`** — основное приложение Next.js (standalone) на порту `3000`.
-4. **`worker`** — фоновый процесс обработки очередей AI-генераций (запускается через нативный `node 24 --experimental-strip-types scripts/generation-worker.ts`).
+4. **`worker`** — фоновый процесс обработки очередей AI-генераций (собирается с помощью esbuild в `dist/worker.mjs`, запускается как автономный сервис с healthcheck по heartbeat `scripts/worker-health.mjs` и `stop_grace_period: 240s`).
 5. **`admin`** — панель администратора (статическая сборка SPA на базе Nginx Alpine) на порту `8080`.
 6. **`media_data`** — общий Docker volume для постоянного хранения загруженных и сгенерированных медиафайлов.
 
@@ -153,3 +153,38 @@ GOOGLE_OAUTH_CALLBACK_URL=https://yourdomain.com/auth/callback
    GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-...
    ```
 
+---
+
+## 4. Конфигурация воркера и параллельности генераций
+
+Воркер поддерживает фиксированный (`fixed`) и адаптивный (`adaptive`) режимы:
+
+```env
+# Режим работы воркера: fixed (по умолчанию) или adaptive
+WORKER_MODE=adaptive
+
+# В режиме fixed: число параллельных задач на воркер (1..100)
+WORKER_CONCURRENCY=10
+
+# В режиме adaptive: стартовый предел и верхняя граница (до 100)
+WORKER_ADAPTIVE_INITIAL=10
+WORKER_ADAPTIVE_MAX=20
+
+# Ограничение частоты запусков (Leaky Bucket: не более N запросов/сек глобально)
+WORKER_STARTS_PER_SECOND=2
+
+# Бюджет памяти на входные изображения активных задач (в МиБ)
+WORKER_INPUT_BUDGET_MB=256
+
+# Ограничение памяти контейнера (в МиБ). Если не задано, считывается из cgroups
+WORKER_MEMORY_MB=1024
+
+# Максимум одновременных задач sharp на воркер (по умолчанию 2)
+WORKER_IMAGE_CONCURRENCY=2
+
+# Лимит дисковой области для сырых ответов staging (в МиБ)
+WORKER_TEMP_BUDGET_MB=5120
+
+# Путь к файлу пульса для Docker healthcheck
+WORKER_HEARTBEAT_FILE=/tmp/ruvie-worker-heartbeat.json
+```

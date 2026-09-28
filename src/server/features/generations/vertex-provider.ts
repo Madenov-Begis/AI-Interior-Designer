@@ -1,17 +1,17 @@
 import "server-only";
 
 import { Modality, type Part } from "@google/genai";
-import sharp from "sharp";
+import { normalizeProviderOutput } from "./provider-output";
 import type { AspectRatio } from "@/generated/prisma/enums";
 import type {
   ImageGenerationProvider,
   ProviderImage,
   ProviderInput,
   ProviderOutput,
+  RawProviderOutput,
 } from "@/server/features/generations/provider";
 import {
   GENERATION_IMAGE_SIZE,
-  GENERATION_WEBP_OPTIONS,
 } from "@/server/features/generations/generation-image";
 import { INTERIOR_DESIGN_SYSTEM_PROMPT } from "@/server/features/generations/professional-system-prompt";
 import { createVertexGenAi } from "@/server/shared/integrations/google/vertex-client";
@@ -69,7 +69,11 @@ export class VertexGeminiImageProvider implements ImageGenerationProvider {
   ) {}
 
   async generate(input: ProviderInput): Promise<ProviderOutput> {
-    const ai = await createVertexGenAi(this.timeoutSeconds);
+    return normalizeProviderOutput(await this.generateRaw(input));
+  }
+
+  async generateRaw(input: ProviderInput): Promise<RawProviderOutput> {
+    const ai = await createVertexGenAi(this.timeoutSeconds, 1);
     const response = await ai.models.generateContent({
       model: this.modelId,
       contents: [{ role: "user", parts: buildParts(input) }],
@@ -92,18 +96,9 @@ export class VertexGeminiImageProvider implements ImageGenerationProvider {
       )?.inlineData;
     if (!generated?.data) throw new Error("VERTEX_NO_IMAGE");
 
-    const normalized = await sharp(Buffer.from(generated.data, "base64"))
-      .rotate()
-      .toColorspace("srgb")
-      .webp(GENERATION_WEBP_OPTIONS)
-      .toBuffer({ resolveWithObject: true });
-    if (!normalized.info.width || !normalized.info.height)
-      throw new Error("RESULT_DIMENSIONS_MISSING");
     return {
-      image: normalized.data,
-      mimeType: "image/webp",
-      width: normalized.info.width,
-      height: normalized.info.height,
+      image: Buffer.from(generated.data, "base64"),
+      mimeType: generated.mimeType || "image/png",
       providerRequestId: response.responseId || `vertex-${crypto.randomUUID()}`,
     };
   }

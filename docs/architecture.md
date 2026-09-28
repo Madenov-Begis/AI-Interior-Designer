@@ -86,6 +86,7 @@ Prisma является единственным слоем чтения и за
 - identity: `Profile`, `LegalAcceptance`;
 - project: `Project`, `ProjectReference`, `MediaFile`;
 - generation: `Generation`, `GenerationReference`, `RoomType`;
+- execution: `GenerationExecution`, `GenerationRegulator`, `GenerationPermit`;
 - credits: `CreditWallet`, `CreditTransaction`, `UsageEvent`;
 - payments: `CreditPackage`, `PaymentOrder`, `PaymentEvent`;
 - infrastructure: `RateLimitBucket`, `StorageUpload`, `StorageDeletion`.
@@ -120,17 +121,19 @@ Prisma является единственным слоем чтения и за
 
 ## 8. Генерации и асинхронная работа
 
-Создание генерации отделено от выполнения:
+Создание генерации отделено от выполнения и разделено на этапы:
 
 1. reservation transaction создаёт snapshot, usage reserve и debit;
-2. worker атомарно захватывает `QUEUED`;
-3. provider создаёт изображение;
-4. результат сохраняется в приватный Storage;
-5. usage становится `CONSUMED` или выполняется refund.
+2. worker атомарно захватывает задачу и арендует разрешение в `GenerationPermit` под контролем адаптивного регулятора `GenerationRegulator` (AIMD);
+3. подготовка проверяет бюджет входных файлов процесса (`WORKER_INPUT_BUDGET_MB`);
+4. provider возвращает сырой ответ, который сразу сохраняется в приватную контрольную точку `generationTemporary` (`RAW_READY`);
+5. преобразование в WebP и масштабирование выполняются через изолированный `Gate` (не более 2 одновременных задач `sharp` на воркер);
+6. результат сохраняется в `generationOriginals`, а временный сырой файл ставится в очередь удаления;
+7. usage становится `CONSUMED` или выполняется `TECHNICAL_REFUND`.
 
 Идемпотентность обязательна для root generation, retry, refinement, purchase, refund и admin credit adjustment.
 
-Terminal states неизменяемы. Не создавай переходы из `SUCCEEDED`, `FAILED`, `REJECTED` или `CANCELLED` обратно в `PROCESSING`.
+Terminal states неизменяемы. Не создавай переходы из `SUCCEEDED`, `FAILED`, `REJECTED` или `CANCELLED` обратно в `PROCESSING`. Поздние ответы от потерянных воркеров игнорируются с помощью проверки lease и claimToken.
 
 ## 9. Storage
 

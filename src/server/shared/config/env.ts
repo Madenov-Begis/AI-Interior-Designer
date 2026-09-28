@@ -44,7 +44,17 @@ const serverEnvSchema = z
       .default("true")
       .transform((value) => value === "true"),
     PAYMENT_PROVIDER: z.enum(["disabled", "mock"]).default("disabled"),
-    WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(1),
+    WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(100).default(1),
+    WORKER_MODE: z.enum(["fixed", "adaptive"]).default("fixed"),
+    WORKER_ADAPTIVE_INITIAL: z.coerce.number().int().min(1).max(100).default(10),
+    WORKER_ADAPTIVE_MAX: z.coerce.number().int().min(1).max(100).default(20),
+    WORKER_STARTS_PER_SECOND: z.coerce.number().positive().max(100).default(2),
+    WORKER_INPUT_BUDGET_MB: z.coerce.number().positive().default(256),
+    WORKER_MEMORY_MB: z.coerce.number().positive().optional(),
+    WORKER_TEMP_BUDGET_MB: z.coerce.number().positive().default(5120),
+    WORKER_IMAGE_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
+    LOAD_TEST_MODE: z.enum(["true", "false"]).default("false"),
+    FAKE_SCENARIO: z.enum(["normal", "delay", "burst", "429", "timeout"]).default("normal"),
     WORKER_HEARTBEAT_FILE: z
       .string()
       .min(1)
@@ -138,6 +148,15 @@ const serverEnvSchema = z
         path: ["ADMIN_TOKEN_SECRET"],
         message: "Обязателен для подписи production admin-token",
       });
+    }
+    if (env.WORKER_ADAPTIVE_INITIAL > env.WORKER_ADAPTIVE_MAX) {
+      context.addIssue({ code: "custom", path: ["WORKER_ADAPTIVE_INITIAL"], message: "Начальный предел выше максимального" });
+    }
+    if (env.FAKE_SCENARIO !== "normal" && (env.LOAD_TEST_MODE !== "true" || env.AI_PROVIDER !== "fake")) {
+      context.addIssue({ code: "custom", path: ["FAKE_SCENARIO"], message: "Сценарии доступны только в тестовом fake-контуре" });
+    }
+    if (env.LOAD_TEST_MODE === "true" && env.AI_PROVIDER !== "fake") {
+      context.addIssue({ code: "custom", path: ["LOAD_TEST_MODE"], message: "Нагрузочный контур требует fake" });
     }
     if (env.AI_PROVIDER === "vertex") {
       if (!env.GOOGLE_CLOUD_PROJECT_ID)

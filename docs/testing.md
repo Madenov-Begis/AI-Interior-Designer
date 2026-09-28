@@ -85,6 +85,38 @@ credentials и локальными URL.
 проверяет конкурентный signup/refresh и отсутствие повторного grant на
 изолированной PostgreSQL.
 
+### Нагрузочное тестирование генераций (k6 и Load Test Runner)
+
+Для проверки параллельных генераций под нагрузкой (20, 50, 100 одновременных пользователей) без расхода бюджета Vertex AI используется изолированный тестовый контур с `AI_PROVIDER=fake`:
+
+1. **Подготовка тестовых пользователей и сессий:**
+   ```bash
+   node --experimental-strip-types scripts/prepare-load-test.ts --users 50
+   ```
+   Скрипт создаёт изолированных пользователей, пополняет баланс кредитов, загружает исходные изображения комнат и генерирует валидные Bearer access-токены в `tests/load/load-test-users.json`.
+
+2. **Запуск через k6:**
+   ```bash
+   # Локально:
+   k6 run -e TARGET_VUS=50 tests/load/k6-generations.js
+
+   # Или через Docker:
+   docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run -e TARGET_VUS=50 tests/load/k6-generations.js
+   ```
+
+3. **Автономный запуск без внешних зависимостей (TypeScript runner):**
+   ```bash
+   node --experimental-strip-types scripts/run-load-test.ts --vus 50
+   ```
+
+4. **Тестовые сценарии Fake-провайдера (`FAKE_SCENARIO`):**
+   Разрешены строго при `AI_PROVIDER=fake` и `LOAD_TEST_MODE=true`:
+   - `normal` — мгновенная детерминированная обработка;
+   - `delay` — реалистичная задержка 15–40 секунд;
+   - `burst` — одновременный всплеск завершения задач для проверки пиков памяти и диска;
+   - `429` — эмуляция исчерпания квот провайдера для проверки адаптивного снижения лимитов AIMD;
+   - `timeout` — проверка таймаутов и автоматического возврата кредитов.
+
 ### Browser-проверка
 
 Нужна для:

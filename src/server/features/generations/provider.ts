@@ -1,6 +1,8 @@
 import "server-only";
 
 import sharp from "sharp";
+import { createHash } from "node:crypto";
+import { normalizeProviderOutput } from "./provider-output";
 import type { AiProvider, AspectRatio } from "@/generated/prisma/enums";
 import { GENERATION_WEBP_OPTIONS } from "@/server/features/generations/generation-image";
 import { VertexGeminiImageProvider } from "@/server/features/generations/vertex-provider";
@@ -8,6 +10,8 @@ import { VertexGeminiImageProvider } from "@/server/features/generations/vertex-
 export type ProviderImage = { data: Buffer; mimeType: string };
 export type ProviderInput = {
   operation: "root" | "refinement";
+  generationId?: string;
+  providerAttempt?: number;
   source: ProviderImage;
   references: ProviderImage[];
   prompt: string;
@@ -21,7 +25,10 @@ export type ProviderOutput = {
   providerRequestId: string;
 };
 
+export type RawProviderOutput = { image: Buffer; mimeType: string; providerRequestId: string };
+
 export interface ImageGenerationProvider {
+  generateRaw(input: ProviderInput): Promise<RawProviderOutput>;
   generate(input: ProviderInput): Promise<ProviderOutput>;
 }
 
@@ -41,6 +48,22 @@ function escapeXml(value: string) {
 
 export class FakeImageGenerationProvider implements ImageGenerationProvider {
   async generate(input: ProviderInput): Promise<ProviderOutput> {
+    return normalizeProviderOutput(await this.generateRaw(input));
+  }
+  async generateRaw(input: ProviderInput): Promise<RawProviderOutput> {
+    const scenario = process.env.FAKE_SCENARIO || "normal";
+    if (scenario !== "normal") {
+      if (process.env.LOAD_TEST_MODE !== "true" || process.env.AI_PROVIDER !== "fake") throw new Error("FAKE_SCENARIO_FORBIDDEN");
+      const seed = createHash("sha256").update(input.generationId || input.prompt).digest().readUInt32BE(0);
+      if (scenario === "429" && (input.providerAttempt || 1) < 3) {
+        throw Object.assign(new Error("FAKE_THROTTLED"), { status: 429, retryAfter: "1" });
+      }
+      const delay = scenario === "burst" ? 40_000 - Date.now() % 40_000 : 15_000 + seed % 25_001;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      if (scenario === "timeout") throw new Error("FAKE_TIMEOUT");
+      const image = await sharp({ create: { width: 1024, height: 1024, channels: 3, background: { r: seed % 256, g: (seed >>> 8) % 256, b: (seed >>> 16) % 256 } } }).png().toBuffer();
+      return { image, mimeType: "image/png", providerRequestId: `fake-${crypto.randomUUID()}` };
+    }
     const label = escapeXml(input.prompt.replace(/\s+/g, " ").slice(0, 72));
     const metadata = await sharp(input.source.data).metadata();
     if (!metadata.width || !metadata.height)
@@ -58,8 +81,6 @@ export class FakeImageGenerationProvider implements ImageGenerationProvider {
     return {
       image,
       mimeType: "image/webp",
-      width: metadata.width,
-      height: metadata.height,
       providerRequestId: `fake-${crypto.randomUUID()}`,
     };
   }

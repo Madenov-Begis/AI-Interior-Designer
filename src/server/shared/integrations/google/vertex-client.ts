@@ -4,7 +4,7 @@ import { access } from "node:fs/promises";
 import { GoogleGenAI } from "@google/genai";
 import { parseVertexCredentials } from "./credentials.ts";
 
-export async function createVertexGenAi(timeoutSeconds: number) {
+export async function createVertexGenAi(timeoutSeconds: number, retryAttempts?: number) {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID?.trim();
   const location = process.env.GOOGLE_CLOUD_LOCATION?.trim() || "global";
   const credentialsJson =
@@ -33,6 +33,6 @@ export async function createVertexGenAi(timeoutSeconds: number) {
     location,
     googleAuthOptions,
     apiVersion: "v1",
-    httpOptions: { timeout: timeoutSeconds * 1000 },
+    httpOptions: { timeout: timeoutSeconds * 1000, ...(retryAttempts === undefined ? {} : { retryOptions: { attempts: retryAttempts } }) },
   });
 }

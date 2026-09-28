@@ -257,6 +257,7 @@ model Generation {
   visualPromptImage  MediaFile?            @relation("GenerationVisualPrompt", fields: [visualPromptImageId], references: [id])
   resultOriginal     MediaFile?            @relation("GenerationOriginalResult", fields: [resultOriginalId], references: [id])
   resultUser         MediaFile?            @relation("GenerationUserResult", fields: [resultUserId], references: [id])
+  execution          GenerationExecution?
   references         GenerationReference[]
   usageEvent         UsageEvent?
   creditTransactions CreditTransaction[]
@@ -476,4 +477,40 @@ model StorageUpload {
   expiresAt    DateTime @db.Timestamptz(6)
 
   @@index([expiresAt])
+}
+
+// Внутренние этапы не меняют публичный статус генерации.
+model GenerationExecution {
+  generationId String @id @db.Uuid
+  generation Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  stage String @default("PREPARING")
+  owner String
+  leaseUntil DateTime
+  nextAttemptAt DateTime @default(now())
+  providerAttempts Int @default(0)
+  rawPath String?
+  rawMimeType String?
+  rawBytes Int @default(0)
+  providerRequestId String?
+  regulatorKey String
+  updatedAt DateTime @updatedAt
+  @@index([stage, nextAttemptAt, leaseUntil])
+}
+
+model GenerationRegulator {
+  key String @id
+  limit Int
+  nextDispatchAt DateTime @default(now())
+  lastIncreaseAt DateTime @default(now())
+  cooldownUntil DateTime @default(now())
+  successes Int @default(0)
+}
+
+// Разрешение переживает владельца при неизвестном результате AI-запроса.
+model GenerationPermit {
+  generationId String @id @db.Uuid
+  regulatorKey String
+  owner String
+  expiresAt DateTime
+  @@index([regulatorKey, expiresAt])
 }

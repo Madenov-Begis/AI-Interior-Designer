@@ -1,3 +1,4 @@
+import { uploadGate, CapacityError } from "@/server/features/media/upload-capacity";
 import { readUploadFormData } from "@/server/features/media/staged-upload";
 import { type NextRequest } from "next/server";
 import { z, ZodError } from "zod";
@@ -61,6 +62,7 @@ export const maxDuration = 300;
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const requestId = getRequestId(request.headers);
+  let releaseUpload: (() => void) | undefined;
   let uploadOwnerId: string | null = null;
   let unattachedVisualPromptId: string | null = null;
   try {
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     ensureGenerationsEnabled();
 
+    releaseUpload = await uploadGate.acquire();
     const formData = await readUploadFormData(request, user.id);
     const overlay = formData.get("overlay");
     const canvasState = formData.get("canvasState");
@@ -149,6 +152,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       localeFromHeaders(request.headers),
     );
   } catch (error) {
+    if (error instanceof CapacityError) {
+      const response = await apiError("UPLOAD_BUSY", error.message, requestId, 503);
+      response.headers.set("Retry-After", "3");
+      return response;
+    }
     if (uploadOwnerId && unattachedVisualPromptId) {
       await discardUnattachedVisualPrompt(
         uploadOwnerId,
@@ -208,6 +216,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       requestId,
       500,
     );
+  } finally {
+    releaseUpload?.();
   }
 }
 
