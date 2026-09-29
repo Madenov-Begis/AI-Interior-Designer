@@ -69,14 +69,12 @@ TEST_DATABASE_URL=postgresql://…/ruvie_refactor_test pnpm test:integration
 ### Локальный Docker-контур
 
 `pnpm docker:up` собирает и запускает сайт, админку, worker и пустую PostgreSQL.
-Миграции применяются при запуске. `pnpm docker:test` дополнительно выполняет
-интеграционные тесты; `pnpm docker:down` останавливает контейнеры. Локальный
-Compose берёт из `.env.local` только OAuth Client ID и Secret; остальные
-локальные настройки заданы в Compose. Перед запуском убедитесь, что выбран
+Миграции применяются при запуске. интеграционные тесты запускаются отдельно через `pnpm test:integration`; `pnpm docker:down` останавливает контейнеры. Локальный
+Compose читает `.env` и `.env.production`; эти файлы могут указывать внешние
+сервисы. Для нагрузки используйте отдельный контур ниже. Перед запуском убедитесь, что выбран
 локальный Docker context.
 
-`pnpm build:preview` проверяет standalone, admin и worker с фиктивными
-credentials и локальными URL.
+Сборки проверяются через `pnpm build`, `pnpm admin:build` и сборку Docker worker.
 
 В `pnpm test` включены HMAC capabilities, файловые гонки/симлинки/прерванная
 загрузка, worker concurrency/drain, JWT/refresh и Google state/PKCE/nonce.
@@ -85,37 +83,9 @@ credentials и локальными URL.
 проверяет конкурентный signup/refresh и отсутствие повторного grant на
 изолированной PostgreSQL.
 
-### Нагрузочное тестирование генераций (k6 и Load Test Runner)
+### Нагрузочное тестирование генераций
 
-Для проверки параллельных генераций под нагрузкой (20, 50, 100 одновременных пользователей) без расхода бюджета Vertex AI используется изолированный тестовый контур с `AI_PROVIDER=fake`:
-
-1. **Подготовка тестовых пользователей и сессий:**
-   ```bash
-   node --experimental-strip-types scripts/prepare-load-test.ts --users 50
-   ```
-   Скрипт создаёт изолированных пользователей, пополняет баланс кредитов, загружает исходные изображения комнат и генерирует валидные Bearer access-токены в `tests/load/load-test-users.json`.
-
-2. **Запуск через k6:**
-   ```bash
-   # Локально:
-   k6 run -e TARGET_VUS=50 tests/load/k6-generations.js
-
-   # Или через Docker:
-   docker run --rm -i -v $(pwd):/app -w /app grafana/k6 run -e TARGET_VUS=50 tests/load/k6-generations.js
-   ```
-
-3. **Автономный запуск без внешних зависимостей (TypeScript runner):**
-   ```bash
-   node --experimental-strip-types scripts/run-load-test.ts --vus 50
-   ```
-
-4. **Тестовые сценарии Fake-провайдера (`FAKE_SCENARIO`):**
-   Разрешены строго при `AI_PROVIDER=fake` и `LOAD_TEST_MODE=true`:
-   - `normal` — мгновенная детерминированная обработка;
-   - `delay` — реалистичная задержка 15–40 секунд;
-   - `burst` — одновременный всплеск завершения задач для проверки пиков памяти и диска;
-   - `429` — эмуляция исчерпания квот провайдера для проверки адаптивного снижения лимитов AIMD;
-   - `timeout` — проверка таймаутов и автоматического возврата кредитов.
+Единый сценарий — `docker-compose.load.yml` и `scripts/load/`. Команды приведены в разделе изолированного нагрузочного контура ниже. Старые runners отключены, чтобы исключить запуск на неверной базе.
 
 ### Browser-проверка
 
@@ -205,3 +175,78 @@ pnpm release:check
 - оставшиеся риски.
 
 Нельзя писать «всё проверено», если запускался только typecheck.
+
+## Нагрузочный контур генераций
+
+`docker-compose.load.yml` — отдельный проект `ruvie-load-test`, собственные volumes,
+только fake и БД `ruvie_refactor_test`; `.env` приложения и Google credentials в
+контейнеры не передаются. Веб-интерфейс доступен на `http://localhost:3101`.
+Значения `LOAD_*` в shell управляют только этим контуром.
+
+```bash
+docker compose -f docker-compose.load.yml up -d --build web worker
+LOAD_USERS=100 docker compose -f docker-compose.load.yml --profile tools run --rm seed
+LOAD_USERS=20 docker compose -f docker-compose.load.yml --profile tools run --rm k6
+LOAD_USERS=100 docker compose -f docker-compose.load.yml --profile tools run --rm seed
+LOAD_USERS=50 docker compose -f docker-compose.load.yml --profile tools run --rm k6
+LOAD_USERS=100 docker compose -f docker-compose.load.yml --profile tools run --rm seed
+LOAD_USERS=100 docker compose -f docker-compose.load.yml --profile tools run --rm k6
+```
+
+Seed создаёт тестовые профили, кредиты, проекты и штатные Prisma-сессии. В API
+нет тестового обхода авторизации. `users.json` содержит тестовые токены, хранится
+в приватном volume и не должен попадать в Git или отчёты. Перед каждым отдельным запуском k6 создавать свежие fixtures: внутри длинного
+прогона refresh-токены ротируются и старый fixture повторно использовать нельзя.
+k6 обновляет сессию штатным refresh endpoint.
+
+Сценарии провайдера задаются `LOAD_SCENARIO=delay|burst|429|timeout` перед
+пересозданием worker. `normal` сохраняет прежнюю fake-генерацию; остальные режимы
+доступны только при `LOAD_TEST_MODE=true`, `AI_PROVIDER=fake`, локальном APP_URL
+и изолированной тестовой БД. Задержки воспроизводимо выбираются по ID задания;
+`burst` возвращает ответы на ближайшей 40-секундной границе. `429` отклоняет первые
+два обращения; `timeout` имитирует неоднозначную ошибку без автоматического retry.
+
+- `LOAD_WORKER_MODE=adaptive`: проверить адаптивную отправку.
+- `--scale worker=2`: проверить общий предел двух процессов.
+- `LOAD_UPLOADS=true`: добавить загрузку большого исходника каждым пользователем.
+- `LOAD_STEADY=true`: поток в течение 15 минут с ожиданием завершения принятых задач.
+- `EXPECT_FAILURE=true`: для сценариев, где намеренно ожидаются terminal failures.
+
+Изолированно остановить один worker во время `SENDING` и повторить после
+`RAW_READY`; проверить ошибки/возвраты и отсутствие повторного AI после checkpoint.
+Для ошибок инфраструктуры временно останавливать только `load-db` либо ограничивать
+доступ к тестовому volume, после чего восстановить и дождаться обработки очереди.
+
+Worker пишет JSON-события `generation_dispatch`, `generation_ai`,
+`generation_processed`, `generation_throttled`, `worker_metrics`.
+
+```bash
+docker compose -f docker-compose.load.yml logs --no-color worker > .data/load/worker.log
+node scripts/load/report.mjs .data/load/worker.log .data/load/worker-report.json
+docker compose -f docker-compose.load.yml stats --no-stream
+```
+
+k6 сохраняет `summary.json` в volume fixtures: время до результата p50/p95,
+приём заданий и долю завершений. CPU в worker — накопленные микросекунды; нагрузку
+за интервал считать по разности значений одного процесса. Docker stats нужен
+для полной памяти контейнера, CPU и I/O. Показатели fake не являются измерением
+пропускной способности Google. Платный тест требует отдельного бюджета.
+
+После проверки остановить именно этот контур через
+`docker compose -f docker-compose.load.yml down`. Удаление volumes выполняется
+отдельно, только когда тестовые результаты больше не нужны.
+
+### Полный цикл worker и финансовая сверка
+
+На отдельной локальной тестовой БД с применёнными миграциями:
+
+```bash
+TEST_DATABASE_URL=postgresql://ruvie_test:local-test-only@127.0.0.1:55439/ruvie_refactor_test node scripts/load/run-verification.mjs
+LOAD_WORKER_MODE=adaptive TEST_DATABASE_URL=postgresql://ruvie_test:local-test-only@127.0.0.1:55439/ruvie_refactor_test node scripts/load/run-verification.mjs
+```
+
+Проверка выполняет настоящий `processGeneration`, подменяя только fake-ответы и намеренные сбои. Чужие активные разрешения того же регулятора приводят к отказу запуска проверки. `scripts/load/audit.ts` сверяет terminal statuses, оставшиеся резервы, отрицательные балансы и повторные возвраты в тестовом контуре.
+
+В каждом режиме выполняются 11 сценариев. Два из них запускают отдельный процесс worker, останавливают его через `SIGKILL` в PREPARING и RAW_READY и ждут естественного истечения аренды примерно 60 секунд. Эти ожидания входят во время проверки; даты аренды в этих сценариях не изменяются вручную.
+
+Фактические измерения и ограничения: [отчёт по параллельным генерациям](reports/adaptive-generation-workers.md).

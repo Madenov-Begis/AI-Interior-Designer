@@ -66,3 +66,6 @@ next-env.d.ts
 !.agents/skills/ruvie-bug-investigation/**
 !.agents/skills/ruvie-release-check/
 !.agents/skills/ruvie-release-check/**
+
+# Собранный worker.
+/dist/

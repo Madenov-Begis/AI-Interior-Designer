@@ -1,6 +1,7 @@
 type DatabaseEnvironment = {
   DATABASE_URL: string;
   DATABASE_SSL_MODE?: string;
+  LOAD_TEST_MODE?: string;
 };
 
 export function databaseConnectionOptions(env: DatabaseEnvironment) {
@@ -37,7 +38,12 @@ export function databaseConnectionOptions(env: DatabaseEnvironment) {
 
   if (mode === "disable") {
     if (
-      !["localhost", "127.0.0.1", "[::1]", "postgres"].includes(url.hostname)
+      !["localhost", "127.0.0.1", "[::1]", "postgres"].includes(url.hostname) &&
+      !(
+        env.LOAD_TEST_MODE === "true" &&
+        url.hostname === "load-db" &&
+        url.pathname === "/ruvie_refactor_test"
+      )
     ) {
       throw new Error(
         "TLS можно отключать только для loopback или Docker-сервиса postgres",

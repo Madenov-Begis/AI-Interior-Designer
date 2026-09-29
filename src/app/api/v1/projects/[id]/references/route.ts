@@ -42,8 +42,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     const user = await requireCurrentUser();
     const { id } = await context.params;
-    releaseUpload = await uploadGate.acquire();
-    const formData = await readUploadFormData(request, user.id);
+    const formData = await readUploadFormData(request, user.id, async () => { releaseUpload = await uploadGate.acquire(); });
     const files = formData
       .getAll("files")
       .filter((value): value is File => value instanceof File);

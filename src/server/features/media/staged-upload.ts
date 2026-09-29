@@ -100,10 +100,13 @@ const bodySchema = z.object({
     .max(32),
 });
 
-export async function readUploadFormData(request: NextRequest, userId: string) {
-  if (!request.headers.get("content-type")?.includes("application/json"))
+export async function readUploadFormData(request: NextRequest, userId: string, acquireCapacity?: () => Promise<void>) {
+  if (!request.headers.get("content-type")?.includes("application/json")) {
+    await acquireCapacity?.();
     return request.formData();
+  }
   const body = bodySchema.parse(await request.json());
+  if (body.uploads.length) await acquireCapacity?.();
   const target = request.nextUrl.pathname.replace(/^\/api\/v1/, "");
   const form = new FormData();
   for (const [key, values] of Object.entries(body.fields))

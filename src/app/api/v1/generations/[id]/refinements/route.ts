@@ -86,8 +86,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const idempotencyKey = idempotencyKeySchema.parse(
       request.headers.get("idempotency-key"),
     );
-    releaseUpload = await uploadGate.acquire();
-    const formData = await readUploadFormData(request, user.id);
+    const formData = await readUploadFormData(request, user.id, async () => { releaseUpload = await uploadGate.acquire(); });
     const overlay = formData.get("overlay");
     const canvasStateValue = formData.get("canvasState");
     refinementVisualPromptPairSchema.parse({

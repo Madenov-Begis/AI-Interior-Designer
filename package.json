@@ -44,7 +44,8 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:db:up": "docker compose up -d postgres",
-    "worker:start": "node --experimental-strip-types scripts/generation-worker.ts",
+    "worker:build": "esbuild scripts/generation-worker.ts --bundle --platform=node --target=node24 --format=esm --packages=external --alias:server-only=./scripts/server-only-empty.js --outfile=dist/worker.mjs",
+    "worker:start": "pnpm worker:build && node dist/worker.mjs",
     "env:secrets": "node scripts/generate-secrets.mjs"
   },
   "dependencies": {

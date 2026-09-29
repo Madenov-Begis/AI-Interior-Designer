@@ -36,7 +36,9 @@ const serverEnvSchema = z
     GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_OAUTH_CALLBACK_URL: z.url().optional(),
     DATABASE_URL: z.string().min(1),
-    DATABASE_SSL_MODE: z.enum(["verify-full", "disable"]).default("verify-full"),
+    DATABASE_SSL_MODE: z
+      .enum(["verify-full", "disable"])
+      .default("verify-full"),
     DIRECT_URL: z.string().min(1),
     AI_PROVIDER: z.enum(["fake", "vertex"]).default("fake"),
     GENERATIONS_ENABLED: z
@@ -45,8 +47,19 @@ const serverEnvSchema = z
       .transform((value) => value === "true"),
     PAYMENT_PROVIDER: z.enum(["disabled", "mock"]).default("disabled"),
     WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(100).default(1),
+    WORKER_GLOBAL_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(100),
     WORKER_MODE: z.enum(["fixed", "adaptive"]).default("fixed"),
-    WORKER_ADAPTIVE_INITIAL: z.coerce.number().int().min(1).max(100).default(10),
+    WORKER_ADAPTIVE_INITIAL: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(10),
     WORKER_ADAPTIVE_MAX: z.coerce.number().int().min(1).max(100).default(20),
     WORKER_STARTS_PER_SECOND: z.coerce.number().positive().max(100).default(2),
     WORKER_INPUT_BUDGET_MB: z.coerce.number().positive().default(256),
@@ -54,7 +67,9 @@ const serverEnvSchema = z
     WORKER_TEMP_BUDGET_MB: z.coerce.number().positive().default(5120),
     WORKER_IMAGE_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
     LOAD_TEST_MODE: z.enum(["true", "false"]).default("false"),
-    FAKE_SCENARIO: z.enum(["normal", "delay", "burst", "429", "timeout"]).default("normal"),
+    FAKE_SCENARIO: z
+      .enum(["normal", "delay", "burst", "429", "timeout"])
+      .default("normal"),
     WORKER_HEARTBEAT_FILE: z
       .string()
       .min(1)
@@ -79,10 +94,10 @@ const serverEnvSchema = z
       env.GOOGLE_OAUTH_CALLBACK_URL,
     );
     for (const field of [
-        "AUTH_SESSION_SECRET",
-        "GOOGLE_OAUTH_CLIENT_ID",
-        "GOOGLE_OAUTH_CLIENT_SECRET",
-        "GOOGLE_OAUTH_CALLBACK_URL",
+      "AUTH_SESSION_SECRET",
+      "GOOGLE_OAUTH_CLIENT_ID",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "GOOGLE_OAUTH_CALLBACK_URL",
     ] as const) {
       if (!env[field])
         context.addIssue({
@@ -100,12 +115,13 @@ const serverEnvSchema = z
       context.addIssue({
         code: "custom",
         path: ["GOOGLE_OAUTH_CALLBACK_URL"],
-        message: "Для production нужен HTTPS callback; HTTP допустим только для локального /auth/callback",
+        message:
+          "Для production нужен HTTPS callback; HTTP допустим только для локального /auth/callback",
       });
     for (const field of [
-        "STORAGE_ROOT",
-        "STORAGE_PUBLIC_ORIGIN",
-        "STORAGE_SIGNING_SECRET",
+      "STORAGE_ROOT",
+      "STORAGE_PUBLIC_ORIGIN",
+      "STORAGE_SIGNING_SECRET",
     ] as const) {
       if (!env[field])
         context.addIssue({
@@ -128,7 +144,11 @@ const serverEnvSchema = z
         message: "Обязателен exact allowlist origin для production-клиента",
       });
     }
-    if (env.NODE_ENV === "production" && !localPreview && !env.AUTH_COOKIE_DOMAIN) {
+    if (
+      env.NODE_ENV === "production" &&
+      !localPreview &&
+      !env.AUTH_COOKIE_DOMAIN
+    ) {
       context.addIssue({
         code: "custom",
         path: ["AUTH_COOKIE_DOMAIN"],
@@ -150,13 +170,47 @@ const serverEnvSchema = z
       });
     }
     if (env.WORKER_ADAPTIVE_INITIAL > env.WORKER_ADAPTIVE_MAX) {
-      context.addIssue({ code: "custom", path: ["WORKER_ADAPTIVE_INITIAL"], message: "Начальный предел выше максимального" });
+      context.addIssue({
+        code: "custom",
+        path: ["WORKER_ADAPTIVE_INITIAL"],
+        message: "Начальный предел выше максимального",
+      });
     }
-    if (env.FAKE_SCENARIO !== "normal" && (env.LOAD_TEST_MODE !== "true" || env.AI_PROVIDER !== "fake")) {
-      context.addIssue({ code: "custom", path: ["FAKE_SCENARIO"], message: "Сценарии доступны только в тестовом fake-контуре" });
+    if (
+      env.FAKE_SCENARIO !== "normal" &&
+      (env.LOAD_TEST_MODE !== "true" || env.AI_PROVIDER !== "fake")
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["FAKE_SCENARIO"],
+        message: "Сценарии доступны только в тестовом fake-контуре",
+      });
+    }
+    if (env.LOAD_TEST_MODE === "true") {
+      let isolated = false;
+      try {
+        const database = new URL(env.DATABASE_URL);
+        isolated =
+          database.pathname === "/ruvie_refactor_test" &&
+          ["localhost", "127.0.0.1", "load-db"].includes(database.hostname) &&
+          !database.search;
+      } catch {
+        /* Некорректный URL отклоняется ниже. */
+      }
+      if (!isolated || !isLocalHttpOrigin(env.APP_URL))
+        context.addIssue({
+          code: "custom",
+          path: ["LOAD_TEST_MODE"],
+          message:
+            "Нагрузочный режим требует локальную тестовую БД и локальный APP_URL",
+        });
     }
     if (env.LOAD_TEST_MODE === "true" && env.AI_PROVIDER !== "fake") {
-      context.addIssue({ code: "custom", path: ["LOAD_TEST_MODE"], message: "Нагрузочный контур требует fake" });
+      context.addIssue({
+        code: "custom",
+        path: ["LOAD_TEST_MODE"],
+        message: "Нагрузочный контур требует fake",
+      });
     }
     if (env.AI_PROVIDER === "vertex") {
       if (!env.GOOGLE_CLOUD_PROJECT_ID)
@@ -178,8 +232,7 @@ const serverEnvSchema = z
         context.addIssue({
           code: "custom",
           path: ["GOOGLE_APPLICATION_CREDENTIALS_JSON"],
-          message:
-            "Для Vertex AI нужны Google credentials",
+          message: "Для Vertex AI нужны Google credentials",
         });
     }
     try {

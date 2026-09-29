@@ -47,8 +47,7 @@ export async function POST(
     await enforceRateLimit(request, "source-upload", 20, 60_000, user.id);
     const { id } = await context.params;
     const projectId = projectIdSchema.parse(id);
-    releaseUpload = await uploadGate.acquire();
-    const value = (await readUploadFormData(request, user.id)).get("file");
+    const value = (await readUploadFormData(request, user.id, async () => { releaseUpload = await uploadGate.acquire(); })).get("file");
     if (!(value instanceof File))
       return apiError(
         "FILE_REQUIRED",

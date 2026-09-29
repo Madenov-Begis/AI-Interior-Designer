@@ -488,6 +488,7 @@ model GenerationExecution {
   leaseUntil DateTime
   nextAttemptAt DateTime @default(now())
   providerAttempts Int @default(0)
+  finalPath String?
   rawPath String?
   rawMimeType String?
   rawBytes Int @default(0)

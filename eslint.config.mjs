@@ -56,6 +56,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".data/**",
+    "dist/**",
     "out/**",
     "build/**",
     "admin/dist/**",

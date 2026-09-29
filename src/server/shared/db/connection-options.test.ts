@@ -75,3 +75,24 @@ test("ошибки подключения не раскрывают пароль
     /DATABASE_SSL_MODE/,
   );
 });
+
+test("load-db без TLS доступна только в явно включённом тестовом контуре", () => {
+  const env = {
+    DATABASE_URL: "postgresql://user:password@load-db/ruvie_refactor_test",
+    DATABASE_SSL_MODE: "disable",
+  };
+  assert.throws(() => databaseConnectionOptions(env), /TLS/);
+  assert.equal(
+    databaseConnectionOptions({ ...env, LOAD_TEST_MODE: "true" }).ssl,
+    false,
+  );
+  assert.throws(
+    () =>
+      databaseConnectionOptions({
+        ...env,
+        LOAD_TEST_MODE: "true",
+        DATABASE_URL: "postgresql://user:password@load-db/production",
+      }),
+    /TLS/,
+  );
+});

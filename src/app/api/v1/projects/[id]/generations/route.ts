@@ -101,8 +101,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     ensureGenerationsEnabled();
 
-    releaseUpload = await uploadGate.acquire();
-    const formData = await readUploadFormData(request, user.id);
+    const formData = await readUploadFormData(request, user.id, async () => { releaseUpload = await uploadGate.acquire(); });
     const overlay = formData.get("overlay");
     const canvasState = formData.get("canvasState");
     const visualPrompt = visualPromptInputSchema.parse({

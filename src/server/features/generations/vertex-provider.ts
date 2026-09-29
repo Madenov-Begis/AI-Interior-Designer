@@ -1,6 +1,10 @@
 import "server-only";
 
-import { Modality, type Part } from "@google/genai";
+import {
+  Modality,
+  type GenerateContentResponse,
+  type Part,
+} from "@google/genai";
 import { normalizeProviderOutput } from "./provider-output";
 import type { AspectRatio } from "@/generated/prisma/enums";
 import type {
@@ -10,11 +14,9 @@ import type {
   ProviderOutput,
   RawProviderOutput,
 } from "@/server/features/generations/provider";
-import {
-  GENERATION_IMAGE_SIZE,
-} from "@/server/features/generations/generation-image";
+import { GENERATION_IMAGE_SIZE } from "@/server/features/generations/generation-image";
 import { INTERIOR_DESIGN_SYSTEM_PROMPT } from "@/server/features/generations/professional-system-prompt";
-import { createVertexGenAi } from "@/server/shared/integrations/google/vertex-client";
+import { requestVertexGeneration } from "@/server/shared/integrations/google/vertex-client";
 
 const ASPECT_RATIOS: Record<AspectRatio, string> = {
   RATIO_1_1: "1:1",
@@ -73,20 +75,22 @@ export class VertexGeminiImageProvider implements ImageGenerationProvider {
   }
 
   async generateRaw(input: ProviderInput): Promise<RawProviderOutput> {
-    const ai = await createVertexGenAi(this.timeoutSeconds, 1);
-    const response = await ai.models.generateContent({
-      model: this.modelId,
-      contents: [{ role: "user", parts: buildParts(input) }],
-      config: {
-        systemInstruction: INTERIOR_DESIGN_SYSTEM_PROMPT,
-        responseModalities: [Modality.TEXT, Modality.IMAGE],
-        imageConfig: {
-          aspectRatio: ASPECT_RATIOS[input.aspectRatio],
-          imageSize: GENERATION_IMAGE_SIZE,
-          imageOutputOptions: { mimeType: "image/png" },
+    const response = (await requestVertexGeneration(
+      this.modelId,
+      {
+        contents: [{ role: "user", parts: buildParts(input) }],
+        systemInstruction: { parts: [{ text: INTERIOR_DESIGN_SYSTEM_PROMPT }] },
+        generationConfig: {
+          responseModalities: [Modality.TEXT, Modality.IMAGE],
+          imageConfig: {
+            aspectRatio: ASPECT_RATIOS[input.aspectRatio],
+            imageSize: GENERATION_IMAGE_SIZE,
+            imageOutputOptions: { mimeType: "image/png" },
+          },
         },
       },
-    });
+      this.timeoutSeconds,
+    )) as GenerateContentResponse;
     const generated = response.candidates
       ?.flatMap((candidate) => candidate.content?.parts ?? [])
       .find(

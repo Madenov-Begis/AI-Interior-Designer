@@ -31,7 +31,7 @@ test("passes the professional role through the Gemini system instruction", async
 
   assert.match(
     providerSource,
-    /systemInstruction: INTERIOR_DESIGN_SYSTEM_PROMPT/,
+    /systemInstruction: \{\s*parts: \[\{ text: INTERIOR_DESIGN_SYSTEM_PROMPT/,
   );
   assert.match(providerSource, /input\.operation === "refinement"/);
   assert.match(providerSource, /exact existing interior result selected/);
