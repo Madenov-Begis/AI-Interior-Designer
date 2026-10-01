@@ -85,7 +85,7 @@ Compose читает `.env` и `.env.production`; эти файлы могут �
 
 ### Нагрузочное тестирование генераций
 
-Единый сценарий — `docker-compose.load.yml` и `scripts/load/`. Команды приведены в разделе изолированного нагрузочного контура ниже. Старые runners отключены, чтобы исключить запуск на неверной базе.
+Единый сценарий — `docker-compose.load.yml` и `scripts/load/`. Команды приведены в разделе изолированного нагрузочного контура ниже. Старые runners удалены, чтобы исключить запуск на неверной базе.
 
 ### Browser-проверка
 
@@ -221,6 +221,7 @@ Worker пишет JSON-события `generation_dispatch`, `generation_ai`,
 `generation_processed`, `generation_throttled`, `worker_metrics`.
 
 ```bash
+mkdir -p .data/load
 docker compose -f docker-compose.load.yml logs --no-color worker > .data/load/worker.log
 node scripts/load/report.mjs .data/load/worker.log .data/load/worker-report.json
 docker compose -f docker-compose.load.yml stats --no-stream
