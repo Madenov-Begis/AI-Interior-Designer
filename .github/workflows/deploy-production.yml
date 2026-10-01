@@ -1,0 +1,49 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: [Quality]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: ruvie-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'master' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Настроить SSH-доступ к серверу
+        env:
+          DEPLOY_KEY: ${{ secrets.RUVIE_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.RUVIE_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          test -n "$DEPLOY_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/ruvie_deploy"
+          chmod 600 "$HOME/.ssh/ruvie_deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Развернуть проверенный коммит master
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -eu
+          case "$DEPLOY_SHA" in
+            ""|*[!0-9a-f]*) exit 2 ;;
+          esac
+          test "${#DEPLOY_SHA}" -eq 40
+          ssh -i "$HOME/.ssh/ruvie_deploy" \
+            -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            root@135.106.173.211 "deploy $DEPLOY_SHA"

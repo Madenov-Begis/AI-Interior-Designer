@@ -1,7 +1,9 @@
-name: Pull request quality
+name: Quality
 
 on:
   pull_request:
+  push:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
