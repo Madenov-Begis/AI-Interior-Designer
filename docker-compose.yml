@@ -61,7 +61,7 @@ services:
       STORAGE_PUBLIC_ORIGIN: ${STORAGE_PUBLIC_ORIGIN:-http://localhost:3000}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/service-account.json}
     ports:
-      - "${PORT:-3000}:3000"
+      - "127.0.0.1:${PORT:-3000}:3000"
     volumes:
       - media_data:/data/media
       - ./service-account.json:/app/service-account.json:ro
@@ -114,7 +114,7 @@ services:
         VITE_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000}
     restart: unless-stopped
     ports:
-      - "${ADMIN_PORT:-8080}:80"
+      - "127.0.0.1:${ADMIN_PORT:-8080}:80"
     depends_on:
       - web
 

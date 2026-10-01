@@ -130,6 +130,16 @@ GOOGLE_OAUTH_CALLBACK_URL=https://yourdomain.com/auth/callback
 5. Перейдите в [IAM & Admin — Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts?project=project-2b9ed972-97d2-4024-984).
 6. Выберите сервисный аккаунт `ruvie-vertex` → вкладка **Keys** → **Add Key** → **Create new key** (JSON).
 7. Скачанный JSON-файл разместите на сервере как `service-account.json` (примонтирован в Docker как `/app/service-account.json:ro`) либо передайте его содержимое одной строкой в `.env` переменной `GOOGLE_APPLICATION_CREDENTIALS_JSON`.
+
+Если используете файл `service-account.json`, он должен читаться процессами `web` и `worker`, которые работают в контейнерах от пользователя `node` (UID 1000). На Linux-сервере задайте владельца и права перед запуском или после замены файла:
+
+```bash
+sudo chown 1000:1000 service-account.json
+sudo chmod 600 service-account.json
+```
+
+Иначе проверка загружаемой фотографии и AI-генерация завершатся ошибкой доступа к файлу (`EACCES`). Не помещайте этот файл в Git.
+
 *Преимущество:* Ключ бессрочный, никогда не протухает и не зависит от личных учётных записей.
 
 #### Временный вариант (ADC / User Refresh Token):
